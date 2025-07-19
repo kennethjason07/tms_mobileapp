@@ -12,8 +12,12 @@ import {
   ScrollView,
   Platform,
   KeyboardAvoidingView,
+  Image,
+  Pressable,
+  SafeAreaView,
 } from 'react-native';
 import { SupabaseAPI } from './supabase';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function WorkersScreen({ navigation }) {
   const [workers, setWorkers] = useState([]);
@@ -203,19 +207,65 @@ export default function WorkersScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Workers</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setModalVisible(true)}
-          disabled={loading}
+      <View style={{
+        backgroundColor: '#2980b9',
+        paddingTop: 32,
+        paddingBottom: 24,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      }}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [{
+            backgroundColor: pressed ? 'rgba(255,255,255,0.18)' : 'transparent',
+            borderRadius: 26,
+            marginRight: 8,
+            width: 52,
+            height: 52,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }]}
         >
-          <Text style={styles.addButtonText}>+ Add</Text>
+          <Ionicons name="chevron-back-circle" size={40} color="#fff" />
+        </Pressable>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Workers</Text>
+        </View>
+        <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
+      </View>
+
+      {/* Floating Action Buttons */}
+      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#2980b9',
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 0,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+          }}
+          onPress={() => setModalVisible(true)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={36} color="#fff" />
         </TouchableOpacity>
       </View>
+      <SafeAreaView style={{ height: 32 }} />
 
       {Platform.OS === 'web' ? (
         <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
@@ -441,6 +491,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+    marginTop: 32, // bring header down
   },
   backButton: {
     padding: 8,

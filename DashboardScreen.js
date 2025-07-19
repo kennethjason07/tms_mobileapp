@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { SupabaseAPI } from './supabase';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 
 const NAV_ITEMS = [
   { label: 'New Bill', desc: 'Create and manage new customer bills', screen: 'NewBill', available: true },
@@ -50,104 +51,111 @@ export default function DashboardScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLogo}>
-          <Image source={require('./assets/logo.png')} style={styles.logo} />
-          <Text style={styles.companyName}>Starset Consultancy Services</Text>
-        </View>
-        <View style={styles.profileContainer}>
-          <TouchableOpacity
-            style={styles.profileBtn}
-            onPress={() => setDropdownVisible(!dropdownVisible)}
-            activeOpacity={0.7}
-            disabled={loading}
-          >
-            {/* SVG replaced with View for simplicity */}
-            <View style={styles.profileIcon} />
-            <Text style={styles.profileText}>Select Role</Text>
-          </TouchableOpacity>
-          {dropdownVisible && (
-            <View style={styles.dropdownContent}>
-              <TouchableOpacity onPress={handleAdminLogin}>
-                <Text style={styles.dropdownItem}>Admin</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+    <View style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
+      {/* Solid Color Header */}
+      <View style={{
+        backgroundColor: '#2980b9',
+        paddingTop: 32,
+        paddingBottom: 24,
+        paddingHorizontal: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      }}>
+        <Image source={require('./assets/logo.jpg')} style={{ width: 80, height: 80, marginTop: 24, marginBottom: 8, resizeMode: 'contain', alignSelf: 'center', transform: [{ scale: 1.25 }], borderRadius: 40 }} />
+        <Text style={{ fontSize: 26, fontWeight: 'bold', color: '#fff', letterSpacing: 1, marginBottom: 4, textAlign: 'center', alignSelf: 'center' }}>Maximus Consultancy Service</Text>
+        <Text style={{ fontSize: 16, color: '#e0e0e0', marginBottom: 8, textAlign: 'center', alignSelf: 'center' }}>Welcome! Manage your tailoring business with ease.</Text>
       </View>
-
       {/* Main Content */}
-      {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView
-            style={{ overflow: 'visible' }}
-            showsVerticalScrollIndicator={true}
-          >
-            <Text style={styles.dashboardTitle}>Dashboard</Text>
-            <View style={styles.navigationGrid}>
-              {NAV_ITEMS.map((item, idx) => (
-                <TouchableOpacity
-                  key={item.label}
-                  style={[
-                    styles.navCard, 
-                    loading && styles.navCardDisabled,
-                    !item.available && styles.navCardComingSoon
-                  ]}
-                  onPress={() => handleNavigation(item.screen, item.available)}
-                  activeOpacity={0.8}
-                  disabled={loading}
-                >
-                  <Text style={[
-                    styles.navCardTitle,
-                    !item.available && styles.navCardTitleComingSoon
-                  ]}>
-                    {item.label}
-                    {!item.available && ' (Coming Soon)'}
-                  </Text>
-                  <Text style={styles.navCardDesc}>{item.desc}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 24 }} showsVerticalScrollIndicator={false}>
+        <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#34495e', marginBottom: 18, marginLeft: 4 }}>Dashboard</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          {/* Navigation Cards in the specified order */}
+          <DashboardCard
+            icon={<MaterialCommunityIcons name="calendar-plus" size={32} color="#c0392b" />}
+            label="New Bill"
+            desc="Create and manage new customer bills"
+            onPress={() => navigation.navigate('NewBill')}
+          />
+          <DashboardCard
+            icon={<Ionicons name="person-circle-outline" size={32} color="#16a085" />}
+            label="Customer Information"
+            desc="View and manage customer details"
+            onPress={() => navigation.navigate('CustomerInfo')}
+          />
+          <DashboardCard
+            icon={<MaterialCommunityIcons name="clipboard-list-outline" size={32} color="#27ae60" />}
+            label="Orders Overview"
+            desc="Track and manage all orders"
+            onPress={() => navigation.navigate('OrdersOverview')}
+          />
+          <DashboardCard
+            icon={<FontAwesome5 name="money-bill-wave" size={32} color="#e67e22" />}
+            label="Shop Expenses"
+            desc="Manage shop expenses and costs"
+            onPress={() => navigation.navigate('ShopExpense')}
+          />
+          <DashboardCard
+            icon={<FontAwesome5 name="user-tie" size={32} color="#8e44ad" />}
+            label="Worker Expenses"
+            desc="Track worker payments and expenses"
+            onPress={() => navigation.navigate('WorkerExpense')}
+          />
+          <DashboardCard
+            icon={<FontAwesome5 name="calendar-week" size={32} color="#2980b9" />}
+            label="Weekly Pay Calculation"
+            desc="Calculate worker weekly payments"
+            onPress={() => navigation.navigate('WeeklyPay')}
+          />
+          <DashboardCard
+            icon={<Ionicons name="people" size={32} color="#2980b9" />}
+            label="Worker Detailed Overview"
+            desc="View detailed worker performance"
+            onPress={() => navigation.navigate('Workers')}
+          />
+          <DashboardCard
+            icon={<MaterialCommunityIcons name="chart-bar" size={32} color="#e67e22" />}
+            label="Daily Profit"
+            desc="Track daily and monthly profits"
+            onPress={() => navigation.navigate('DailyProfit')}
+          />
         </View>
-      ) : (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1 }}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.dashboardTitle}>Dashboard</Text>
-            <View style={styles.navigationGrid}>
-              {NAV_ITEMS.map((item, idx) => (
-                <TouchableOpacity
-                  key={item.label}
-                  style={[
-                    styles.navCard, 
-                    loading && styles.navCardDisabled,
-                    !item.available && styles.navCardComingSoon
-                  ]}
-                  onPress={() => handleNavigation(item.screen, item.available)}
-                  activeOpacity={0.8}
-                  disabled={loading}
-                >
-                  <Text style={[
-                    styles.navCardTitle,
-                    !item.available && styles.navCardTitleComingSoon
-                  ]}>
-                    {item.label}
-                    {!item.available && ' (Coming Soon)'}
-                  </Text>
-                  <Text style={styles.navCardDesc}>{item.desc}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      )}
+      </ScrollView>
     </View>
+  );
+}
+
+function DashboardCard({ icon, label, desc, onPress }) {
+  return (
+    <TouchableOpacity
+      style={{
+        width: '47%',
+        backgroundColor: '#fff',
+        borderRadius: 18,
+        padding: 18,
+        marginBottom: 18,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'transform 0.1s',
+      }}
+      activeOpacity={0.85}
+      onPress={onPress}
+    >
+      <View style={{ marginBottom: 12 }}>{icon}</View>
+      <Text style={{ fontSize: 17, fontWeight: 'bold', color: '#34495e', marginBottom: 6, textAlign: 'center', alignSelf: 'center' }}>{label}</Text>
+      <Text style={{ fontSize: 13, color: '#7f8c8d', textAlign: 'center', alignSelf: 'center', lineHeight: 18 }}>{desc}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -164,6 +172,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+    marginTop: 32, // bring header down
   },
   headerLogo: { flexDirection: 'row', alignItems: 'center' },
   logo: { width: 60, height: 60, marginRight: 12, resizeMode: 'contain' },

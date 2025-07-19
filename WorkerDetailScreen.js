@@ -9,9 +9,11 @@ import {
   FlatList,
   ScrollView,
   Platform,
+  Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { SupabaseAPI } from './supabase';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function WorkerDetailScreen({ navigation }) {
   const [workers, setWorkers] = useState([]);
@@ -122,11 +124,28 @@ export default function WorkerDetailScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detailed Overview</Text>
+      <View style={{
+        backgroundColor: '#2980b9',
+        paddingTop: 32,
+        paddingBottom: 24,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ backgroundColor: 'transparent', borderRadius: 20, marginRight: 8 }}>
+            <Ionicons name="arrow-back-circle" size={32} color="#fff" />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', marginRight: 8 }}>Worker Detailed Overview</Text>
+        </View>
+        <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
       {Platform.OS === 'web' ? (

@@ -16,12 +16,15 @@ import {
   Platform,
   Share,
   KeyboardAvoidingView,
+  Pressable,
+  SafeAreaView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -375,12 +378,13 @@ export default function NewBillScreen({ navigation }) {
 
       // 2. Use orderNumber for the new bill
       const totals = calculateTotals();
+      const todayStr = new Date().toISOString().split('T')[0]; // Always use today
       let billToSave = {
         customer_name: billData.customer_name,
         mobile_number: billData.mobile_number,
-        date_issue: billData.order_date,
+        date_issue: todayStr, // force today
         delivery_date: billData.due_date,
-        today_date: billData.order_date,
+        today_date: todayStr, // force today
         due_date: billData.due_date,
         payment_status: billData.payment_status,
         payment_mode: billData.payment_mode,
@@ -422,14 +426,14 @@ export default function NewBillScreen({ navigation }) {
         bill_id: billId,
         billnumberinput2: orderNumber ? orderNumber.toString() : null, // Ensure string or null
         garment_type: getGarmentTypes(),
-        order_date: billData.order_date,
+        order_date: todayStr, // force today
         due_date: billData.due_date,
         total_amt: parseFloat(totals.total_amt),
         payment_amount: parseFloat(billData.payment_amount) || 0,
         payment_status: billData.payment_status,
         payment_mode: billData.payment_mode,
         status: 'pending',
-        Work_pay: parseFloat(totals.total_amt) * 0.3, // 30% of total amount as work pay
+        Work_pay: null, // Only set after workers are assigned
       };
       // Sanitize orderData
       Object.keys(orderData).forEach(key => {
@@ -730,18 +734,39 @@ export default function NewBillScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Dashboard')} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Home</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Bill</Text>
-        <TouchableOpacity
-          style={styles.resetButton}
-          onPress={resetForm}
-          disabled={saving}
+      <View style={{
+        backgroundColor: '#2980b9',
+        paddingTop: 32,
+        paddingBottom: 24,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      }}>
+        <Pressable
+          onPress={() => navigation.navigate('Dashboard')}
+          style={({ pressed }) => [{
+            backgroundColor: pressed ? 'rgba(255,255,255,0.18)' : 'transparent',
+            borderRadius: 26,
+            marginRight: 8,
+            width: 52,
+            height: 52,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }]}
         >
-          <Text style={styles.resetButtonText}>Reset</Text>
-        </TouchableOpacity>
+          <Ionicons name="chevron-back-circle" size={40} color="#fff" />
+        </Pressable>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>New Bill</Text>
+        </View>
+        <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
       {Platform.OS === 'web' ? (
@@ -1431,7 +1456,7 @@ export default function NewBillScreen({ navigation }) {
               <Text style={styles.saveButtonText}>Save and Print</Text>
             )}
           </TouchableOpacity>
-        </View>
+        </View> 
       </ScrollView>
     </View>
   ) : (
@@ -2179,6 +2204,32 @@ export default function NewBillScreen({ navigation }) {
           />
         )
       )}
+
+      {/* Floating Action Buttons */}
+      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#e74c3c',
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 0,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+          }}
+          onPress={resetForm}
+          activeOpacity={0.85}
+          disabled={saving}
+        >
+          <Ionicons name="refresh" size={36} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      <SafeAreaView style={{ height: 32 }} />
     </View>
   );
 }
@@ -2210,6 +2261,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+    marginTop: 32, // bring header down
   },
   backButton: {
     padding: 8,
@@ -2240,7 +2292,7 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     elevation: 2,

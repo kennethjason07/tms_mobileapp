@@ -11,8 +11,12 @@ import {
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
+  Image,
+  Pressable,
+  SafeAreaView,
 } from 'react-native';
 import { SupabaseAPI } from './supabase';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CustomerInfoScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -113,11 +117,39 @@ export default function CustomerInfoScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Customer's Information</Text>
+      <View style={{
+        backgroundColor: '#2980b9',
+        paddingTop: 32,
+        paddingBottom: 24,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      }}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [{
+            backgroundColor: pressed ? 'rgba(255,255,255,0.18)' : 'transparent',
+            borderRadius: 26,
+            marginRight: 8,
+            width: 52,
+            height: 52,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }]}
+        >
+          <Ionicons name="chevron-back-circle" size={40} color="#fff" />
+        </Pressable>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Customer's Information</Text>
+        </View>
+        <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
       {Platform.OS === 'web' ? (
@@ -232,6 +264,7 @@ export default function CustomerInfoScreen({ navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+      <SafeAreaView style={{ height: 32 }} />
     </View>
   );
 }
@@ -249,6 +282,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
+    marginTop: 32, // bring header down
   },
   backButton: {
     padding: 8,

@@ -14,9 +14,12 @@ import {
   Dimensions,
   Platform,
   KeyboardAvoidingView,
+  Pressable,
+  SafeAreaView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -42,6 +45,12 @@ export default function OrdersOverviewScreen({ navigation }) {
   const [editingAmounts, setEditingAmounts] = useState({});
 
   useEffect(() => {
+    // Always reset filters when opening the screen
+    setFilters({
+      deliveryStatus: '',
+      paymentStatus: '',
+      deliveryDate: '',
+    });
     loadData();
   }, []);
 
@@ -59,13 +68,22 @@ export default function OrdersOverviewScreen({ navigation }) {
       
       // Process orders data to match frontend structure
       const processedOrders = ordersData
-        .filter(order => order.id && order.bill_id && order.customer_mobile) // Only include orders with valid ID, bill_id, and customer_mobile
+        // REMOVE the filter so all orders are shown
         .map(order => ({
           ...order,
           deliveryDate: order.due_date,
           workers: order.order_worker_association?.map(assoc => assoc.workers) || []
         }))
-        .sort((a, b) => new Date(b.order_date) - new Date(a.order_date)); // Sort by order_date descending
+        // Sort by order_date descending, then billnumberinput2 descending
+        .sort((a, b) => {
+          const dateA = new Date(normalizeDate(a.order_date));
+          const dateB = new Date(normalizeDate(b.order_date));
+          if (dateA.getTime() === dateB.getTime()) {
+            // If dates are the same, sort by billnumberinput2 descending
+            return (b.billnumberinput2 || 0) - (a.billnumberinput2 || 0);
+          }
+          return dateB - dateA;
+        });
       
       setOrders(processedOrders);
       setFilteredOrders(processedOrders);
@@ -99,7 +117,15 @@ export default function OrdersOverviewScreen({ navigation }) {
       );
     }
 
-    filtered = filtered.sort((a, b) => new Date(b.order_date) - new Date(a.order_date)); // Sort by order_date descending
+    // Sort by order_date descending, then billnumberinput2 descending
+    filtered = filtered.sort((a, b) => {
+      const dateA = new Date(normalizeDate(a.order_date));
+      const dateB = new Date(normalizeDate(b.order_date));
+      if (dateA.getTime() === dateB.getTime()) {
+        return (b.billnumberinput2 || 0) - (a.billnumberinput2 || 0);
+      }
+      return dateB - dateA;
+    });
 
     setFilteredOrders(filtered);
     setCurrentPage(1);
@@ -114,7 +140,16 @@ export default function OrdersOverviewScreen({ navigation }) {
     try {
       setLoading(true);
       const data = await SupabaseAPI.searchOrders(searchQuery);
-      setFilteredOrders(data);
+      // Sort by order_date descending, then billnumberinput2 descending
+      const sortedData = data.sort((a, b) => {
+        const dateA = new Date(normalizeDate(a.order_date));
+        const dateB = new Date(normalizeDate(b.order_date));
+        if (dateA.getTime() === dateB.getTime()) {
+          return (b.billnumberinput2 || 0) - (a.billnumberinput2 || 0);
+        }
+        return dateB - dateA;
+      });
+      setFilteredOrders(sortedData);
     } catch (error) {
       Alert.alert('Error', `Search failed: ${error.message}`);
     } finally {
@@ -300,15 +335,10 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
   };
 
-  // Helper to format date as dd-mm-yyyy
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${day}-${month}-${year}`;
-  };
+  // Helper to normalize date string to YYYY-MM-DD (no conversion needed, just return as is)
+  function normalizeDate(dateStr) {
+    return dateStr || '';
+  }
 
   const renderTableHeader = () => (
     <View style={styles.tableHeader}>
@@ -374,8 +404,8 @@ export default function OrdersOverviewScreen({ navigation }) {
           )}
         </View>
         
-        <Text style={[styles.cell, { width: 120 }]}>{formatDate(order.order_date)}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{formatDate(order.due_date)}</Text>
+        <Text style={[styles.cell, { width: 120 }]}>{normalizeDate(order.order_date)}</Text>
+        <Text style={[styles.cell, { width: 120 }]}>{normalizeDate(order.due_date)}</Text>
         
         <View style={[styles.cell, { width: 120 }]}>
           {hasValidId ? (
@@ -551,7 +581,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         </View>
         
         <Text style={[styles.cell, { width: 200 }]}>{workerNames}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{order.Work_pay || "N/A"}</Text>
+        <Text style={[styles.cell, { width: 120 }]}>{Array.isArray(order.workers) && order.workers.length > 0 && typeof order.Work_pay === 'number' && !isNaN(order.Work_pay) ? order.Work_pay : 0}</Text>
       </View>
     );
   };
@@ -722,13 +752,24 @@ export default function OrdersOverviewScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Orders Overview</Text>
-        <TouchableOpacity onPress={loadData} style={styles.refreshButton}>
-          <Text style={styles.refreshButtonText}>↻</Text>
-        </TouchableOpacity>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [{
+            backgroundColor: pressed ? 'rgba(255,255,255,0.18)' : 'transparent',
+            borderRadius: 26,
+            marginRight: 8,
+            width: 52,
+            height: 52,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }]}
+        >
+          <Ionicons name="chevron-back-circle" size={40} color="#fff" />
+        </Pressable>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={[styles.headerTitle, { textAlign: 'center', fontSize: 22, fontWeight: 'bold', color: '#fff', letterSpacing: 1 }]}>Orders Overview</Text>
+        </View>
+        <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
       <View style={styles.searchContainer}>
@@ -797,6 +838,30 @@ export default function OrdersOverviewScreen({ navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+      {/* Floating Reload Button */}
+      <View style={{ position: 'absolute', right: 24, bottom: 32, alignItems: 'flex-end', zIndex: 100 }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#2980b9',
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 0,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+          }}
+          onPress={loadData}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="refresh-circle" size={36} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      <SafeAreaView style={{ height: 32 }} />
     </View>
   );
 }
@@ -813,6 +878,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#2980b9',
     elevation: 4,
+    marginTop: 32, // bring header down
   },
   backButton: {
     padding: 8,
@@ -936,7 +1002,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginHorizontal: 8,
     marginBottom: 8,
-    borderRadius: 8,
+    borderRadius: 12,
     elevation: 2,
   },
   tableWrapper: {
@@ -1027,8 +1093,8 @@ const styles = StyleSheet.create({
   amountInput: {
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 4,
-    padding: 4,
+    borderRadius: 8,
+    padding: 10,
     fontSize: 12,
     textAlign: 'center',
     minWidth: 80,
