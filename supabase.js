@@ -977,6 +977,36 @@ export const SupabaseAPI = {
     return data
   },
 
+  // Get all orders for a specific bill
+  async getOrdersByBillId(billId) {
+    try {
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('bill_id', billId)
+        .order('order_date', { ascending: false })
+      
+      if (ordersError) throw ordersError
+
+      // Get the bill information
+      const { data: bill, error: billError } = await supabase
+        .from('bills')
+        .select('*')
+        .eq('id', billId)
+        .single()
+      
+      if (billError) throw billError
+
+      return {
+        orders: orders || [],
+        bill: bill
+      }
+    } catch (error) {
+      console.error('Error getting orders by bill ID:', error)
+      throw error
+    }
+  },
+
   // Payment Mode Update API (replaces route6.py)
   async updatePaymentMode(orderId, paymentMode) {
     const { data, error } = await supabase

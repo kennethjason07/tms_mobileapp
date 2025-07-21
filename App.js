@@ -12,6 +12,7 @@ import WeeklyPayScreen from './WeeklyPayScreen';
 import NewBillScreen from './NewBillScreen';
 import WorkerDetailScreen from './WorkerDetailScreen';
 import DailyProfitScreen from './DailyProfitScreen';
+import WhatsAppConfigScreen from './WhatsAppConfigScreen';
 
 const Stack = createStackNavigator();
 
@@ -35,6 +36,7 @@ export default function App() {
           <Stack.Screen name="NewBill" component={NewBillScreen} />
           <Stack.Screen name="WorkerDetail" component={WorkerDetailScreen} />
           <Stack.Screen name="DailyProfit" component={DailyProfitScreen} />
+          <Stack.Screen name="WhatsAppConfig" component={WhatsAppConfigScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

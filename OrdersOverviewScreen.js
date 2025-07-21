@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
+import { WhatsAppService } from './whatsappService';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
@@ -166,8 +167,66 @@ export default function OrdersOverviewScreen({ navigation }) {
     try {
       setLoading(true);
       await SupabaseAPI.updateOrderStatus(orderId, newStatus);
+      
+      // If status is being set to completed, check if all orders for this bill are completed
+      if (newStatus.toLowerCase() === 'completed') {
+        // Find the current order to get its bill_id
+        const currentOrder = orders.find(order => order.id === orderId);
+        if (currentOrder && currentOrder.bill_id) {
+          try {
+            // Get all orders for this bill
+            const { orders: billOrders, bill } = await SupabaseAPI.getOrdersByBillId(currentOrder.bill_id);
+            
+            // Check if all orders for this bill are completed
+            const allCompleted = billOrders.every(order => 
+              order.status?.toLowerCase() === 'completed'
+            );
+            
+            if (allCompleted && bill) {
+              // Send WhatsApp notification
+              try {
+                const customerInfo = WhatsAppService.getCustomerInfoFromBill(bill);
+                const orderDetails = WhatsAppService.generateOrderDetailsString(billOrders);
+                const message = WhatsAppService.generateCompletionMessage(
+                  customerInfo.name,
+                  bill.id,
+                  orderDetails
+                );
+                
+                if (customerInfo.mobile) {
+                  await WhatsAppService.sendWhatsAppMessage(customerInfo.mobile, message);
+                  Alert.alert(
+                    'Success', 
+                    'Order status updated successfully and WhatsApp notification sent to customer!'
+                  );
+                } else {
+                  Alert.alert(
+                    'Success', 
+                    'Order status updated successfully. WhatsApp notification skipped - no mobile number found.'
+                  );
+                }
+              } catch (whatsappError) {
+                console.error('WhatsApp notification error:', whatsappError);
+                Alert.alert(
+                  'Success', 
+                  'Order status updated successfully. WhatsApp notification failed - please check your API configuration.'
+                );
+              }
+            } else {
+              Alert.alert('Success', 'Order status updated successfully');
+            }
+          } catch (billError) {
+            console.error('Error checking bill completion:', billError);
+            Alert.alert('Success', 'Order status updated successfully');
+          }
+        } else {
+          Alert.alert('Success', 'Order status updated successfully');
+        }
+      } else {
+        Alert.alert('Success', 'Order status updated successfully');
+      }
+      
       loadData();
-      Alert.alert('Success', 'Order status updated successfully');
     } catch (error) {
       Alert.alert('Error', `Failed to update status: ${error.message}`);
     } finally {
@@ -769,7 +828,20 @@ export default function OrdersOverviewScreen({ navigation }) {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={[styles.headerTitle, { textAlign: 'center', fontSize: 22, fontWeight: 'bold', color: '#fff', letterSpacing: 1 }]}>Orders Overview</Text>
         </View>
-        <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('WhatsAppConfig')}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              borderRadius: 20,
+              padding: 8,
+              marginRight: 8,
+            }}
+          >
+            <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#fff' }} />
+        </View>
       </View>
 
       <View style={styles.searchContainer}>
