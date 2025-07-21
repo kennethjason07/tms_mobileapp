@@ -260,7 +260,25 @@ export default function OrdersOverviewScreen({ navigation }) {
     try {
       setLoading(true);
       const result = await SupabaseAPI.assignWorkersToOrder(orderId, workerIds);
-      loadData();
+      
+      // Manually update the order in local state for immediate UI feedback
+      const assignedWorkerObjects = workers.filter(worker => workerIds.includes(worker.id));
+      
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, Work_pay: result.work_pay, workers: assignedWorkerObjects }
+            : order
+        )
+      );
+      setFilteredOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, Work_pay: result.work_pay, workers: assignedWorkerObjects }
+            : order
+        )
+      );
+      
       setWorkerDropdownVisible(prev => ({ ...prev, [orderId]: false }));
       Alert.alert('Success', `Workers assigned successfully. Total Work Pay: ₹${result.work_pay.toFixed(2)}`);
     } catch (error) {
@@ -492,8 +510,8 @@ export default function OrdersOverviewScreen({ navigation }) {
                 onPress={() => toggleWorkerDropdown(order.id)}
               >
                 <Text style={styles.dropdownButtonText}>
-                  {selectedWorkers[order.id]?.length > 0 
-                    ? `${selectedWorkers[order.id].length} selected` 
+                  {order.workers && order.workers.length > 0
+                    ? `${order.workers.length} selected`
                     : 'Select Workers'}
                 </Text>
                 <Text style={styles.dropdownArrow}>{isWorkerDropdownOpen ? '▲' : '▼'}</Text>
@@ -514,23 +532,32 @@ export default function OrdersOverviewScreen({ navigation }) {
                     <View style={styles.dropdownModal} onStartShouldSetResponder={() => true}>
                       <Text style={styles.dropdownTitle}>Select Workers</Text>
                       <ScrollView style={styles.workerList}>
-                        {workers.map((worker, workerIndex) => (
-                          <TouchableOpacity
-                            key={`worker-${worker.id || 'null'}-${workerIndex}`}
-                            style={[
-                              styles.workerOption,
-                              selectedWorkers[order.id]?.includes(worker.id) && styles.workerOptionSelected
-                            ]}
-                            onPress={() => handleWorkerSelection(order.id, worker.id)}
-                          >
-                            <Text style={[
-                              styles.workerOptionText,
-                              selectedWorkers[order.id]?.includes(worker.id) && styles.workerOptionTextSelected
-                            ]}>
-                              {worker.name || 'Unknown Worker'}
-        </Text>
-                          </TouchableOpacity>
-                        ))}
+                        {workers.map((worker, workerIndex) => {
+                          const isSelected = selectedWorkers[order.id]?.includes(worker.id);
+                          const selectionCount = selectedWorkers[order.id]?.length || 0;
+                          const isDisabled = !isSelected && selectionCount >= 2;
+                          return (
+                            <TouchableOpacity
+                              key={`worker-${worker.id || 'null'}-${workerIndex}`}
+                              style={[
+                                styles.workerOption,
+                                isSelected && styles.workerOptionSelected,
+                                isDisabled && { opacity: 0.5 }
+                              ]}
+                              onPress={() => {
+                                if (!isDisabled) handleWorkerSelection(order.id, worker.id);
+                              }}
+                              disabled={isDisabled}
+                            >
+                              <Text style={[
+                                styles.workerOptionText,
+                                isSelected && styles.workerOptionTextSelected
+                              ]}>
+                                {worker.name || 'Unknown Worker'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </ScrollView>
                       <View style={styles.dropdownActions}>
                         <TouchableOpacity
@@ -550,7 +577,17 @@ export default function OrdersOverviewScreen({ navigation }) {
           )}
         </View>
         
-        <Text style={[styles.cell, { width: 200 }]}>{workerNames}</Text>
+        <View style={[styles.cell, { width: 200 }]}> 
+          {order.workers && order.workers.length > 0
+            ? (
+                <View style={{alignItems: 'center'}}>
+                  {order.workers.map((worker, idx) => (
+                    <Text key={worker.id || idx} style={[styles.cell, {textAlign: 'center', borderRightWidth: 0, padding: 0}]}>{worker.name}</Text>
+                  ))}
+                </View>
+              )
+            : <Text style={[styles.cell, {textAlign: 'center', borderRightWidth: 0, padding: 0}]}>Not Assigned</Text>}
+        </View>
         <Text style={[styles.cell, { width: 120 }]}>{order.Work_pay || "N/A"}</Text>
       </View>
     );
