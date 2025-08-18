@@ -989,7 +989,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#2980b9',
     elevation: 4,
-    marginTop: 32, // bring header down
+    paddingTop: Platform.OS === 'ios' ? 0 : 32, // iOS safe area handled by SafeAreaView
   },
   backButton: {
     padding: 8,

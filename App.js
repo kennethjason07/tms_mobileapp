@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Platform, StatusBar } from 'react-native';
 import DashboardScreen from './DashboardScreen';
 import WorkersScreen from './WorkersScreen';
 import OrdersOverviewScreen from './OrdersOverviewScreen';
@@ -19,11 +20,31 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <SafeAreaProvider>
+      <StatusBar 
+        barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'} 
+        backgroundColor={Platform.OS === 'android' ? '#2980b9' : undefined} 
+      />
       <NavigationContainer>
         <Stack.Navigator 
           initialRouteName="Dashboard"
           screenOptions={{
             headerShown: false,
+            ...(Platform.OS === 'ios' && {
+              cardStyleInterpolator: ({ current, layouts }) => {
+                return {
+                  cardStyle: {
+                    transform: [
+                      {
+                        translateX: current.progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [layouts.screen.width, 0],
+                        }),
+                      },
+                    ],
+                  },
+                };
+              },
+            }),
           }}
         >
           <Stack.Screen name="Dashboard" component={DashboardScreen} />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, Platform, KeyboardAvoidingView, SafeAreaView, StatusBar } from 'react-native';
 import { SupabaseAPI } from './supabase';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 
@@ -51,11 +51,12 @@ export default function DashboardScreen({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
+      <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'light-content'} backgroundColor="#2980b9" />
       {/* Solid Color Header */}
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: 32,
+        paddingTop: Platform.OS === 'ios' ? 8 : 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         alignItems: 'center',
@@ -127,7 +128,7 @@ export default function DashboardScreen({ navigation }) {
           />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

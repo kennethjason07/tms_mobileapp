@@ -18,6 +18,7 @@ import {
   KeyboardAvoidingView,
   Pressable,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
