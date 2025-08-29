@@ -167,10 +167,7 @@ export default function WeeklyPayScreen({ navigation }) {
 
       {Platform.OS === 'web' ? (
         <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView
-            style={{ overflow: 'visible' }}
-            showsVerticalScrollIndicator={true}
-          >
+          <ScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
             {/* Worker Selection Section */}
             <View style={styles.selectionSection}>
               <Text style={styles.sectionTitle}>Select Worker:</Text>

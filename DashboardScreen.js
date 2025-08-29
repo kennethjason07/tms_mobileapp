@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, Platform, KeyboardAvoidingView, SafeAreaView, StatusBar } from 'react-native';
+import WebScrollView from './components/WebScrollView';
 import { SupabaseAPI } from './supabase';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 
@@ -74,7 +75,7 @@ export default function DashboardScreen({ navigation }) {
         <Text style={{ fontSize: 16, color: '#e0e0e0', marginBottom: 8, textAlign: 'center', alignSelf: 'center' }}>Welcome! Manage your tailoring business with ease.</Text>
       </View>
       {/* Main Content */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 24 }} showsVerticalScrollIndicator={false}>
+      <WebScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 24 }} showsVerticalScrollIndicator={false}>
         <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#34495e', marginBottom: 18, marginLeft: 4 }}>Dashboard</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
           {/* Navigation Cards in the specified order */}
@@ -127,7 +128,7 @@ export default function DashboardScreen({ navigation }) {
             onPress={() => navigation.navigate('DailyProfit')}
           />
         </View>
-      </ScrollView>
+      </WebScrollView>
     </SafeAreaView>
   );
 }

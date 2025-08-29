@@ -16,6 +16,7 @@ import {
   Pressable,
   SafeAreaView,
 } from 'react-native';
+import WebScrollView from './components/WebScrollView';
 import { SupabaseAPI } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -268,19 +269,17 @@ export default function WorkersScreen({ navigation }) {
       <SafeAreaView style={{ height: 32 }} />
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView
-            style={{ overflow: 'visible' }}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={styles.listContainer}
-          >
-            {workers.map((item, index) => (
-              <React.Fragment key={item?.id || `no-id-${index}`}>
-                {renderWorker({ item })}
-              </React.Fragment>
-            ))}
-          </ScrollView>
-        </View>
+        <WebScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={true}
+        >
+          {workers.map((item, index) => (
+            <React.Fragment key={item?.id || `no-id-${index}`}>
+              {renderWorker({ item })}
+            </React.Fragment>
+          ))}
+        </WebScrollView>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <FlatList

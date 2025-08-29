@@ -17,6 +17,7 @@ import {
   Pressable,
   SafeAreaView,
 } from 'react-native';
+import WebScrollView from './components/WebScrollView';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
 import { WhatsAppService } from './whatsappService';
@@ -896,31 +897,29 @@ export default function OrdersOverviewScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView
-            style={{ overflow: 'visible' }}
-            showsVerticalScrollIndicator={true}
-          >
-            {renderFilters()}
-            
-            {currentOrders.length > 0 ? (
-              <View style={styles.tableContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                  <View style={styles.tableWrapper}>
-                    {renderTableHeader()}
-                    {currentOrders.map((order, index) => renderTableRow(order, index))}
+        <WebScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={true}
+        >
+          {renderFilters()}
+          
+          {currentOrders.length > 0 ? (
+            <View style={styles.tableContainer}>
+              <WebScrollView horizontal={true} showsVerticalScrollIndicator={false}>
+                <View style={styles.tableWrapper}>
+                  {renderTableHeader()}
+                  {currentOrders.map((order, index) => renderTableRow(order, index))}
                 </View>
-                </ScrollView>
-                    </View>
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Text style={styles.noDataText}>No orders found.</Text>
-                      </View>
-                    )}
+              </WebScrollView>
+            </View>
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>No orders found.</Text>
+            </View>
+          )}
 
-            {renderPagination()}
-          </ScrollView>
-        </View>
+          {renderPagination()}
+        </WebScrollView>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView

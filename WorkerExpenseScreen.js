@@ -280,10 +280,7 @@ export default function WorkerExpenseScreen({ navigation }) {
 
       {Platform.OS === 'web' ? (
         <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView
-            style={{ overflow: 'visible' }}
-            showsVerticalScrollIndicator={true}
-          >
+          <ScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
             <FlatList
               data={filteredExpenses}
               renderItem={renderExpense}

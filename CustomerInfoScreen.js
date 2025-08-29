@@ -153,11 +153,8 @@ export default function CustomerInfoScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView
-            style={{ overflow: 'visible' }}
-            showsVerticalScrollIndicator={true}
-          >
+        <View style={{ flex: 1, overflow: 'auto' }}>
+          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
             {/* Search Section */}
             <View style={styles.searchSection}>
               <Text style={styles.sectionTitle}>Customer's Information</Text>

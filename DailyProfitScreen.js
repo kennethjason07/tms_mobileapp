@@ -443,11 +443,7 @@ export default function DailyProfitScreen({ navigation }) {
 
       {Platform.OS === 'web' ? (
         <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView
-            style={{ overflow: 'visible' }}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={styles.listContainer}
-          >
+          <ScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
             {filteredData.map((item, index) => (
               <TouchableOpacity
                 key={`${item.date}-${index}`}

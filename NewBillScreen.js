@@ -20,6 +20,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
+import WebScrollView from './components/WebScrollView';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
 import * as Print from 'expo-print';
@@ -771,12 +772,11 @@ export default function NewBillScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView
-            style={{ overflow: 'visible' }}
-            contentContainerStyle={Platform.OS === 'web' ? { paddingBottom: 120 } : undefined}
-            showsVerticalScrollIndicator={true}
-          >
+        <WebScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
+          showsVerticalScrollIndicator={true}
+        >
         {/* Order Number Display */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Number</Text>
@@ -1458,8 +1458,7 @@ export default function NewBillScreen({ navigation }) {
             )}
           </TouchableOpacity>
         </View> 
-      </ScrollView>
-    </View>
+      </WebScrollView>
   ) : (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
