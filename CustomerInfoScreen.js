@@ -15,8 +15,10 @@ import {
   Pressable,
   SafeAreaView,
 } from 'react-native';
+import WebScrollView from './components/WebScrollView';
 import { SupabaseAPI } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { createShadowStyle, shadowPresets } from './utils/shadowUtils';
 
 export default function CustomerInfoScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,11 +128,7 @@ export default function CustomerInfoScreen({ navigation }) {
         alignItems: 'center',
         borderBottomLeftRadius: 32,
         borderBottomRightRadius: 32,
-        elevation: 6,
-        shadowColor: '#000',
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
+        ...createShadowStyle(shadowPresets.large),
       }}>
         <Pressable
           onPress={() => navigation.goBack()}
@@ -153,8 +151,8 @@ export default function CustomerInfoScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ flex: 1, overflow: 'auto' }}>
-          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
+        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
+          <WebScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
             {/* Search Section */}
             <View style={styles.searchSection}>
               <Text style={styles.sectionTitle}>Customer's Information</Text>
@@ -202,7 +200,7 @@ export default function CustomerInfoScreen({ navigation }) {
                 </View>
               )}
             </View>
-          </ScrollView>
+          </WebScrollView>
         </View>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

@@ -255,6 +255,21 @@ export default function WorkerExpenseScreen({ navigation }) {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Worker Expenses</Text>
         </View>
+        {/* Temporary test button */}
+        {Platform.OS === 'web' && (
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={{
+              backgroundColor: '#27ae60',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 8,
+              marginRight: 8,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>+ Add</Text>
+          </TouchableOpacity>
+        )}
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
@@ -305,7 +320,18 @@ export default function WorkerExpenseScreen({ navigation }) {
       )}
 
       {/* Floating Action Buttons */}
-      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
+      <View style={{
+        position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+        right: 24,
+        bottom: Platform.OS === 'web' ? 24 : 96,
+        alignItems: 'flex-end',
+        zIndex: Platform.OS === 'web' ? 9999 : 100,
+        ...(Platform.OS === 'web' && {
+          position: 'fixed',
+          right: '24px',
+          bottom: '24px',
+        })
+      }}>
         {/* Uncomment and implement reset if needed */}
         {/* <TouchableOpacity
           style={{
@@ -341,6 +367,10 @@ export default function WorkerExpenseScreen({ navigation }) {
             shadowOpacity: 0.2,
             shadowRadius: 8,
             shadowOffset: { width: 0, height: 4 },
+            ...(Platform.OS === 'web' && {
+              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+              cursor: 'pointer'
+            })
           }}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.85}
@@ -368,25 +398,49 @@ export default function WorkerExpenseScreen({ navigation }) {
 
             <ScrollView style={styles.modalBody}>
               <Text style={styles.inputLabel}>Select Worker:</Text>
-              <ScrollView style={styles.workerSelector} horizontal showsHorizontalScrollIndicator={false}>
-                {workers.map((worker) => (
-                  <TouchableOpacity
-                    key={worker?.id || Math.random()}
-                    style={[
-                      styles.workerOption,
-                      newExpense.worker_id === worker?.id?.toString() && styles.workerOptionSelected
-                    ]}
-                    onPress={() => setNewExpense({ ...newExpense, worker_id: worker?.id?.toString() })}
-                  >
-                    <Text style={[
-                      styles.workerOptionText,
-                      newExpense.worker_id === worker?.id?.toString() && styles.workerOptionTextSelected
-                    ]}>
+              {Platform.OS === 'web' ? (
+                <select
+                  style={{
+                    padding: 12,
+                    borderRadius: 8,
+                    border: '1px solid #ddd',
+                    marginBottom: 16,
+                    fontSize: 16,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    color: '#2c3e50'
+                  }}
+                  value={newExpense.worker_id}
+                  onChange={(e) => setNewExpense({ ...newExpense, worker_id: e.target.value })}
+                >
+                  <option value="">-- Select a Worker --</option>
+                  {workers.map((worker) => (
+                    <option key={worker?.id || Math.random()} value={worker?.id?.toString()}>
                       {worker.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <ScrollView style={styles.workerSelector} horizontal showsHorizontalScrollIndicator={false}>
+                  {workers.map((worker) => (
+                    <TouchableOpacity
+                      key={worker?.id || Math.random()}
+                      style={[
+                        styles.workerOption,
+                        newExpense.worker_id === worker?.id?.toString() && styles.workerOptionSelected
+                      ]}
+                      onPress={() => setNewExpense({ ...newExpense, worker_id: worker?.id?.toString() })}
+                    >
+                      <Text style={[
+                        styles.workerOptionText,
+                        newExpense.worker_id === worker?.id?.toString() && styles.workerOptionTextSelected
+                      ]}>
+                        {worker.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
 
               {Platform.OS === 'web' ? (
                 <input
@@ -490,25 +544,49 @@ export default function WorkerExpenseScreen({ navigation }) {
             {editingExpense && (
               <ScrollView style={styles.modalBody}>
                 <Text style={styles.inputLabel}>Select Worker:</Text>
-                <ScrollView style={styles.workerSelector} horizontal showsHorizontalScrollIndicator={false}>
-                  {workers.map((worker) => (
-                    <TouchableOpacity
-                      key={worker?.id || Math.random()}
-                      style={[
-                        styles.workerOption,
-                        editingExpense.worker_id === worker?.id && styles.workerOptionSelected
-                      ]}
-                      onPress={() => setEditingExpense({ ...editingExpense, worker_id: worker?.id })}
-                    >
-                      <Text style={[
-                        styles.workerOptionText,
-                        editingExpense.worker_id === worker?.id && styles.workerOptionTextSelected
-                      ]}>
+                {Platform.OS === 'web' ? (
+                  <select
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      border: '1px solid #ddd',
+                      marginBottom: 16,
+                      fontSize: 16,
+                      width: '100%',
+                      backgroundColor: 'white',
+                      color: '#2c3e50'
+                    }}
+                    value={editingExpense.worker_id?.toString()}
+                    onChange={(e) => setEditingExpense({ ...editingExpense, worker_id: parseInt(e.target.value) })}
+                  >
+                    <option value="">-- Select a Worker --</option>
+                    {workers.map((worker) => (
+                      <option key={worker?.id || Math.random()} value={worker?.id?.toString()}>
                         {worker.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <ScrollView style={styles.workerSelector} horizontal showsHorizontalScrollIndicator={false}>
+                    {workers.map((worker) => (
+                      <TouchableOpacity
+                        key={worker?.id || Math.random()}
+                        style={[
+                          styles.workerOption,
+                          editingExpense.worker_id === worker?.id && styles.workerOptionSelected
+                        ]}
+                        onPress={() => setEditingExpense({ ...editingExpense, worker_id: worker?.id })}
+                      >
+                        <Text style={[
+                          styles.workerOptionText,
+                          editingExpense.worker_id === worker?.id && styles.workerOptionTextSelected
+                        ]}>
+                          {worker.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
 
                 {Platform.OS === 'web' ? (
                   <input

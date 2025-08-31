@@ -419,25 +419,61 @@ export default function OrdersOverviewScreen({ navigation }) {
   }
 
   const renderTableHeader = () => (
-    <View style={styles.tableHeader}>
-      <Text style={[styles.headerCell, { width: 60 }]}>ID</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Bill Number</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Garment Type</Text>
-      <Text style={[styles.headerCell, { width: 100 }]}>Delivery Status</Text>
-      <Text style={[styles.headerCell, { width: 200 }]}>Update Delivery Status</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Order Date</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Delivery Date</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Payment Mode</Text>
-      <Text style={[styles.headerCell, { width: 100 }]}>Payment Status</Text>
-      <Text style={[styles.headerCell, { width: 200 }]}>Update Payment Status</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Total Amount</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Advance Amount</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Pending Amount</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Customer Mobile</Text>
-      <Text style={[styles.headerCell, { width: 100 }]}>Bill ID</Text>
-      <Text style={[styles.headerCell, { width: 150 }]}>Worker Assignment</Text>
-      <Text style={[styles.headerCell, { width: 200 }]}>Worker Names</Text>
-      <Text style={[styles.headerCell, { width: 120 }]}>Total Worker Pay</Text>
+    <View style={[styles.tableHeader, Platform.OS === 'web' && { display: 'flex', flexDirection: 'row', minWidth: '2470px' }]}>
+      <View style={[styles.headerCell, { width: 60, minWidth: 60, maxWidth: 60 }]}>
+        <Text style={styles.headerText}>ID</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Bill Number</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Garment Type</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
+        <Text style={styles.headerText}>Delivery Status</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
+        <Text style={styles.headerText}>Update Delivery Status</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Order Date</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Delivery Date</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Payment Mode</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
+        <Text style={styles.headerText}>Payment Status</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
+        <Text style={styles.headerText}>Update Payment Status</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Total Amount</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Advance Amount</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Pending Amount</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+        <Text style={styles.headerText}>Customer Mobile</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
+        <Text style={styles.headerText}>Bill ID</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 150, minWidth: 150, maxWidth: 150 }]}>
+        <Text style={styles.headerText}>Worker Assignment</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
+        <Text style={styles.headerText}>Worker Names</Text>
+      </View>
+      <View style={[styles.headerCell, { width: 120, minWidth: 120, maxWidth: 120, borderRightWidth: 0 }]}>
+        <Text style={styles.headerText}>Total Worker Pay</Text>
+      </View>
     </View>
   );
 
@@ -449,13 +485,21 @@ export default function OrdersOverviewScreen({ navigation }) {
     const hasValidId = order.id && order.id !== 'null' && order.id !== null;
 
     return (
-      <View key={uniqueKey} style={styles.tableRow}>
-        <Text style={[styles.cell, { width: 60 }]}>{order.id || 'N/A'}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{order.billnumberinput2 || "N/A"}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{order.garment_type || 'N/A'}</Text>
-        <Text style={[styles.cell, { width: 100 }]}>{order.status || 'N/A'}</Text>
+      <View key={uniqueKey} style={[styles.tableRow, Platform.OS === 'web' && { display: 'flex', flexDirection: 'row' }]}>
+        <View style={[styles.cell, { width: 60, minWidth: 60, maxWidth: 60 }]}>
+          <Text style={styles.cellText}>{order.id || 'N/A'}</Text>
+        </View>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+          <Text style={styles.cellText}>{order.billnumberinput2 || "N/A"}</Text>
+        </View>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+          <Text style={styles.cellText}>{order.garment_type || 'N/A'}</Text>
+        </View>
+        <View style={[styles.cell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
+          <Text style={styles.cellText}>{order.status || 'N/A'}</Text>
+        </View>
         
-        <View style={[styles.cell, { width: 200 }]}>
+        <View style={[styles.cell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
           {hasValidId ? (
             <View style={styles.buttonGroup}>
               <TouchableOpacity
@@ -482,10 +526,14 @@ export default function OrdersOverviewScreen({ navigation }) {
           )}
         </View>
         
-        <Text style={[styles.cell, { width: 120 }]}>{normalizeDate(order.order_date)}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{normalizeDate(order.due_date)}</Text>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+          <Text style={styles.cellText}>{normalizeDate(order.order_date)}</Text>
+        </View>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+          <Text style={styles.cellText}>{normalizeDate(order.due_date)}</Text>
+        </View>
         
-        <View style={[styles.cell, { width: 120 }]}>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
           {hasValidId ? (
             <View style={styles.buttonGroup}>
               <TouchableOpacity
@@ -504,11 +552,13 @@ export default function OrdersOverviewScreen({ navigation }) {
           ) : (
             <Text style={styles.disabledText}>No ID</Text>
           )}
-      </View>
+        </View>
 
-        <Text style={[styles.cell, { width: 100 }]}>{order.payment_status || 'N/A'}</Text>
+        <View style={[styles.cell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
+          <Text style={styles.cellText}>{order.payment_status || 'N/A'}</Text>
+        </View>
         
-        <View style={[styles.cell, { width: 200 }]}>
+        <View style={[styles.cell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
           {hasValidId ? (
             <View style={styles.buttonGroup}>
               <TouchableOpacity
@@ -533,9 +583,9 @@ export default function OrdersOverviewScreen({ navigation }) {
           ) : (
             <Text style={styles.disabledText}>No ID</Text>
           )}
-      </View>
+        </View>
 
-        <View style={[styles.cell, { width: 120 }]}>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
           {hasValidId ? (
             <TextInput
               style={styles.amountInput}
@@ -562,7 +612,7 @@ export default function OrdersOverviewScreen({ navigation }) {
           )}
         </View>
         
-        <View style={[styles.cell, { width: 120 }]}>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
           {hasValidId ? (
             <TextInput
               style={styles.amountInput}
@@ -588,11 +638,17 @@ export default function OrdersOverviewScreen({ navigation }) {
             <Text style={styles.disabledText}>No ID</Text>
           )}
         </View>
-        <Text style={[styles.cell, { width: 120 }]}>{pendingAmount}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{order.customer_mobile || "N/A"}</Text>
-        <Text style={[styles.cell, { width: 100 }]}>{order.bill_id || 'N/A'}</Text>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+          <Text style={styles.cellText}>{pendingAmount}</Text>
+        </View>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+          <Text style={styles.cellText}>{order.customer_mobile || "N/A"}</Text>
+        </View>
+        <View style={[styles.cell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
+          <Text style={styles.cellText}>{order.bill_id || 'N/A'}</Text>
+        </View>
         
-        <View style={[styles.cell, { width: 150 }]}>
+        <View style={[styles.cell, { width: 150, minWidth: 150, maxWidth: 150 }]}>
           {hasValidId ? (
             <>
               <TouchableOpacity
@@ -667,20 +723,12 @@ export default function OrdersOverviewScreen({ navigation }) {
           )}
         </View>
         
-        <Text style={[styles.cell, { width: 200 }]}>{workerNames}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{Array.isArray(order.workers) && order.workers.length > 0 && typeof order.Work_pay === 'number' && !isNaN(order.Work_pay) ? order.Work_pay : 0}</Text>
-        <View style={[styles.cell, { width: 200 }]}> 
-          {order.workers && order.workers.length > 0
-            ? (
-                <View style={{alignItems: 'center'}}>
-                  {order.workers.map((worker, idx) => (
-                    <Text key={worker.id || idx} style={[styles.cell, {textAlign: 'center', borderRightWidth: 0, padding: 0}]}>{worker.name}</Text>
-                  ))}
-                </View>
-              )
-            : <Text style={[styles.cell, {textAlign: 'center', borderRightWidth: 0, padding: 0}]}>Not Assigned</Text>}
+        <View style={[styles.cell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
+          <Text style={styles.cellText}>{workerNames}</Text>
         </View>
-        <Text style={[styles.cell, { width: 120 }]}>{order.Work_pay || "N/A"}</Text>
+        <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
+          <Text style={styles.cellText}>{Array.isArray(order.workers) && order.workers.length > 0 && typeof order.Work_pay === 'number' && !isNaN(order.Work_pay) ? order.Work_pay : 0}</Text>
+        </View>
       </View>
     );
   };
@@ -897,29 +945,43 @@ export default function OrdersOverviewScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <WebScrollView
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={true}
-        >
-          {renderFilters()}
-          
-          {currentOrders.length > 0 ? (
-            <View style={styles.tableContainer}>
-              <WebScrollView horizontal={true} showsVerticalScrollIndicator={false}>
-                <View style={styles.tableWrapper}>
-                  {renderTableHeader()}
-                  {currentOrders.map((order, index) => renderTableRow(order, index))}
-                </View>
-              </WebScrollView>
-            </View>
-          ) : (
-            <View style={styles.noDataContainer}>
-              <Text style={styles.noDataText}>No orders found.</Text>
-            </View>
-          )}
-
-          {renderPagination()}
-        </WebScrollView>
+        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
+          <WebScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
+            {renderFilters()}
+            {currentOrders.length > 0 ? (
+              <View style={styles.tableContainer}>
+                <div style={{ 
+                  overflowX: 'auto', 
+                  overflowY: 'auto', 
+                  width: '100%',
+                  maxHeight: '70vh',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{
+                    minWidth: '2470px',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    {renderTableHeader()}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      minWidth: '2470px'
+                    }}>
+                      {currentOrders.map((order, index) => renderTableRow(order, index))}
+                    </div>
+                  </div>
+                </div>
+              </View>
+            ) : (
+              <View style={styles.noDataContainer}>
+                <Text style={styles.noDataText}>No orders found.</Text>
+              </View>
+            )}
+            {renderPagination()}
+          </WebScrollView>
+        </View>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView
@@ -937,12 +999,12 @@ export default function OrdersOverviewScreen({ navigation }) {
                     {currentOrders.map((order, index) => renderTableRow(order, index))}
                 </View>
                 </ScrollView>
-                    </View>
+                </View>
             ) : (
               <View style={styles.noDataContainer}>
                 <Text style={styles.noDataText}>No orders found.</Text>
-                      </View>
-                    )}
+              </View>
+            )}
 
             {renderPagination()}
           </ScrollView>
@@ -1116,7 +1178,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tableWrapper: {
-    minWidth: 2000, // Ensure table has minimum width for scrolling
+    minWidth: 2470, // Ensure table has minimum width for scrolling to show all columns
   },
   tableHeader: {
     flexDirection: 'row',
@@ -1203,11 +1265,13 @@ const styles = StyleSheet.create({
   amountInput: {
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 12,
+    borderRadius: 4,
+    padding: 6,
+    fontSize: 11,
     textAlign: 'center',
-    minWidth: 80,
+    width: '95%',
+    maxWidth: 100,
+    height: 32,
   },
   dropdownButton: {
     backgroundColor: '#ecf0f1',
@@ -1359,4 +1423,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-}); 
+  headerText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+  },
+  cellText: {
+    fontSize: 12,
+    color: '#2c3e50',
+    textAlign: 'center',
+  },
+});

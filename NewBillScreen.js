@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -101,6 +101,7 @@ export default function NewBillScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [selectedDueDate, setSelectedDueDate] = useState(new Date());
+  const [screenData, setScreenData] = useState(Dimensions.get('window'));
   const [measurementType, setMeasurementType] = useState({
     pant: false,
     shirt: false,
@@ -170,11 +171,100 @@ export default function NewBillScreen({ navigation }) {
   // Add state for which date field is being picked
   const [activeDateField, setActiveDateField] = useState(null); // 'order' or 'due'
   const [selectedOrderDate, setSelectedOrderDate] = useState(new Date());
+  
+  // Scroll refs for both web and mobile
+  const webScrollRef = useRef(null);
+  const mobileScrollRef = useRef(null);
 
   useEffect(() => {
     loadData();
     generateBillNumber();
   }, []);
+
+  useEffect(() => {
+    const onChange = (result) => {
+      setScreenData(result.window);
+    };
+
+    const subscription = Dimensions.addEventListener('change', onChange);
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive layout calculations
+  const isSmallScreen = screenData.width < 768;
+  const isMediumScreen = screenData.width >= 768 && screenData.width < 1024;
+  const isLargeScreen = screenData.width >= 1024;
+  const isExtraLargeScreen = screenData.width >= 1440;
+
+  // Dynamic grid columns based on screen size
+  const getMeasurementColumns = () => {
+    if (isSmallScreen) return 1; // 1 column on small screens
+    if (isMediumScreen) return 2; // 2 columns on medium screens
+    if (isLargeScreen) return 3; // 3 columns on large screens
+    if (isExtraLargeScreen) return 4; // 4 columns on extra large screens
+    return 2; // fallback
+  };
+
+  // Dynamic input width based on screen size and columns
+  const getMeasurementInputWidth = () => {
+    const columns = getMeasurementColumns();
+    const gap = 8; // gap between items
+    return `${(100 / columns) - (gap * (columns - 1) / columns)}%`;
+  };
+
+  // Dynamic button layout
+  const getButtonLayout = () => {
+    if (isSmallScreen) return { direction: 'column', gap: 8 };
+    return { direction: 'row', gap: 16 };
+  };
+
+  // Dynamic modal width
+  const getModalWidth = () => {
+    if (isSmallScreen) return '95%';
+    if (isMediumScreen) return '80%';
+    if (isLargeScreen) return '60%';
+    return '50%';
+  };
+
+  // Dynamic table font size
+  const getTableFontSize = () => {
+    if (isSmallScreen) return 12;
+    if (isMediumScreen) return 14;
+    return 16;
+  };
+
+  // Dynamic padding based on screen size
+  const getResponsivePadding = () => {
+    if (isSmallScreen) return 12;
+    if (isMediumScreen) return 16;
+    if (isLargeScreen) return 20;
+    return 16; // fallback
+  };
+
+  // Dynamic font sizes
+  const getFontSizes = () => {
+    if (isSmallScreen) return { title: 16, subtitle: 14, input: 14, label: 13 };
+    if (isMediumScreen) return { title: 18, subtitle: 16, input: 15, label: 14 };
+    if (isLargeScreen) return { title: 20, subtitle: 18, input: 16, label: 15 };
+    return { title: 18, subtitle: 16, input: 15, label: 14 }; // fallback
+  };
+
+  // Dynamic section spacing
+  const getSectionSpacing = () => {
+    if (isSmallScreen) return 12;
+    if (isMediumScreen) return 16;
+    if (isLargeScreen) return 20;
+    return 16; // fallback
+  };
+
+  const fontSizes = getFontSizes();
+  const responsivePadding = getResponsivePadding();
+  const measurementColumns = getMeasurementColumns();
+  const measurementInputWidth = getMeasurementInputWidth();
+  const sectionSpacing = getSectionSpacing();
+  const buttonLayout = getButtonLayout();
+  const modalWidth = getModalWidth();
+  const tableFontSize = getTableFontSize();
 
   const loadData = async () => {
     try {
@@ -290,6 +380,24 @@ export default function NewBillScreen({ navigation }) {
         }
 
         Alert.alert('Success', 'Customer data loaded successfully');
+        
+        // Auto-scroll to measurements section after customer data is loaded
+        setTimeout(() => {
+          if (Platform.OS === 'web' && webScrollRef.current) {
+            try {
+              webScrollRef.current.scrollTo({ y: 600, animated: true });
+            } catch (error) {
+              console.log('Web scroll error:', error);
+            }
+          } else if (mobileScrollRef.current) {
+            try {
+              mobileScrollRef.current.scrollTo({ y: 600, animated: true });
+            } catch (error) {
+              console.log('Mobile scroll error:', error);
+            }
+          }
+        }, 500); // Small delay to ensure UI has updated
+        
       } else {
         Alert.alert('Not Found', 'No customer found with this mobile number');
       }
@@ -734,6 +842,147 @@ export default function NewBillScreen({ navigation }) {
     );
   }
 
+  // Dynamic styles that use responsive values
+  const dynamicStyles = {
+    section: {
+      backgroundColor: '#fff',
+      borderRadius: 16,
+      padding: responsivePadding,
+      marginBottom: sectionSpacing,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 4,
+      shadowOffset: { width: 0, height: 2 },
+    },
+    sectionTitle: {
+      fontSize: fontSizes.title,
+      fontWeight: 'bold',
+      color: '#2c3e50',
+      marginBottom: sectionSpacing,
+    },
+    inputLabel: {
+      fontSize: fontSizes.label,
+      fontWeight: '600',
+      color: '#2c3e50',
+      marginBottom: 8,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: '#ddd',
+      borderRadius: 8,
+      padding: responsivePadding,
+      fontSize: fontSizes.input,
+      backgroundColor: '#fff',
+    },
+    measurementInput: {
+      width: measurementInputWidth,
+      marginRight: isSmallScreen ? 0 : 8,
+      marginBottom: 8,
+    },
+    measurementGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: isSmallScreen ? 'center' : 'flex-start',
+    },
+    measurementTextInput: {
+      borderWidth: 1,
+      borderColor: '#ddd',
+      borderRadius: 8,
+      padding: responsivePadding / 2,
+      fontSize: fontSizes.input,
+      backgroundColor: '#fff',
+      minHeight: isSmallScreen ? 40 : 44,
+    },
+    measurementLabel: {
+      fontSize: fontSizes.label,
+      color: '#2c3e50',
+      marginBottom: 4,
+    },
+    searchRow: {
+      flexDirection: isSmallScreen ? 'column' : 'row',
+      alignItems: isSmallScreen ? 'stretch' : 'center',
+      gap: isSmallScreen ? 8 : 0,
+    },
+    searchInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: '#ddd',
+      borderRadius: 8,
+      padding: responsivePadding,
+      fontSize: fontSizes.input,
+      backgroundColor: '#fff',
+      marginRight: isSmallScreen ? 0 : 8,
+    },
+    searchButton: {
+      backgroundColor: '#2980b9',
+      paddingHorizontal: responsivePadding,
+      paddingVertical: responsivePadding,
+      borderRadius: 8,
+      minWidth: isSmallScreen ? '100%' : 'auto',
+    },
+    checkboxRow: {
+      flexDirection: isSmallScreen ? 'column' : 'row',
+      gap: isSmallScreen ? 8 : 0,
+    },
+    checkbox: {
+      paddingHorizontal: responsivePadding,
+      paddingVertical: responsivePadding / 2,
+      borderWidth: 1,
+      borderColor: '#ddd',
+      borderRadius: 8,
+      backgroundColor: '#fff',
+      marginRight: isSmallScreen ? 0 : 8,
+      marginBottom: isSmallScreen ? 8 : 0,
+      alignItems: 'center',
+    },
+    pickerContainer: {
+      flexDirection: isSmallScreen ? 'column' : 'row',
+      borderWidth: 1,
+      borderColor: '#ddd',
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    pickerOption: {
+      flex: isSmallScreen ? 0 : 1,
+      paddingVertical: responsivePadding,
+      paddingHorizontal: responsivePadding,
+      alignItems: 'center',
+      backgroundColor: '#fff',
+    },
+    tableText: {
+      fontSize: tableFontSize,
+    },
+    modalContent: {
+      backgroundColor: '#fff',
+      borderRadius: 12,
+      width: modalWidth,
+      maxHeight: '80%',
+    },
+    header: {
+      backgroundColor: '#2980b9',
+      paddingTop: responsivePadding * 2,
+      paddingBottom: responsivePadding * 1.5,
+      paddingHorizontal: responsivePadding,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderBottomLeftRadius: 32,
+      borderBottomRightRadius: 32,
+      elevation: 6,
+      shadowColor: '#000',
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+    },
+    headerTitle: {
+      fontSize: fontSizes.title + 4,
+      fontWeight: 'bold',
+      color: '#fff',
+      textAlign: 'center',
+      letterSpacing: 1,
+    },
+  };
+
   return (
     <View style={styles.container}>
       <View style={{
@@ -773,16 +1022,21 @@ export default function NewBillScreen({ navigation }) {
 
       {Platform.OS === 'web' ? (
         <WebScrollView
+          ref={webScrollRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ 
+            paddingBottom: isSmallScreen ? 200 : 180,
+            paddingHorizontal: responsivePadding,
+            minHeight: '100%'
+          }}
           showsVerticalScrollIndicator={true}
         >
         {/* Order Number Display */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Number</Text>
+        <View style={[dynamicStyles.section, { marginHorizontal: 0, marginTop: sectionSpacing }]}>
+          <Text style={dynamicStyles.sectionTitle}>Order Number</Text>
           <View style={styles.inputRow}>
             <TextInput
-              style={[styles.input, { fontWeight: 'bold', fontSize: 18, color: '#2c3e50' }]}
+              style={[dynamicStyles.input, { fontWeight: 'bold', fontSize: fontSizes.title, color: '#2c3e50' }]}
               value={billData.billnumberinput2 ? billData.billnumberinput2.toString() : ''}
               onChangeText={text => {
                 // Only allow numbers
@@ -797,15 +1051,15 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Customer Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Customer Information</Text>
+        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
+          <Text style={dynamicStyles.sectionTitle}>Customer Information</Text>
           
           {/* Customer Search */}
           <View style={styles.searchContainer}>
-            <Text style={styles.inputLabel}>Search by Mobile Number:</Text>
-            <View style={styles.searchRow}>
+            <Text style={dynamicStyles.inputLabel}>Search by Mobile Number:</Text>
+            <View style={dynamicStyles.searchRow}>
               <TextInput
-                style={styles.searchInput}
+                style={dynamicStyles.searchInput}
                 value={customerSearchMobile}
                 onChangeText={setCustomerSearchMobile}
                 placeholder="Enter 10-digit mobile number"
@@ -813,7 +1067,7 @@ export default function NewBillScreen({ navigation }) {
                 maxLength={10}
               />
           <TouchableOpacity
-                style={styles.searchButton}
+                style={dynamicStyles.searchButton}
                 onPress={handleCustomerSearch}
                 disabled={searching}
               >
@@ -828,9 +1082,9 @@ export default function NewBillScreen({ navigation }) {
 
           {/* Customer Details */}
           <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Customer Name:</Text>
+            <Text style={dynamicStyles.inputLabel}>Customer Name:</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               value={billData.customer_name}
               onChangeText={(text) => setBillData({ ...billData, customer_name: text })}
               placeholder="Customer name"
@@ -838,9 +1092,9 @@ export default function NewBillScreen({ navigation }) {
           </View>
 
           <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Mobile Number:</Text>
+            <Text style={dynamicStyles.inputLabel}>Mobile Number:</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               value={billData.mobile_number}
               onChangeText={(text) => setBillData({ ...billData, mobile_number: text })}
               placeholder="Mobile number"
@@ -850,27 +1104,27 @@ export default function NewBillScreen({ navigation }) {
           </View>
 
         {/* Measurements Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Measurements</Text>
+        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
+          <Text style={dynamicStyles.sectionTitle}>Measurements</Text>
           
           {/* Measurement Type Selection */}
           <View style={styles.measurementTypeContainer}>
-            <Text style={styles.inputLabel}>Select Measurement Type:</Text>
-            <View style={styles.checkboxRow}>
+            <Text style={dynamicStyles.inputLabel}>Select Measurement Type:</Text>
+            <View style={dynamicStyles.checkboxRow}>
               <TouchableOpacity
-                style={[styles.checkbox, measurementType.pant && styles.checkboxSelected]}
+                style={[dynamicStyles.checkbox, measurementType.pant && styles.checkboxSelected]}
                 onPress={() => toggleMeasurementType('pant')}
               >
                 <Text style={styles.checkboxText}>Pant</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
+                style={[dynamicStyles.checkbox, measurementType.shirt && styles.checkboxSelected]}
                 onPress={() => toggleMeasurementType('shirt')}
               >
                 <Text style={styles.checkboxText}>Shirt</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
+                style={[dynamicStyles.checkbox, measurementType.extra && styles.checkboxSelected]}
                 onPress={() => toggleMeasurementType('extra')}
               >
                 <Text style={styles.checkboxText}>Extra</Text>
@@ -882,11 +1136,11 @@ export default function NewBillScreen({ navigation }) {
           {measurementType.pant && (
             <View style={styles.measurementSection}>
               <Text style={styles.measurementTitle}>Pant Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
+              <View style={dynamicStyles.measurementGrid}>
+                <View style={dynamicStyles.measurementInput}>
+                  <Text style={dynamicStyles.measurementLabel}>Length:</Text>
             <TextInput
-                    style={styles.measurementTextInput}
+                    style={dynamicStyles.measurementTextInput}
                     value={measurements.pant_length.toString()}
                     onChangeText={(text) => setMeasurements({ ...measurements, pant_length: parseFloat(text) || 0 })}
                     placeholder="Length"
@@ -1155,7 +1409,7 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Itemized Billing */}
-        <View style={styles.section}>
+        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
           <Text style={styles.sectionTitle}>Itemized Billing</Text>
           
           <View style={styles.billingTable}>
@@ -1270,7 +1524,7 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Order Details */}
-        <View style={styles.section}>
+        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
           <Text style={styles.sectionTitle}>Order Details</Text>
 
           <View style={styles.inputRow}>
@@ -1405,7 +1659,7 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Summary */}
-        <View style={styles.section}>
+        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
           <Text style={styles.sectionTitle}>Summary</Text>
           
           <View style={styles.summaryContainer}>
@@ -1429,16 +1683,33 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Action Buttons */}
-        <View style={styles.actionButtons}>
+        <View style={[styles.actionButtons, {
+          flexDirection: buttonLayout.direction,
+          gap: buttonLayout.gap,
+          marginTop: sectionSpacing,
+          marginBottom: sectionSpacing * 2,
+          paddingHorizontal: 0
+        }]}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.printButton]}
+            style={[styles.actionButton, styles.printButton, {
+              flex: buttonLayout.direction === 'row' ? 1 : 0,
+              paddingVertical: isSmallScreen ? 14 : 16,
+              marginRight: buttonLayout.direction === 'row' ? 8 : 0,
+              marginBottom: buttonLayout.direction === 'column' ? 8 : 0,
+              minHeight: 48
+            }]}
             onPress={handlePrintMeasurement}
             disabled={saving}
           >
             <Text style={styles.printButtonText}>Print Measurements</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, styles.saveButton]}
+            style={[styles.actionButton, styles.saveButton, {
+              flex: buttonLayout.direction === 'row' ? 1 : 0,
+              paddingVertical: isSmallScreen ? 14 : 16,
+              marginLeft: buttonLayout.direction === 'row' ? 8 : 0,
+              minHeight: 48
+            }]}
             onPress={async () => {
               console.log('Save and Print button pressed');
               const saved = await handleSaveBill();
@@ -1458,13 +1729,21 @@ export default function NewBillScreen({ navigation }) {
             )}
           </TouchableOpacity>
         </View> 
+        
       </WebScrollView>
   ) : (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
+        ref={mobileScrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ 
+          flexGrow: 1,
+          paddingBottom: isSmallScreen ? 220 : 180,
+          paddingHorizontal: responsivePadding
+        }}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+        alwaysBounceVertical={false}
       >
         {/* Order Number Display */}
         <View style={styles.section}>
@@ -2147,6 +2426,7 @@ export default function NewBillScreen({ navigation }) {
             )}
           </TouchableOpacity>
         </View> 
+        
       </ScrollView>
     </KeyboardAvoidingView>
   )}
@@ -2205,8 +2485,8 @@ export default function NewBillScreen({ navigation }) {
         )
       )}
 
-      {/* Floating Action Buttons */}
-      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
+      {/* Fixed Floating Refresh Button - Always Visible */}
+      <View style={{ position: 'absolute', right: 24, bottom: 180, alignItems: 'flex-end', zIndex: 1000 }}>
         <TouchableOpacity
           style={{
             backgroundColor: '#e74c3c',
@@ -2215,11 +2495,10 @@ export default function NewBillScreen({ navigation }) {
             borderRadius: 30,
             justifyContent: 'center',
             alignItems: 'center',
-            marginBottom: 0,
-            elevation: 8,
+            elevation: 10,
             shadowColor: '#000',
-            shadowOpacity: 0.2,
-            shadowRadius: 8,
+            shadowOpacity: 0.3,
+            shadowRadius: 10,
             shadowOffset: { width: 0, height: 4 },
           }}
           onPress={resetForm}
@@ -2229,6 +2508,7 @@ export default function NewBillScreen({ navigation }) {
           <Ionicons name="refresh" size={36} color="#fff" />
         </TouchableOpacity>
       </View>
+      
       <SafeAreaView style={{ height: 32 }} />
     </View>
   );

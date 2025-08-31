@@ -276,6 +276,21 @@ export default function ShopExpenseScreen({ navigation }) {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Shop Expenses</Text>
         </View>
+        {/* Temporary test button */}
+        {Platform.OS === 'web' && (
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={{
+              backgroundColor: '#27ae60',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 8,
+              marginRight: 8,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>+ Add</Text>
+          </TouchableOpacity>
+        )}
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
@@ -326,28 +341,18 @@ export default function ShopExpenseScreen({ navigation }) {
       )}
 
       {/* Floating Action Buttons */}
-      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
-        {/* Uncomment and implement reset if needed */}
-        {/* <TouchableOpacity
-          style={{
-            backgroundColor: '#e74c3c',
-            width: 60,
-            height: 60,
-            borderRadius: 30,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginBottom: 16,
-            elevation: 8,
-            shadowColor: '#000',
-            shadowOpacity: 0.2,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 4 },
-          }}
-          onPress={resetForm}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="refresh" size={36} color="#fff" />
-        </TouchableOpacity> */}
+      <View style={{
+        position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+        right: 24,
+        bottom: Platform.OS === 'web' ? 24 : 96,
+        alignItems: 'flex-end',
+        zIndex: Platform.OS === 'web' ? 9999 : 100,
+        ...(Platform.OS === 'web' && {
+          position: 'fixed',
+          right: '24px',
+          bottom: '24px',
+        })
+      }}>
         <TouchableOpacity
           style={{
             backgroundColor: '#2980b9',
@@ -362,6 +367,10 @@ export default function ShopExpenseScreen({ navigation }) {
             shadowOpacity: 0.2,
             shadowRadius: 8,
             shadowOffset: { width: 0, height: 4 },
+            ...(Platform.OS === 'web' && {
+              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+              cursor: 'pointer'
+            })
           }}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.85}
@@ -387,42 +396,31 @@ export default function ShopExpenseScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
-              {Platform.OS === 'web' ? (
-                <input
-                  type="date"
-                  className="rn-web-date-input"
-                  style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', marginBottom: 12, fontSize: 16, width: '100%' }}
-                  value={newExpense.Date}
-                  onChange={e => setNewExpense({ ...newExpense, Date: e.target.value })}
-                  min={getTodayDate()}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.modalBody}
+            >
+              <TouchableOpacity
+                style={[styles.input, { justifyContent: 'center' }]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={{ fontSize: 16, color: newExpense.Date ? '#2c3e50' : '#aaa' }}>
+                  {newExpense.Date ? newExpense.Date : 'Select Date'}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={newExpense.Date ? new Date(newExpense.Date) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (selectedDate) {
+                      const formatted = selectedDate.toISOString().split('T')[0];
+                      setNewExpense({ ...newExpense, Date: formatted });
+                    }
+                  }}
                 />
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[styles.input, { justifyContent: 'center' }]}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Text style={{ fontSize: 16, color: newExpense.Date ? '#2c3e50' : '#aaa' }}>
-                      {newExpense.Date ? newExpense.Date : 'Select Date'}
-                    </Text>
-                  </TouchableOpacity>
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={newExpense.Date ? new Date(newExpense.Date) : new Date()}
-                      mode="date"
-                      display="default"
-                      onChange={(event, selectedDate) => {
-                        setShowDatePicker(false);
-                        if (selectedDate) {
-                          const formatted = selectedDate.toISOString().split('T')[0];
-                          setNewExpense({ ...newExpense, Date: formatted });
-                        }
-                      }}
-                      minimumDate={new Date()}
-                    />
-                  )}
-                </>
               )}
 
               <TextInput
@@ -484,7 +482,7 @@ export default function ShopExpenseScreen({ navigation }) {
                     (parseFloat(newExpense.chai_pani_cost) || 0)}
                 </Text>
               </View>
-            </ScrollView>
+            </KeyboardAvoidingView>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -525,42 +523,31 @@ export default function ShopExpenseScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             {editingExpense && (
-              <ScrollView style={styles.modalBody}>
-                {Platform.OS === 'web' ? (
-                  <input
-                    type="date"
-                    className="rn-web-date-input"
-                    style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', marginBottom: 12, fontSize: 16, width: '100%' }}
-                    value={editingExpense.Date}
-                    onChange={e => setEditingExpense({ ...editingExpense, Date: e.target.value })}
-                    min={getTodayDate()}
+              <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.modalBody}
+            >
+                <TouchableOpacity
+                  style={[styles.input, { justifyContent: 'center' }]}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={{ fontSize: 16, color: editingExpense.Date ? '#2c3e50' : '#aaa' }}>
+                    {editingExpense.Date ? editingExpense.Date : 'Select Date'}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={editingExpense.Date ? new Date(editingExpense.Date) : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(Platform.OS === 'ios');
+                      if (selectedDate) {
+                        const formatted = selectedDate.toISOString().split('T')[0];
+                        setEditingExpense({ ...editingExpense, Date: formatted });
+                      }
+                    }}
                   />
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      style={[styles.input, { justifyContent: 'center' }]}
-                      onPress={() => setShowDatePicker(true)}
-                    >
-                      <Text style={{ fontSize: 16, color: editingExpense.Date ? '#2c3e50' : '#aaa' }}>
-                        {editingExpense.Date ? editingExpense.Date : 'Select Date'}
-                      </Text>
-                    </TouchableOpacity>
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={editingExpense.Date ? new Date(editingExpense.Date) : new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          setShowDatePicker(false);
-                          if (selectedDate) {
-                            const formatted = selectedDate.toISOString().split('T')[0];
-                            setEditingExpense({ ...editingExpense, Date: formatted });
-                          }
-                        }}
-                        minimumDate={new Date()}
-                      />
-                    )}
-                  </>
                 )}
                 <TextInput
                   style={styles.input}
@@ -605,7 +592,7 @@ export default function ShopExpenseScreen({ navigation }) {
                     ).toFixed(2)}
                   </Text>
                 </View>
-              </ScrollView>
+              </KeyboardAvoidingView>
             )}
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -789,8 +776,8 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    width: '90%',
-    maxHeight: '80%',
+    width: Platform.OS === 'web' ? '50%' : '90%',
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -811,7 +798,6 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 20,
-    maxHeight: 400,
   },
   input: {
     borderWidth: 1,
@@ -862,5 +848,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    bottom: 24,
+    backgroundColor: '#2980b9',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
 }); 

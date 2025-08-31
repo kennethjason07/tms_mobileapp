@@ -129,7 +129,6 @@ export default function WeeklyPayScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={{ height: 32 }} />
       <View style={{
         backgroundColor: '#2980b9',
         paddingTop: 32,
@@ -208,20 +207,24 @@ export default function WeeklyPayScreen({ navigation }) {
                     </View>
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Total Work Pay:</Text>
-                      <Text style={styles.summaryValue}>
-                        ₹{(weeklyPayData.total_summary?.total_work_pay || 0).toFixed(2)}
+                      <Text style={[styles.summaryValue, { color: '#27ae60' }]}>
+                        ₹{(parseFloat(weeklyPayData.total_summary?.total_work_pay) || 0).toFixed(2)}
                       </Text>
                     </View>
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Total Amount Paid:</Text>
-                      <Text style={styles.summaryValue}>
-                        ₹{(weeklyPayData.total_summary?.total_paid || 0).toFixed(2)}
+                      <Text style={[styles.summaryValue, { color: '#3498db' }]}>
+                        ₹{(parseFloat(weeklyPayData.total_summary?.total_paid) || 0).toFixed(2)}
                       </Text>
                     </View>
-                    <View style={styles.summaryRow}>
-                      <Text style={styles.summaryLabel}>Total Remaining:</Text>
-                      <Text style={styles.summaryValue}>
-                        ₹{(weeklyPayData.total_summary?.total_remaining || 0).toFixed(2)}
+                    <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#e9ecef', paddingTop: 8, marginTop: 8 }]}>
+                      <Text style={[styles.summaryLabel, { fontWeight: 'bold' }]}>Total Remaining:</Text>
+                      <Text style={[styles.summaryValue, { 
+                        color: (parseFloat(weeklyPayData.total_summary?.total_remaining) || 0) >= 0 ? '#e74c3c' : '#27ae60',
+                        fontWeight: 'bold',
+                        fontSize: 18
+                      }]}>
+                        ₹{(parseFloat(weeklyPayData.total_summary?.total_remaining) || 0).toFixed(2)}
                       </Text>
                     </View>
                   </View>
@@ -230,7 +233,6 @@ export default function WeeklyPayScreen({ navigation }) {
                 {/* Weekly Breakdown */}
                 <View style={styles.weeklySummary}>
                   <Text style={styles.weeklyTitle}>Weekly Breakdown</Text>
-                  
                   {/* Table Header */}
                   <View style={styles.tableHeader}>
                     <View style={[styles.headerCell, styles.weekPeriodCell]}>
@@ -327,20 +329,24 @@ export default function WeeklyPayScreen({ navigation }) {
                     </View>
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Total Work Pay:</Text>
-                      <Text style={styles.summaryValue}>
-                        ₹{(weeklyPayData.total_summary?.total_work_pay || 0).toFixed(2)}
+                      <Text style={[styles.summaryValue, { color: '#27ae60' }]}>
+                        ₹{(parseFloat(weeklyPayData.total_summary?.total_work_pay) || 0).toFixed(2)}
                       </Text>
                     </View>
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Total Amount Paid:</Text>
-                      <Text style={styles.summaryValue}>
-                        ₹{(weeklyPayData.total_summary?.total_paid || 0).toFixed(2)}
+                      <Text style={[styles.summaryValue, { color: '#3498db' }]}>
+                        ₹{(parseFloat(weeklyPayData.total_summary?.total_paid) || 0).toFixed(2)}
                       </Text>
                     </View>
-                    <View style={styles.summaryRow}>
-                      <Text style={styles.summaryLabel}>Total Remaining:</Text>
-                      <Text style={styles.summaryValue}>
-                        ₹{(weeklyPayData.total_summary?.total_remaining || 0).toFixed(2)}
+                    <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#e9ecef', paddingTop: 8, marginTop: 8 }]}>
+                      <Text style={[styles.summaryLabel, { fontWeight: 'bold' }]}>Total Remaining:</Text>
+                      <Text style={[styles.summaryValue, { 
+                        color: (parseFloat(weeklyPayData.total_summary?.total_remaining) || 0) >= 0 ? '#e74c3c' : '#27ae60',
+                        fontWeight: 'bold',
+                        fontSize: 18
+                      }]}>
+                        ₹{(parseFloat(weeklyPayData.total_summary?.total_remaining) || 0).toFixed(2)}
                       </Text>
                     </View>
                   </View>

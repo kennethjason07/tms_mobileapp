@@ -244,7 +244,18 @@ export default function WorkersScreen({ navigation }) {
       </View>
 
       {/* Floating Action Buttons */}
-      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
+      <View style={{
+        position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+        right: 24,
+        bottom: Platform.OS === 'web' ? 24 : 96,
+        alignItems: 'flex-end',
+        zIndex: Platform.OS === 'web' ? 9999 : 100,
+        ...(Platform.OS === 'web' && {
+          position: 'fixed',
+          right: '24px',
+          bottom: '24px',
+        })
+      }}>
         <TouchableOpacity
           style={{
             backgroundColor: '#2980b9',
@@ -259,6 +270,10 @@ export default function WorkersScreen({ navigation }) {
             shadowOpacity: 0.2,
             shadowRadius: 8,
             shadowOffset: { width: 0, height: 4 },
+            ...(Platform.OS === 'web' && {
+              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+              cursor: 'pointer'
+            })
           }}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.85}
@@ -266,7 +281,6 @@ export default function WorkersScreen({ navigation }) {
           <Ionicons name="add" size={36} color="#fff" />
         </TouchableOpacity>
       </View>
-      <SafeAreaView style={{ height: 32 }} />
 
       {Platform.OS === 'web' ? (
         <WebScrollView

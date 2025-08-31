@@ -247,6 +247,45 @@ export default function WorkerDetailScreen({ navigation }) {
           </View>
         </ScrollView>
       )}
+
+      {/* Floating Action Button */}
+      <View style={{
+        position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+        right: 24,
+        bottom: Platform.OS === 'web' ? 24 : 64,
+        alignItems: 'flex-end',
+        zIndex: Platform.OS === 'web' ? 9999 : 100,
+        ...(Platform.OS === 'web' && {
+          position: 'fixed',
+          right: '24px',
+          bottom: '24px',
+        })
+      }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#2980b9',
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 0,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+            ...(Platform.OS === 'web' && {
+              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+              cursor: 'pointer'
+            })
+          }}
+          onPress={() => navigation.navigate('NewBill')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={36} color="#fff" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

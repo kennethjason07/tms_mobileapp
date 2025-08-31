@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, Platform, KeyboardAvoidingView, SafeAreaView, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, Platform, KeyboardAvoidingView, SafeAreaView, StatusBar, Dimensions } from 'react-native';
 import WebScrollView from './components/WebScrollView';
 import { SupabaseAPI } from './supabase';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { createShadowStyle, shadowPresets } from './utils/shadowUtils';
 
 const NAV_ITEMS = [
   { label: 'New Bill', desc: 'Create and manage new customer bills', screen: 'NewBill', available: true },
@@ -19,6 +20,51 @@ const NAV_ITEMS = [
 export default function DashboardScreen({ navigation }) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [screenData, setScreenData] = useState(Dimensions.get('window'));
+
+  useEffect(() => {
+    const onChange = (result) => {
+      setScreenData(result.window);
+    };
+
+    const subscription = Dimensions.addEventListener('change', onChange);
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive layout calculations
+  const isSmallScreen = screenData.width < 768;
+  const isMediumScreen = screenData.width >= 768 && screenData.width < 1024;
+  const isLargeScreen = screenData.width >= 1024;
+  const isExtraLargeScreen = screenData.width >= 1440;
+
+  // Dynamic card width based on screen size
+  const getCardWidth = () => {
+    if (isSmallScreen) return '47%'; // 2 columns on small screens
+    if (isMediumScreen) return '30%'; // 3 columns on medium screens
+    if (isLargeScreen) return '23%'; // 4 columns on large screens
+    if (isExtraLargeScreen) return '18%'; // 5 columns on extra large screens
+    return '47%'; // fallback
+  };
+
+  // Dynamic padding based on screen size
+  const getResponsivePadding = () => {
+    if (isSmallScreen) return 15;
+    if (isMediumScreen) return 25;
+    if (isLargeScreen) return 35;
+    return 20; // fallback
+  };
+
+  // Dynamic font sizes
+  const getFontSizes = () => {
+    if (isSmallScreen) return { title: 20, cardTitle: 16, cardDesc: 12 };
+    if (isMediumScreen) return { title: 24, cardTitle: 17, cardDesc: 13 };
+    if (isLargeScreen) return { title: 26, cardTitle: 18, cardDesc: 14 };
+    return { title: 22, cardTitle: 17, cardDesc: 13 }; // fallback
+  };
+
+  const fontSizes = getFontSizes();
+  const responsivePadding = getResponsivePadding();
+  const cardWidth = getCardWidth();
 
   const handleNavigation = async (screenName, available) => {
     if (!available) {
@@ -52,7 +98,7 @@ export default function DashboardScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f7fa', ...(Platform.OS === 'web' && { height: '100vh' }) }}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'light-content'} backgroundColor="#2980b9" />
       {/* Solid Color Header */}
       <View style={{
@@ -64,68 +110,88 @@ export default function DashboardScreen({ navigation }) {
         justifyContent: 'center',
         borderBottomLeftRadius: 32,
         borderBottomRightRadius: 32,
-        elevation: 6,
-        shadowColor: '#000',
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
+        ...createShadowStyle(shadowPresets.large),
       }}>
         <Image source={require('./assets/logo.jpg')} style={{ width: 80, height: 80, marginTop: 24, marginBottom: 8, resizeMode: 'contain', alignSelf: 'center', transform: [{ scale: 1.25 }], borderRadius: 40 }} />
         <Text style={{ fontSize: 26, fontWeight: 'bold', color: '#fff', letterSpacing: 1, marginBottom: 4, textAlign: 'center', alignSelf: 'center' }}>Maximus Consultancy Service</Text>
         <Text style={{ fontSize: 16, color: '#e0e0e0', marginBottom: 8, textAlign: 'center', alignSelf: 'center' }}>Welcome! Manage your tailoring business with ease.</Text>
       </View>
       {/* Main Content */}
-      <WebScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 24 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#34495e', marginBottom: 18, marginLeft: 4 }}>Dashboard</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+      <WebScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingLeft: responsivePadding, paddingRight: responsivePadding, paddingTop: 24, paddingBottom: isSmallScreen ? 60 : 80 }} showsVerticalScrollIndicator={false}>
+        <Text style={{ fontSize: fontSizes.title, fontWeight: 'bold', color: '#34495e', marginBottom: 18, marginLeft: 4 }}>Dashboard</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: isLargeScreen ? 'flex-start' : 'space-between', marginBottom: 20, gap: isLargeScreen ? 10 : 0 }}>
           {/* Navigation Cards in the specified order */}
           <DashboardCard
             icon={<MaterialCommunityIcons name="calendar-plus" size={32} color="#c0392b" />}
             label="New Bill"
             desc="Create and manage new customer bills"
             onPress={() => navigation.navigate('NewBill')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
           />
           <DashboardCard
             icon={<Ionicons name="person-circle-outline" size={32} color="#16a085" />}
             label="Customer Information"
             desc="View and manage customer details"
             onPress={() => navigation.navigate('CustomerInfo')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
           />
           <DashboardCard
             icon={<MaterialCommunityIcons name="clipboard-list-outline" size={32} color="#27ae60" />}
             label="Orders Overview"
             desc="Track and manage all orders"
             onPress={() => navigation.navigate('OrdersOverview')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
           />
           <DashboardCard
             icon={<FontAwesome5 name="money-bill-wave" size={32} color="#e67e22" />}
             label="Shop Expenses"
             desc="Manage shop expenses and costs"
             onPress={() => navigation.navigate('ShopExpense')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
           />
           <DashboardCard
             icon={<FontAwesome5 name="user-tie" size={32} color="#8e44ad" />}
             label="Worker Expenses"
             desc="Track worker payments and expenses"
             onPress={() => navigation.navigate('WorkerExpense')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
           />
           <DashboardCard
             icon={<FontAwesome5 name="calendar-week" size={32} color="#2980b9" />}
             label="Weekly Pay Calculation"
             desc="Calculate worker weekly payments"
             onPress={() => navigation.navigate('WeeklyPay')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
           />
           <DashboardCard
             icon={<Ionicons name="people" size={32} color="#2980b9" />}
             label="Worker Detailed Overview"
             desc="View detailed worker performance"
             onPress={() => navigation.navigate('Workers')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
           />
           <DashboardCard
             icon={<MaterialCommunityIcons name="chart-bar" size={32} color="#e67e22" />}
             label="Daily Profit"
             desc="Track daily and monthly profits"
             onPress={() => navigation.navigate('DailyProfit')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
           />
         </View>
       </WebScrollView>
@@ -133,30 +199,69 @@ export default function DashboardScreen({ navigation }) {
   );
 }
 
-function DashboardCard({ icon, label, desc, onPress }) {
+function DashboardCard({ icon, label, desc, onPress, width = '47%', fontSizes = {}, isSmallScreen = false }) {
+  const cardPadding = isSmallScreen ? 14 : 18;
+  const iconMargin = isSmallScreen ? 8 : 12;
+  const cardMarginBottom = isSmallScreen ? 12 : 18;
+  
   return (
     <TouchableOpacity
       style={{
-        width: '47%',
+        width: width,
         backgroundColor: '#fff',
         borderRadius: 18,
-        padding: 18,
-        marginBottom: 18,
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
+        padding: cardPadding,
+        marginBottom: cardMarginBottom,
+        ...createShadowStyle(shadowPresets.card),
         alignItems: 'center',
         justifyContent: 'center',
+        minHeight: isSmallScreen ? 120 : 140,
         transition: 'transform 0.1s',
+        ...(Platform.OS === 'web' && {
+          cursor: 'pointer',
+          ':hover': {
+            transform: 'scale(1.02)',
+            ...createShadowStyle({ 
+              elevation: shadowPresets.card.elevation + 1,
+              shadowColor: shadowPresets.card.shadowColor,
+              shadowOpacity: 0.12,
+              shadowRadius: shadowPresets.card.shadowRadius + 1,
+              shadowOffset: shadowPresets.card.shadowOffset
+            }),
+          },
+        }),
       }}
       activeOpacity={0.85}
       onPress={onPress}
     >
-      <View style={{ marginBottom: 12 }}>{icon}</View>
-      <Text style={{ fontSize: 17, fontWeight: 'bold', color: '#34495e', marginBottom: 6, textAlign: 'center', alignSelf: 'center' }}>{label}</Text>
-      <Text style={{ fontSize: 13, color: '#7f8c8d', textAlign: 'center', alignSelf: 'center', lineHeight: 18 }}>{desc}</Text>
+      <View style={{ marginBottom: iconMargin }}>{icon}</View>
+      <Text 
+        style={{ 
+          fontSize: fontSizes.cardTitle || 17, 
+          fontWeight: 'bold', 
+          color: '#34495e', 
+          marginBottom: 6, 
+          textAlign: 'center', 
+          alignSelf: 'center',
+          numberOfLines: 2,
+          ellipsizeMode: 'tail',
+        }}
+      >
+        {label}
+      </Text>
+      <Text 
+        style={{ 
+          fontSize: fontSizes.cardDesc || 13, 
+          color: '#7f8c8d', 
+          textAlign: 'center', 
+          alignSelf: 'center', 
+          lineHeight: isSmallScreen ? 16 : 18,
+          numberOfLines: 3,
+          ellipsizeMode: 'tail',
+        }}
+      >
+        {desc}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -169,11 +274,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     backgroundColor: '#fff',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    ...createShadowStyle(shadowPresets.medium),
     marginTop: 32, // bring header down
   },
   headerLogo: { flexDirection: 'row', alignItems: 'center' },
@@ -202,7 +303,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: '#fff',
     borderRadius: 8,
-    elevation: 4,
+    ...createShadowStyle(shadowPresets.medium),
     padding: 8,
     zIndex: 10,
     minWidth: 100,
@@ -226,11 +327,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    ...createShadowStyle(shadowPresets.small),
   },
   navCardDisabled: {
     opacity: 0.6,
