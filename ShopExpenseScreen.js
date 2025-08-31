@@ -246,7 +246,7 @@ export default function ShopExpenseScreen({ navigation }) {
     <View style={styles.container}>
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: 32,
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         flexDirection: 'row',
@@ -273,7 +273,7 @@ export default function ShopExpenseScreen({ navigation }) {
         >
           <Ionicons name="chevron-back-circle" size={40} color="#fff" />
         </Pressable>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}>
           <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Shop Expenses</Text>
         </View>
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
@@ -350,7 +350,7 @@ export default function ShopExpenseScreen({ navigation }) {
         </TouchableOpacity> */}
         <TouchableOpacity
           style={{
-            backgroundColor: '#2980b9',
+            backgroundColor: '#e74c3c',
             width: 60,
             height: 60,
             borderRadius: 30,
@@ -388,80 +388,98 @@ export default function ShopExpenseScreen({ navigation }) {
             </View>
 
             <ScrollView style={styles.modalBody}>
-              {Platform.OS === 'web' ? (
-                <input
-                  type="date"
-                  className="rn-web-date-input"
-                  style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', marginBottom: 12, fontSize: 16, width: '100%' }}
-                  value={newExpense.Date}
-                  onChange={e => setNewExpense({ ...newExpense, Date: e.target.value })}
-                  min={getTodayDate()}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Date:</Text>
+                {Platform.OS === 'web' ? (
+                  <input
+                    type="date"
+                    className="rn-web-date-input"
+                    style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', fontSize: 16, width: '100%' }}
+                    value={newExpense.Date}
+                    onChange={e => setNewExpense({ ...newExpense, Date: e.target.value })}
+                    min={getTodayDate()}
+                  />
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.input, { justifyContent: 'center' }]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={{ fontSize: 16, color: newExpense.Date ? '#2c3e50' : '#aaa' }}>
+                        {newExpense.Date ? newExpense.Date : 'Select Date'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={newExpense.Date ? new Date(newExpense.Date) : new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                          setShowDatePicker(false);
+                          if (selectedDate) {
+                            const formatted = selectedDate.toISOString().split('T')[0];
+                            setNewExpense({ ...newExpense, Date: formatted });
+                          }
+                        }}
+                        minimumDate={new Date()}
+                      />
+                    )}
+                  </>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Material Type:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter material type (optional)"
+                  value={newExpense.material_type}
+                  onChangeText={(text) => setNewExpense({ ...newExpense, material_type: text })}
                 />
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[styles.input, { justifyContent: 'center' }]}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Text style={{ fontSize: 16, color: newExpense.Date ? '#2c3e50' : '#aaa' }}>
-                      {newExpense.Date ? newExpense.Date : 'Select Date'}
-                    </Text>
-                  </TouchableOpacity>
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={newExpense.Date ? new Date(newExpense.Date) : new Date()}
-                      mode="date"
-                      display="default"
-                      onChange={(event, selectedDate) => {
-                        setShowDatePicker(false);
-                        if (selectedDate) {
-                          const formatted = selectedDate.toISOString().split('T')[0];
-                          setNewExpense({ ...newExpense, Date: formatted });
-                        }
-                      }}
-                      minimumDate={new Date()}
-                    />
-                  )}
-                </>
-              )}
+              </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Material Type (optional)"
-                value={newExpense.material_type}
-                onChangeText={(text) => setNewExpense({ ...newExpense, material_type: text })}
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Material Cost:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter material cost"
+                  value={newExpense.material_cost}
+                  onChangeText={(text) => setNewExpense({ ...newExpense, material_cost: text })}
+                  keyboardType="numeric"
+                />
+              </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Material Cost"
-                value={newExpense.material_cost}
-                onChangeText={(text) => setNewExpense({ ...newExpense, material_cost: text })}
-                keyboardType="numeric"
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Miscellaneous Item:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter miscellaneous item (optional)"
+                  value={newExpense.miscellaneous_item}
+                  onChangeText={(text) => setNewExpense({ ...newExpense, miscellaneous_item: text })}
+                />
+              </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Miscellaneous Item (optional)"
-                value={newExpense.miscellaneous_item}
-                onChangeText={(text) => setNewExpense({ ...newExpense, miscellaneous_item: text })}
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Miscellaneous Cost:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter miscellaneous cost"
+                  value={newExpense.miscellaneous_Cost}
+                  onChangeText={(text) => setNewExpense({ ...newExpense, miscellaneous_Cost: text })}
+                  keyboardType="numeric"
+                />
+              </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Miscellaneous Cost"
-                value={newExpense.miscellaneous_Cost}
-                onChangeText={(text) => setNewExpense({ ...newExpense, miscellaneous_Cost: text })}
-                keyboardType="numeric"
-              />
-
-              <TextInput
-                style={styles.input}
-                placeholder="Chai/Pani Cost"
-                value={newExpense.chai_pani_cost}
-                onChangeText={(text) => setNewExpense({ ...newExpense, chai_pani_cost: text })}
-                keyboardType="numeric"
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Chai/Pani Cost:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter chai/pani cost"
+                  value={newExpense.chai_pani_cost}
+                  onChangeText={(text) => setNewExpense({ ...newExpense, chai_pani_cost: text })}
+                  keyboardType="numeric"
+                />
+              </View>
 
               {/* Total Pay is now calculated, not entered */}
               <View style={styles.input}>
@@ -526,75 +544,98 @@ export default function ShopExpenseScreen({ navigation }) {
             </View>
             {editingExpense && (
               <ScrollView style={styles.modalBody}>
-                {Platform.OS === 'web' ? (
-                  <input
-                    type="date"
-                    className="rn-web-date-input"
-                    style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', marginBottom: 12, fontSize: 16, width: '100%' }}
-                    value={editingExpense.Date}
-                    onChange={e => setEditingExpense({ ...editingExpense, Date: e.target.value })}
-                    min={getTodayDate()}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Date:</Text>
+                  {Platform.OS === 'web' ? (
+                    <input
+                      type="date"
+                      className="rn-web-date-input"
+                      style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', fontSize: 16, width: '100%' }}
+                      value={editingExpense.Date}
+                      onChange={e => setEditingExpense({ ...editingExpense, Date: e.target.value })}
+                      min={getTodayDate()}
+                    />
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.input, { justifyContent: 'center' }]}
+                        onPress={() => setShowDatePicker(true)}
+                      >
+                        <Text style={{ fontSize: 16, color: editingExpense.Date ? '#2c3e50' : '#aaa' }}>
+                          {editingExpense.Date ? editingExpense.Date : 'Select Date'}
+                        </Text>
+                      </TouchableOpacity>
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={editingExpense.Date ? new Date(editingExpense.Date) : new Date()}
+                          mode="date"
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            setShowDatePicker(false);
+                            if (selectedDate) {
+                              const formatted = selectedDate.toISOString().split('T')[0];
+                              setEditingExpense({ ...editingExpense, Date: formatted });
+                            }
+                          }}
+                          minimumDate={new Date()}
+                        />
+                      )}
+                    </>
+                  )}
+                </View>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Material Type:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter material type (optional)"
+                    value={editingExpense.material_type}
+                    onChangeText={(text) => setEditingExpense({ ...editingExpense, material_type: text })}
                   />
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      style={[styles.input, { justifyContent: 'center' }]}
-                      onPress={() => setShowDatePicker(true)}
-                    >
-                      <Text style={{ fontSize: 16, color: editingExpense.Date ? '#2c3e50' : '#aaa' }}>
-                        {editingExpense.Date ? editingExpense.Date : 'Select Date'}
-                      </Text>
-                    </TouchableOpacity>
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={editingExpense.Date ? new Date(editingExpense.Date) : new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          setShowDatePicker(false);
-                          if (selectedDate) {
-                            const formatted = selectedDate.toISOString().split('T')[0];
-                            setEditingExpense({ ...editingExpense, Date: formatted });
-                          }
-                        }}
-                        minimumDate={new Date()}
-                      />
-                    )}
-                  </>
-                )}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Material Type (optional)"
-                  value={editingExpense.material_type}
-                  onChangeText={(text) => setEditingExpense({ ...editingExpense, material_type: text })}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Material Cost"
-                  value={editingExpense.material_cost?.toString()}
-                  onChangeText={(text) => setEditingExpense({ ...editingExpense, material_cost: text })}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Miscellaneous Item (optional)"
-                  value={editingExpense.miscellaneous_item}
-                  onChangeText={(text) => setEditingExpense({ ...editingExpense, miscellaneous_item: text })}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Miscellaneous Cost"
-                  value={editingExpense.miscellaneous_Cost?.toString()}
-                  onChangeText={(text) => setEditingExpense({ ...editingExpense, miscellaneous_Cost: text })}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Chai/Pani Cost"
-                  value={editingExpense.chai_pani_cost?.toString()}
-                  onChangeText={(text) => setEditingExpense({ ...editingExpense, chai_pani_cost: text })}
-                  keyboardType="numeric"
-                />
+                </View>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Material Cost:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter material cost"
+                    value={editingExpense.material_cost?.toString()}
+                    onChangeText={(text) => setEditingExpense({ ...editingExpense, material_cost: text })}
+                    keyboardType="numeric"
+                  />
+                </View>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Miscellaneous Item:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter miscellaneous item (optional)"
+                    value={editingExpense.miscellaneous_item}
+                    onChangeText={(text) => setEditingExpense({ ...editingExpense, miscellaneous_item: text })}
+                  />
+                </View>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Miscellaneous Cost:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter miscellaneous cost"
+                    value={editingExpense.miscellaneous_Cost?.toString()}
+                    onChangeText={(text) => setEditingExpense({ ...editingExpense, miscellaneous_Cost: text })}
+                    keyboardType="numeric"
+                  />
+                </View>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Chai/Pani Cost:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter chai/pani cost"
+                    value={editingExpense.chai_pani_cost?.toString()}
+                    onChangeText={(text) => setEditingExpense({ ...editingExpense, chai_pani_cost: text })}
+                    keyboardType="numeric"
+                  />
+                </View>
                 {/* Total Pay is now calculated, not entered */}
                 <View style={styles.input}>
                   <Text style={{ fontSize: 16, color: '#2c3e50' }}>
@@ -813,13 +854,24 @@ const styles = StyleSheet.create({
     padding: 20,
     maxHeight: 400,
   },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 12,
     fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#2c3e50',
+    minHeight: 50,
   },
   calculationPreview: {
     backgroundColor: '#f8f9fa',

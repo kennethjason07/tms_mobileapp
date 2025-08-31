@@ -210,7 +210,7 @@ export default function WorkersScreen({ navigation }) {
     <View style={styles.container}>
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: 32,
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         flexDirection: 'row',
@@ -237,7 +237,7 @@ export default function WorkersScreen({ navigation }) {
         >
           <Ionicons name="chevron-back-circle" size={40} color="#fff" />
         </Pressable>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}>
           <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Workers</Text>
         </View>
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
@@ -247,7 +247,7 @@ export default function WorkersScreen({ navigation }) {
       <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
         <TouchableOpacity
           style={{
-            backgroundColor: '#2980b9',
+            backgroundColor: '#e74c3c',
             width: 60,
             height: 60,
             borderRadius: 30,
@@ -305,54 +305,81 @@ export default function WorkersScreen({ navigation }) {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Worker</Text>
             <ScrollView style={styles.formContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Name"
-                value={newWorker.name}
-                onChangeText={(text) => setNewWorker({ ...newWorker, name: text })}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Phone Number"
-                value={newWorker.number}
-                onChangeText={(text) => setNewWorker({ ...newWorker, number: text })}
-                keyboardType="phone-pad"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Rate"
-                value={newWorker.Rate}
-                onChangeText={(text) => setNewWorker({ ...newWorker, Rate: text })}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Suit Rate"
-                value={newWorker.Suit}
-                onChangeText={(text) => setNewWorker({ ...newWorker, Suit: text })}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Jacket Rate"
-                value={newWorker.Jacket}
-                onChangeText={(text) => setNewWorker({ ...newWorker, Jacket: text })}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Sadri Rate"
-                value={newWorker.Sadri}
-                onChangeText={(text) => setNewWorker({ ...newWorker, Sadri: text })}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Others Rate"
-                value={newWorker.Others}
-                onChangeText={(text) => setNewWorker({ ...newWorker, Others: text })}
-                keyboardType="numeric"
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Name:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter worker name"
+                  value={newWorker.name}
+                  onChangeText={(text) => setNewWorker({ ...newWorker, name: text })}
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Phone Number:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter phone number"
+                  value={newWorker.number}
+                  onChangeText={(text) => setNewWorker({ ...newWorker, number: text })}
+                  keyboardType="phone-pad"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter rate"
+                  value={newWorker.Rate}
+                  onChangeText={(text) => setNewWorker({ ...newWorker, Rate: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Suit Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter suit rate"
+                  value={newWorker.Suit}
+                  onChangeText={(text) => setNewWorker({ ...newWorker, Suit: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Jacket Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter jacket rate"
+                  value={newWorker.Jacket}
+                  onChangeText={(text) => setNewWorker({ ...newWorker, Jacket: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Sadri Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter sadri rate"
+                  value={newWorker.Sadri}
+                  onChangeText={(text) => setNewWorker({ ...newWorker, Sadri: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Others Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter others rate"
+                  value={newWorker.Others}
+                  onChangeText={(text) => setNewWorker({ ...newWorker, Others: text })}
+                  keyboardType="numeric"
+                />
+              </View>
             </ScrollView>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -388,54 +415,81 @@ export default function WorkersScreen({ navigation }) {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Worker</Text>
             <ScrollView style={styles.formContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Name"
-                value={editingWorker?.name}
-                onChangeText={(text) => setEditingWorker({ ...editingWorker, name: text })}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Phone Number"
-                value={editingWorker?.number}
-                onChangeText={(text) => setEditingWorker({ ...editingWorker, number: text })}
-                keyboardType="phone-pad"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Rate"
-                value={editingWorker?.Rate}
-                onChangeText={(text) => setEditingWorker({ ...editingWorker, Rate: text })}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Suit Rate"
-                value={editingWorker?.Suit}
-                onChangeText={(text) => setEditingWorker({ ...editingWorker, Suit: text })}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Jacket Rate"
-                value={editingWorker?.Jacket}
-                onChangeText={(text) => setEditingWorker({ ...editingWorker, Jacket: text })}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Sadri Rate"
-                value={editingWorker?.Sadri}
-                onChangeText={(text) => setEditingWorker({ ...editingWorker, Sadri: text })}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Others Rate"
-                value={editingWorker?.Others}
-                onChangeText={(text) => setEditingWorker({ ...editingWorker, Others: text })}
-                keyboardType="numeric"
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Name:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter worker name"
+                  value={editingWorker?.name}
+                  onChangeText={(text) => setEditingWorker({ ...editingWorker, name: text })}
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Phone Number:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter phone number"
+                  value={editingWorker?.number}
+                  onChangeText={(text) => setEditingWorker({ ...editingWorker, number: text })}
+                  keyboardType="phone-pad"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter rate"
+                  value={editingWorker?.Rate}
+                  onChangeText={(text) => setEditingWorker({ ...editingWorker, Rate: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Suit Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter suit rate"
+                  value={editingWorker?.Suit}
+                  onChangeText={(text) => setEditingWorker({ ...editingWorker, Suit: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Jacket Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter jacket rate"
+                  value={editingWorker?.Jacket}
+                  onChangeText={(text) => setEditingWorker({ ...editingWorker, Jacket: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Sadri Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter sadri rate"
+                  value={editingWorker?.Sadri}
+                  onChangeText={(text) => setEditingWorker({ ...editingWorker, Sadri: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Others Rate:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter others rate"
+                  value={editingWorker?.Others}
+                  onChangeText={(text) => setEditingWorker({ ...editingWorker, Others: text })}
+                  keyboardType="numeric"
+                />
+              </View>
             </ScrollView>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -606,13 +660,24 @@ const styles = StyleSheet.create({
   formContainer: {
     maxHeight: 400,
   },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 12,
     fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#2c3e50',
+    minHeight: 50,
   },
   modalButtons: {
     flexDirection: 'row',

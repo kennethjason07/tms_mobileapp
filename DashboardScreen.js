@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, Platform, KeyboardAvoidingView, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, Platform, KeyboardAvoidingView, SafeAreaView, StatusBar, Pressable } from 'react-native';
 import WebScrollView from './components/WebScrollView';
 import { SupabaseAPI } from './supabase';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -52,27 +52,67 @@ export default function DashboardScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
+    <View style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'light-content'} backgroundColor="#2980b9" />
-      {/* Solid Color Header */}
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: Platform.OS === 'ios' ? 8 : 32,
-        paddingBottom: 24,
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        paddingBottom: 32,
         paddingHorizontal: 20,
         alignItems: 'center',
         justifyContent: 'center',
         borderBottomLeftRadius: 32,
         borderBottomRightRadius: 32,
-        elevation: 6,
+        elevation: 8,
         shadowColor: '#000',
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
       }}>
-        <Image source={require('./assets/logo.jpg')} style={{ width: 80, height: 80, marginTop: 24, marginBottom: 8, resizeMode: 'contain', alignSelf: 'center', transform: [{ scale: 1.25 }], borderRadius: 40 }} />
-        <Text style={{ fontSize: 26, fontWeight: 'bold', color: '#fff', letterSpacing: 1, marginBottom: 4, textAlign: 'center', alignSelf: 'center' }}>Maximus Consultancy Service</Text>
-        <Text style={{ fontSize: 16, color: '#e0e0e0', marginBottom: 8, textAlign: 'center', alignSelf: 'center' }}>Welcome! Manage your tailoring business with ease.</Text>
+        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+          <View style={{
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            backgroundColor: '#fff',
+            padding: 4,
+            marginBottom: 20,
+            elevation: 4,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 3 },
+          }}>
+            <Image 
+              source={require('./assets/logo.jpg')} 
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                borderRadius: 46,
+                resizeMode: 'cover'
+              }} 
+            />
+          </View>
+          <Text style={{ 
+            fontSize: 28, 
+            fontWeight: 'bold', 
+            color: '#fff', 
+            textAlign: 'center', 
+            letterSpacing: 1.2, 
+            marginBottom: 8,
+            textShadowColor: 'rgba(0, 0, 0, 0.3)',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 3,
+          }}>Maximus Consultancy Service</Text>
+          <Text style={{ 
+            fontSize: 18, 
+            color: '#ecf0f1', 
+            textAlign: 'center', 
+            opacity: 0.95,
+            fontWeight: '500',
+            letterSpacing: 0.5,
+          }}>Welcome! Manage your tailoring business with ease.</Text>
+        </View>
       </View>
       {/* Main Content */}
       <WebScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 24 }} showsVerticalScrollIndicator={false}>
@@ -129,9 +169,10 @@ export default function DashboardScreen({ navigation }) {
           />
         </View>
       </WebScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
+
 
 function DashboardCard({ icon, label, desc, onPress }) {
   return (

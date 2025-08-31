@@ -738,7 +738,7 @@ export default function NewBillScreen({ navigation }) {
     <View style={styles.container}>
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: 32,
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         flexDirection: 'row',
@@ -765,7 +765,7 @@ export default function NewBillScreen({ navigation }) {
         >
           <Ionicons name="chevron-back-circle" size={40} color="#fff" />
         </Pressable>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}>
           <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>New Bill</Text>
         </View>
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
@@ -966,6 +966,7 @@ export default function NewBillScreen({ navigation }) {
                       value={measurements.SideP_Cross}
                       onChangeText={(text) => setMeasurements({ ...measurements, SideP_Cross: text })}
                       placeholder="SideP/Cross"
+                      keyboardType="numeric"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -975,6 +976,7 @@ export default function NewBillScreen({ navigation }) {
                       value={measurements.Plates}
                       onChangeText={(text) => setMeasurements({ ...measurements, Plates: text })}
                       placeholder="Plates"
+                      keyboardType="numeric"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -984,6 +986,7 @@ export default function NewBillScreen({ navigation }) {
                       value={measurements.Belt}
                       onChangeText={(text) => setMeasurements({ ...measurements, Belt: text })}
                       placeholder="Belt"
+                      keyboardType="numeric"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -993,6 +996,7 @@ export default function NewBillScreen({ navigation }) {
                       value={measurements.Back_P}
                       onChangeText={(text) => setMeasurements({ ...measurements, Back_P: text })}
                       placeholder="Back P"
+                      keyboardType="numeric"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1002,6 +1006,7 @@ export default function NewBillScreen({ navigation }) {
                       value={measurements.WP}
                       onChangeText={(text) => setMeasurements({ ...measurements, WP: text })}
                       placeholder="WP"
+                      keyboardType="numeric"
                     />
                   </View>
                 </View>
@@ -2158,37 +2163,60 @@ export default function NewBillScreen({ navigation }) {
         visible={customerModalVisible}
         onRequestClose={() => setCustomerModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Customer</Text>
-              <TouchableOpacity onPress={() => setCustomerModalVisible(false)}>
-                <Text style={styles.closeButton}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.modalSearchInput}
-              placeholder="Search customers..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-
-            <FlatList
-              data={filteredCustomers}
-              keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.customerItem}
-                  onPress={() => handleCustomerSelect(item)}
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setCustomerModalVisible(false)}
+          >
+            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Customer</Text>
+                <TouchableOpacity 
+                  style={styles.modalCloseButton}
+                  onPress={() => setCustomerModalVisible(false)}
                 >
-                  <Text style={styles.customerItemName}>{item.name}</Text>
-                  <Text style={styles.customerItemPhone}>{item.phone}</Text>
+                  <Text style={styles.closeButton}>✕</Text>
                 </TouchableOpacity>
-              )}
-            />
-          </View>
-        </View>
+              </View>
+
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Search customers..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+
+              <FlatList
+                data={filteredCustomers}
+                keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
+                showsVerticalScrollIndicator={true}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.customerItem}
+                    onPress={() => handleCustomerSelect(item)}
+                  >
+                    <Text style={styles.customerItemName}>{item.name}</Text>
+                    <Text style={styles.customerItemPhone}>{item.phone}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setCustomerModalVisible(false)}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Date Picker Modal */}
@@ -2641,6 +2669,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: '90%',
     maxHeight: '80%',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
   },
   modalHeader: {
     flexDirection: 'row',
@@ -2655,9 +2688,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2c3e50',
   },
+  modalCloseButton: {
+    padding: 12,
+    backgroundColor: '#e74c3c',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
   closeButton: {
-    fontSize: 24,
-    color: '#7f8c8d',
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: 'bold',
+    lineHeight: 20,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  modalCancelButton: {
+    backgroundColor: '#95a5a6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    fontSize: 14,
+    color: 'white',
+    fontWeight: 'bold',
   },
   modalSearchInput: {
     borderWidth: 1,

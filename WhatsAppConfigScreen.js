@@ -11,6 +11,8 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  Image,
 } from 'react-native';
 import { WhatsAppConfig } from './whatsappService';
 import { Ionicons } from '@expo/vector-icons';
@@ -203,20 +205,46 @@ export default function WhatsAppConfigScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <View style={{
+        backgroundColor: '#2980b9',
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
+        paddingBottom: 24,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      }}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [{
+            backgroundColor: pressed ? 'rgba(255,255,255,0.18)' : 'transparent',
+            borderRadius: 26,
+            marginRight: 8,
+            width: 52,
+            height: 52,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }]}
+        >
+          <Ionicons name="chevron-back-circle" size={40} color="#fff" />
+        </Pressable>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>WhatsApp Config</Text>
+        </View>
+        <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
+      </View>
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#2980b9" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>WhatsApp Configuration</Text>
-        </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {renderSetupInstructions()}
@@ -224,7 +252,7 @@ export default function WhatsAppConfigScreen({ navigation }) {
           {renderNotificationPreview()}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
