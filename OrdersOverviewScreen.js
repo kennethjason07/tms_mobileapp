@@ -657,7 +657,7 @@ export default function OrdersOverviewScreen({ navigation }) {
               >
                 <Text style={styles.dropdownButtonText}>
                   {order.workers && order.workers.length > 0
-                    ? `${order.workers.length} selected`
+                    ? `${workerNames}`
                     : 'Select Workers'}
                 </Text>
                 <Text style={styles.dropdownArrow}>{isWorkerDropdownOpen ? '▲' : '▼'}</Text>
@@ -670,51 +670,76 @@ export default function OrdersOverviewScreen({ navigation }) {
                   animationType="fade"
                   onRequestClose={() => closeWorkerDropdown(order.id)}
                 >
-                  <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => closeWorkerDropdown(order.id)}
+                  <KeyboardAvoidingView 
+                    style={{ flex: 1 }} 
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                   >
-                    <View style={styles.dropdownModal} onStartShouldSetResponder={() => true}>
-                      <Text style={styles.dropdownTitle}>Select Workers</Text>
-                      <ScrollView style={styles.workerList}>
-                        {workers.map((worker, workerIndex) => {
-                          const isSelected = selectedWorkers[order.id]?.includes(worker.id);
-                          const selectionCount = selectedWorkers[order.id]?.length || 0;
-                          const isDisabled = !isSelected && selectionCount >= 2;
-                          return (
-                            <TouchableOpacity
-                              key={`worker-${worker.id || 'null'}-${workerIndex}`}
-                              style={[
-                                styles.workerOption,
-                                isSelected && styles.workerOptionSelected,
-                                isDisabled && { opacity: 0.5 }
-                              ]}
-                              onPress={() => {
-                                if (!isDisabled) handleWorkerSelection(order.id, worker.id);
-                              }}
-                              disabled={isDisabled}
-                            >
-                              <Text style={[
-                                styles.workerOptionText,
-                                isSelected && styles.workerOptionTextSelected
-                              ]}>
-                                {worker.name || 'Unknown Worker'}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
-                      <View style={styles.dropdownActions}>
-                        <TouchableOpacity
-                          style={styles.assignButton}
-                          onPress={() => handleAssignWorkers(order.id)}
+                    <TouchableOpacity
+                      style={styles.modalOverlay}
+                      activeOpacity={1}
+                      onPress={() => closeWorkerDropdown(order.id)}
+                    >
+                      <View style={styles.dropdownModal} onStartShouldSetResponder={() => true}>
+                        <View style={styles.modalHeader}>
+                          <Text style={styles.dropdownTitle}>Select Workers</Text>
+                          <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={() => closeWorkerDropdown(order.id)}
+                          >
+                            <Text style={styles.modalCloseButtonText}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                        
+                        <ScrollView 
+                          style={styles.workerList}
+                          showsVerticalScrollIndicator={true}
+                          keyboardShouldPersistTaps="handled"
                         >
-                          <Text style={styles.assignButtonText}>Assign Workers</Text>
-                        </TouchableOpacity>
+                          {workers.map((worker, workerIndex) => {
+                            const isSelected = selectedWorkers[order.id]?.includes(worker.id);
+                            const selectionCount = selectedWorkers[order.id]?.length || 0;
+                            const isDisabled = !isSelected && selectionCount >= 2;
+                            return (
+                              <TouchableOpacity
+                                key={`worker-${worker.id || 'null'}-${workerIndex}`}
+                                style={[
+                                  styles.workerOption,
+                                  isSelected && styles.workerOptionSelected,
+                                  isDisabled && { opacity: 0.5 }
+                                ]}
+                                onPress={() => {
+                                  if (!isDisabled) handleWorkerSelection(order.id, worker.id);
+                                }}
+                                disabled={isDisabled}
+                              >
+                                <Text style={[
+                                  styles.workerOptionText,
+                                  isSelected && styles.workerOptionTextSelected
+                                ]}>
+                                  {worker.name || 'Unknown Worker'}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </ScrollView>
+                        
+                        <View style={styles.dropdownActions}>
+                          <TouchableOpacity
+                            style={styles.cancelButton}
+                            onPress={() => closeWorkerDropdown(order.id)}
+                          >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.assignButton}
+                            onPress={() => handleAssignWorkers(order.id)}
+                          >
+                            <Text style={styles.assignButtonText}>Assign Workers</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                  </KeyboardAvoidingView>
                 </Modal>
               )}
             </>
@@ -734,7 +759,7 @@ export default function OrdersOverviewScreen({ navigation }) {
   };
 
   const renderFilters = () => (
-    <View style={styles.filtersContainer}>
+    <View>
       <View style={styles.filterRow}>
         <Text style={styles.filterLabel}>Delivery Status:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -898,7 +923,22 @@ export default function OrdersOverviewScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      {/* Header matching NewBillScreen */}
+      <View style={{
+        backgroundColor: '#2980b9',
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
+        paddingBottom: 24,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      }}>
         <Pressable
           onPress={() => navigation.goBack()}
           style={({ pressed }) => [{
@@ -913,25 +953,13 @@ export default function OrdersOverviewScreen({ navigation }) {
         >
           <Ionicons name="chevron-back-circle" size={40} color="#fff" />
         </Pressable>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={[styles.headerTitle, { textAlign: 'center', fontSize: 22, fontWeight: 'bold', color: '#fff', letterSpacing: 1 }]}>Orders Overview</Text>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Orders Overview</Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('WhatsAppConfig')}
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: 20,
-              padding: 8,
-              marginRight: 8,
-            }}
-          >
-            <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#fff' }} />
-        </View>
+        <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
+      {/* Search Section */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -989,7 +1017,11 @@ export default function OrdersOverviewScreen({ navigation }) {
             contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
           >
-            {renderFilters()}
+            {/* Filters Section */}
+            <View style={styles.filtersContainer}>
+              <Text style={styles.filtersTitle}>Filters</Text>
+              {renderFilters()}
+            </View>
             
             {currentOrders.length > 0 ? (
               <View style={styles.tableContainer}>
@@ -1010,11 +1042,12 @@ export default function OrdersOverviewScreen({ navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
-      {/* Floating Reload Button */}
-      <View style={{ position: 'absolute', right: 24, bottom: 32, alignItems: 'flex-end', zIndex: 100 }}>
+
+      {/* Floating Action Buttons */}
+      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
         <TouchableOpacity
           style={{
-            backgroundColor: '#2980b9',
+            backgroundColor: '#e74c3c',
             width: 60,
             height: 60,
             borderRadius: 30,
@@ -1029,11 +1062,11 @@ export default function OrdersOverviewScreen({ navigation }) {
           }}
           onPress={loadData}
           activeOpacity={0.85}
+          disabled={loading}
         >
-          <Ionicons name="refresh-circle" size={36} color="#fff" />
+          <Ionicons name="refresh" size={36} color="#fff" />
         </TouchableOpacity>
       </View>
-      <SafeAreaView style={{ height: 32 }} />
     </View>
   );
 }
@@ -1041,7 +1074,7 @@ export default function OrdersOverviewScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
   },
   header: {
     flexDirection: 'row',
@@ -1171,11 +1204,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   tableContainer: {
-    backgroundColor: 'white',
-    marginHorizontal: 8,
-    marginBottom: 8,
-    borderRadius: 12,
-    elevation: 2,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   tableWrapper: {
     minWidth: 2470, // Ensure table has minimum width for scrolling to show all columns
@@ -1219,48 +1250,60 @@ const styles = StyleSheet.create({
   },
   statusButton: {
     backgroundColor: '#ecf0f1',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 4,
+    borderRadius: Platform.OS === 'ios' ? 8 : 4,
     marginHorizontal: 2,
+    minHeight: Platform.OS === 'ios' ? 44 : 'auto',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusButtonActive: {
     backgroundColor: '#27ae60',
   },
   statusButtonText: {
-    fontSize: 10,
+    fontSize: Platform.OS === 'ios' ? 12 : 10,
     color: '#2c3e50',
     fontWeight: '500',
+    textAlign: 'center',
   },
   paymentButton: {
     backgroundColor: '#ecf0f1',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 4,
+    borderRadius: Platform.OS === 'ios' ? 8 : 4,
     marginHorizontal: 2,
+    minHeight: Platform.OS === 'ios' ? 44 : 'auto',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   paymentButtonActive: {
     backgroundColor: '#3498db',
   },
   paymentButtonText: {
-    fontSize: 10,
+    fontSize: Platform.OS === 'ios' ? 12 : 10,
     color: '#2c3e50',
     fontWeight: '500',
+    textAlign: 'center',
   },
   paymentStatusButton: {
     backgroundColor: '#ecf0f1',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 4,
+    borderRadius: Platform.OS === 'ios' ? 8 : 4,
     marginHorizontal: 2,
+    minHeight: Platform.OS === 'ios' ? 44 : 'auto',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   paymentStatusButtonActive: {
     backgroundColor: '#e74c3c',
   },
   paymentStatusButtonText: {
-    fontSize: 10,
+    fontSize: Platform.OS === 'ios' ? 12 : 10,
     color: '#2c3e50',
     fontWeight: '500',
+    textAlign: 'center',
   },
   amountInput: {
     borderWidth: 1,
@@ -1275,13 +1318,14 @@ const styles = StyleSheet.create({
   },
   dropdownButton: {
     backgroundColor: '#ecf0f1',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 4,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    borderRadius: Platform.OS === 'ios' ? 8 : 4,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    minWidth: 120,
+    minWidth: Platform.OS === 'ios' ? 140 : 120,
+    minHeight: Platform.OS === 'ios' ? 44 : 'auto',
   },
   dropdownButtonText: {
     fontSize: 10,
@@ -1304,22 +1348,53 @@ const styles = StyleSheet.create({
   },
   dropdownModal: {
     backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    width: '80%',
-    maxHeight: '60%',
-    elevation: 5,
+    borderRadius: 12,
+    width: '85%',
+    maxHeight: '70%',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   dropdownTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
     color: '#2c3e50',
-    textAlign: 'center',
+  },
+  modalCloseButton: {
+    padding: 12,
+    backgroundColor: '#e74c3c',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  modalCloseButtonText: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: 'bold',
+    lineHeight: 20,
   },
   workerList: {
-    maxHeight: 200,
-    marginBottom: 16,
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   workerOption: {
     padding: 12,
@@ -1344,30 +1419,51 @@ const styles = StyleSheet.create({
   },
   dropdownActions: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#95a5a6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    color: 'white',
+    fontWeight: 'bold',
   },
   assignButton: {
+    flex: 1,
     backgroundColor: '#2980b9',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   assignButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'white',
     fontWeight: 'bold',
   },
   paginationContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    marginHorizontal: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'white',
-    marginHorizontal: 8,
-    marginBottom: 8,
-    borderRadius: 8,
-    elevation: 2,
   },
   paginationInfo: {
     flex: 1,

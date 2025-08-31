@@ -13,6 +13,7 @@ import {
   Image,
   Pressable,
   SafeAreaView,
+  Modal,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { SupabaseAPI } from './supabase';
@@ -24,6 +25,7 @@ export default function WeeklyPayScreen({ navigation }) {
   const [weeklyPayData, setWeeklyPayData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [workerModalVisible, setWorkerModalVisible] = useState(false);
 
   useEffect(() => {
     loadWorkers();
@@ -131,7 +133,7 @@ export default function WeeklyPayScreen({ navigation }) {
     <View style={styles.container}>
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: 32,
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         flexDirection: 'row',
@@ -158,7 +160,7 @@ export default function WeeklyPayScreen({ navigation }) {
         >
           <Ionicons name="chevron-back-circle" size={40} color="#fff" />
         </Pressable>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}>
           <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Weekly Pay Calculation</Text>
         </View>
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
@@ -170,24 +172,15 @@ export default function WeeklyPayScreen({ navigation }) {
             {/* Worker Selection Section */}
             <View style={styles.selectionSection}>
               <Text style={styles.sectionTitle}>Select Worker:</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedWorkerId}
-                  onValueChange={(itemValue) => {
-                    setSelectedWorkerId(itemValue);
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="-- Select Worker --" value="" />
-                  {workers.map((worker) => (
-                    <Picker.Item
-                      key={worker?.id || 'unknown'}
-                      label={`${worker?.name || 'Unknown'} (ID: ${worker?.id || 'N/A'})`}
-                      value={(worker?.id || '').toString()}
-                    />
-                  ))}
-                </Picker>
-              </View>
+              <TouchableOpacity 
+                style={styles.workerSelector}
+                onPress={() => setWorkerModalVisible(true)}
+              >
+                <Text style={styles.workerSelectorText}>
+                  {getSelectedWorkerName() || '-- Select Worker --'}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#7f8c8d" />
+              </TouchableOpacity>
             </View>
 
             {/* Weekly Pay Results */}
@@ -292,24 +285,15 @@ export default function WeeklyPayScreen({ navigation }) {
             {/* Worker Selection Section */}
             <View style={styles.selectionSection}>
               <Text style={styles.sectionTitle}>Select Worker:</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedWorkerId}
-                  onValueChange={(itemValue) => {
-                    setSelectedWorkerId(itemValue);
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="-- Select Worker --" value="" />
-                  {workers.map((worker) => (
-                    <Picker.Item
-                      key={worker?.id || 'unknown'}
-                      label={`${worker?.name || 'Unknown'} (ID: ${worker?.id || 'N/A'})`}
-                      value={(worker?.id || '').toString()}
-                    />
-                  ))}
-                </Picker>
-              </View>
+              <TouchableOpacity 
+                style={styles.workerSelector}
+                onPress={() => setWorkerModalVisible(true)}
+              >
+                <Text style={styles.workerSelectorText}>
+                  {getSelectedWorkerName() || '-- Select Worker --'}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#7f8c8d" />
+              </TouchableOpacity>
             </View>
 
             {/* Weekly Pay Results */}
@@ -406,6 +390,73 @@ export default function WeeklyPayScreen({ navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+
+      {/* Worker Selection Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={workerModalVisible}
+        onRequestClose={() => setWorkerModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Worker</Text>
+              <TouchableOpacity 
+                onPress={() => setWorkerModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#7f8c8d" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.workerList}>
+              <TouchableOpacity
+                style={[
+                  styles.workerItem,
+                  selectedWorkerId === '' && styles.workerItemSelected
+                ]}
+                onPress={() => {
+                  setSelectedWorkerId('');
+                  setWorkerModalVisible(false);
+                }}
+              >
+                <Text style={[
+                  styles.workerItemText,
+                  selectedWorkerId === '' && styles.workerItemTextSelected
+                ]}>-- Select Worker --</Text>
+              </TouchableOpacity>
+              
+              {workers.map((worker) => (
+                <TouchableOpacity
+                  key={worker?.id || 'unknown'}
+                  style={[
+                    styles.workerItem,
+                    selectedWorkerId === (worker?.id || '').toString() && styles.workerItemSelected
+                  ]}
+                  onPress={() => {
+                    setSelectedWorkerId((worker?.id || '').toString());
+                    setWorkerModalVisible(false);
+                  }}
+                >
+                  <View style={styles.workerItemInfo}>
+                    <Text style={[
+                      styles.workerItemText,
+                      selectedWorkerId === (worker?.id || '').toString() && styles.workerItemTextSelected
+                    ]}>
+                      {worker?.name || 'Unknown'}
+                    </Text>
+                    <Text style={styles.workerItemId}>ID: {worker?.id || 'N/A'}</Text>
+                  </View>
+                  {selectedWorkerId === (worker?.id || '').toString() && (
+                    <Ionicons name="checkmark" size={20} color="#27ae60" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -444,7 +495,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   selectionSection: {
-    marginBottom: 20,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    marginHorizontal: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   sectionTitle: {
     fontSize: 18,
@@ -601,4 +661,91 @@ const styles = StyleSheet.create({
   amountCell: {
     flex: 1,
   },
-}); 
+  // iOS-style worker selector
+  workerSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#fff',
+    minHeight: Platform.OS === 'ios' ? 50 : 44,
+  },
+  workerSelectorText: {
+    fontSize: 16,
+    color: '#2c3e50',
+    flex: 1,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  workerList: {
+    maxHeight: 400,
+    padding: 16,
+  },
+  workerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    marginBottom: 8,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  workerItemSelected: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#2980b9',
+  },
+  workerItemInfo: {
+    flex: 1,
+  },
+  workerItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+  },
+  workerItemTextSelected: {
+    color: '#2980b9',
+  },
+  workerItemId: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginTop: 2,
+  },
+});

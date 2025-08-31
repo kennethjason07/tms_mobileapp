@@ -225,7 +225,7 @@ export default function WorkerExpenseScreen({ navigation }) {
     <View style={styles.container}>
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: 32,
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         flexDirection: 'row',
@@ -355,7 +355,7 @@ export default function WorkerExpenseScreen({ navigation }) {
         </TouchableOpacity> */}
         <TouchableOpacity
           style={{
-            backgroundColor: '#2980b9',
+            backgroundColor: '#e74c3c',
             width: 60,
             height: 60,
             borderRadius: 30,
@@ -442,57 +442,66 @@ export default function WorkerExpenseScreen({ navigation }) {
                 </ScrollView>
               )}
 
-              {Platform.OS === 'web' ? (
-                <input
-                  type="date"
-                  className="rn-web-date-input"
-                  style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', marginBottom: 12, fontSize: 16, width: '100%' }}
-                  value={newExpense.date}
-                  onChange={e => setNewExpense({ ...newExpense, date: e.target.value })}
-                  min={getTodayDate()}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Date:</Text>
+                {Platform.OS === 'web' ? (
+                  <input
+                    type="date"
+                    className="rn-web-date-input"
+                    style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', fontSize: 16, width: '100%' }}
+                    value={newExpense.date}
+                    onChange={e => setNewExpense({ ...newExpense, date: e.target.value })}
+                    min={getTodayDate()}
+                  />
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.input, { justifyContent: 'center' }]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={{ fontSize: 16, color: newExpense.date ? '#2c3e50' : '#aaa' }}>
+                        {newExpense.date ? newExpense.date : 'Select Date'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={newExpense.date ? new Date(newExpense.date) : new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                          setShowDatePicker(false);
+                          if (selectedDate) {
+                            const formatted = selectedDate.toISOString().split('T')[0];
+                            setNewExpense({ ...newExpense, date: formatted });
+                          }
+                        }}
+                        minimumDate={new Date()}
+                      />
+                    )}
+                  </>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter description (e.g., Advance, Bonus, etc.)"
+                  value={newExpense.name}
+                  onChangeText={(text) => setNewExpense({ ...newExpense, name: text })}
                 />
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[styles.input, { justifyContent: 'center' }]}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Text style={{ fontSize: 16, color: newExpense.date ? '#2c3e50' : '#aaa' }}>
-                      {newExpense.date ? newExpense.date : 'Select Date'}
-                    </Text>
-                  </TouchableOpacity>
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={newExpense.date ? new Date(newExpense.date) : new Date()}
-                      mode="date"
-                      display="default"
-                      onChange={(event, selectedDate) => {
-                        setShowDatePicker(false);
-                        if (selectedDate) {
-                          const formatted = selectedDate.toISOString().split('T')[0];
-                          setNewExpense({ ...newExpense, date: formatted });
-                        }
-                      }}
-                      minimumDate={new Date()}
-                    />
-                  )}
-                </>
-              )}
+              </View>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Description (e.g., Advance, Bonus, etc.)"
-                value={newExpense.name}
-                onChangeText={(text) => setNewExpense({ ...newExpense, name: text })}
-              />
-
-              <TextInput
-                style={styles.input}
-                placeholder="Amount Paid"
-                value={newExpense.Amt_Paid}
-                onChangeText={(text) => setNewExpense({ ...newExpense, Amt_Paid: text })}
-                keyboardType="numeric"
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Amount Paid:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter amount paid"
+                  value={newExpense.Amt_Paid}
+                  onChangeText={(text) => setNewExpense({ ...newExpense, Amt_Paid: text })}
+                  keyboardType="numeric"
+                />
+              </View>
 
               {newExpense.worker_id && (
                 <View style={styles.workerInfo}>
@@ -588,38 +597,47 @@ export default function WorkerExpenseScreen({ navigation }) {
                   </ScrollView>
                 )}
 
-                {Platform.OS === 'web' ? (
-                  <input
-                    type="date"
-                    className="rn-web-date-input"
-                    style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', marginBottom: 12, fontSize: 16, width: '100%' }}
-                    value={editingExpense.date}
-                    onChange={e => setEditingExpense({ ...editingExpense, date: e.target.value })}
-                    min={getTodayDate()}
-                  />
-                ) : (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Date:</Text>
+                  {Platform.OS === 'web' ? (
+                    <input
+                      type="date"
+                      className="rn-web-date-input"
+                      style={{ padding: 12, borderRadius: 8, border: '1px solid #ddd', fontSize: 16, width: '100%' }}
+                      value={editingExpense.date}
+                      onChange={e => setEditingExpense({ ...editingExpense, date: e.target.value })}
+                      min={getTodayDate()}
+                    />
+                  ) : (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Date (YYYY-MM-DD)"
+                      value={editingExpense.date}
+                      onChangeText={(text) => setEditingExpense({ ...editingExpense, date: text })}
+                    />
+                  )}
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Description:</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Date (YYYY-MM-DD)"
-                    value={editingExpense.date}
-                    onChangeText={(text) => setEditingExpense({ ...editingExpense, date: text })}
+                    placeholder="Enter description (e.g., Advance, Bonus, etc.)"
+                    value={editingExpense.name}
+                    onChangeText={(text) => setEditingExpense({ ...editingExpense, name: text })}
                   />
-                )}
+                </View>
 
-                <TextInput
-                  style={styles.input}
-                  placeholder="Description (e.g., Advance, Bonus, etc.)"
-                  value={editingExpense.name}
-                  onChangeText={(text) => setEditingExpense({ ...editingExpense, name: text })}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Amount Paid"
-                  value={editingExpense.Amt_Paid?.toString()}
-                  onChangeText={(text) => setEditingExpense({ ...editingExpense, Amt_Paid: text })}
-                  keyboardType="numeric"
-                />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Amount Paid:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter amount paid"
+                    value={editingExpense.Amt_Paid?.toString()}
+                    onChangeText={(text) => setEditingExpense({ ...editingExpense, Amt_Paid: text })}
+                    keyboardType="numeric"
+                  />
+                </View>
               </ScrollView>
             )}
             <View style={styles.modalButtons}>
@@ -848,13 +866,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  inputGroup: {
+    marginBottom: 16,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 12,
     fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#2c3e50',
+    minHeight: 50,
   },
   workerInfo: {
     backgroundColor: '#f8f9fa',

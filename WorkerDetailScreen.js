@@ -10,10 +10,11 @@ import {
   ScrollView,
   Platform,
   Image,
+  Pressable,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { SupabaseAPI } from './supabase';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function WorkerDetailScreen({ navigation }) {
   const [workers, setWorkers] = useState([]);
@@ -126,7 +127,7 @@ export default function WorkerDetailScreen({ navigation }) {
     <View style={styles.container}>
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: 32,
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         flexDirection: 'row',
@@ -139,11 +140,22 @@ export default function WorkerDetailScreen({ navigation }) {
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 },
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ backgroundColor: 'transparent', borderRadius: 20, marginRight: 8 }}>
-            <Ionicons name="arrow-back-circle" size={32} color="#fff" />
-          </TouchableOpacity>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', marginRight: 8 }}>Worker Detailed Overview</Text>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [{
+            backgroundColor: pressed ? 'rgba(255,255,255,0.18)' : 'transparent',
+            borderRadius: 26,
+            marginRight: 8,
+            width: 52,
+            height: 52,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }]}
+        >
+          <Ionicons name="chevron-back-circle" size={40} color="#fff" />
+        </Pressable>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Worker Overview</Text>
         </View>
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>

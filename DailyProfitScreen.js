@@ -310,7 +310,7 @@ export default function DailyProfitScreen({ navigation }) {
     <View style={styles.container}>
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: 32,
+        paddingTop: Platform.OS === 'ios' ? 50 : 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         flexDirection: 'row',
@@ -337,17 +337,17 @@ export default function DailyProfitScreen({ navigation }) {
         >
           <Ionicons name="chevron-back-circle" size={40} color="#fff" />
         </Pressable>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}>
           <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>Daily Profit</Text>
         </View>
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
-      {/* Floating Reload Button */}
-      <View style={{ position: 'absolute', right: 24, bottom: 32, alignItems: 'flex-end', zIndex: 100 }}>
+      {/* Floating Action Buttons */}
+      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
         <TouchableOpacity
           style={{
-            backgroundColor: '#2980b9',
+            backgroundColor: '#e74c3c',
             width: 60,
             height: 60,
             borderRadius: 30,
@@ -362,8 +362,9 @@ export default function DailyProfitScreen({ navigation }) {
           }}
           onPress={loadData}
           activeOpacity={0.85}
+          disabled={loading}
         >
-          <Ionicons name="refresh-circle" size={36} color="#fff" />
+          <Ionicons name="refresh" size={36} color="#fff" />
         </TouchableOpacity>
       </View>
       <SafeAreaView style={{ height: 32 }} />
