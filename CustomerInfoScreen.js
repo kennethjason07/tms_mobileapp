@@ -23,8 +23,50 @@ import { createShadowStyle, shadowPresets } from './utils/shadowUtils';
 export default function CustomerInfoScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [customerOrders, setCustomerOrders] = useState([]);
+  const [customerMetadata, setCustomerMetadata] = useState(null);
   const [loading, setLoading] = useState(false);
   const [customerFound, setCustomerFound] = useState(false);
+
+  // Transform old data format to new format
+  const transformCustomerData = (rawData) => {
+    if (!rawData) return null;
+
+    // Check if data is already in new format
+    if (rawData.customer_orders) {
+      return rawData;
+    }
+
+    // Transform old format to new format
+    const orderHistory = rawData.order_history || [];
+    
+    // Transform each order to match new field names
+    const transformedOrders = orderHistory.map(order => ({
+      order_id: order.id,
+      bill_number: order.billnumberinput2,
+      garment_type: order.garment_type,
+      status: order.status,
+      order_date: order.order_date,
+      due_date: order.due_date,
+      payment_mode: order.payment_mode,
+      payment_status: order.payment_status,
+      advance_amount: order.payment_amount || 0,
+      total_amount: order.total_amt || 0
+    }));
+
+    // Calculate metadata
+    const totalAmount = transformedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const uniqueBillNumbers = [...new Set(transformedOrders.map(order => order.bill_number).filter(Boolean))];
+    
+    return {
+      customer_orders: transformedOrders,
+      metadata: {
+        total_orders: transformedOrders.length,
+        total_bills: uniqueBillNumbers.length,
+        total_amount: totalAmount,
+        last_updated: new Date().toISOString()
+      }
+    };
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -34,20 +76,26 @@ export default function CustomerInfoScreen({ navigation }) {
 
     try {
       setLoading(true);
-      const customerData = await SupabaseAPI.getCustomerInfo(searchQuery);
+      const rawCustomerData = await SupabaseAPI.getCustomerInfo(searchQuery);
       
-      if (customerData && customerData.order_history && customerData.order_history.length > 0) {
-        setCustomerOrders(customerData.order_history);
+      // Transform the data to new format
+      const customerData = transformCustomerData(rawCustomerData);
+      
+      if (customerData && customerData.customer_orders && customerData.customer_orders.length > 0) {
+        setCustomerOrders(customerData.customer_orders);
+        setCustomerMetadata(customerData.metadata || null);
         setCustomerFound(true);
       } else {
         Alert.alert('Not Found', 'No orders found for this customer.');
         setCustomerOrders([]);
+        setCustomerMetadata(null);
         setCustomerFound(false);
       }
     } catch (error) {
       console.error('Error fetching customer data:', error);
       Alert.alert('Error', 'No orders found for this customer.');
       setCustomerOrders([]);
+      setCustomerMetadata(null);
       setCustomerFound(false);
     } finally {
       setLoading(false);
@@ -63,57 +111,61 @@ export default function CustomerInfoScreen({ navigation }) {
     return `${day}-${month}-${year}`;
   };
 
+  const renderSummaryCard = () => {
+    if (!customerMetadata) return null;
+    
+    return (
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>Orders Summary</Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Total Orders:</Text>
+          <Text style={styles.summaryValue}>{customerMetadata.total_orders || customerOrders.length}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Total Bills:</Text>
+          <Text style={styles.summaryValue}>{customerMetadata.total_bills || 'N/A'}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Total Amount:</Text>
+          <Text style={styles.summaryValue}>₹{customerMetadata.total_amount || 0}</Text>
+        </View>
+        {customerMetadata.last_updated && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Last Updated:</Text>
+            <Text style={styles.summaryValue}>{formatDateTime(customerMetadata.last_updated)}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderTableHeader = () => (
+    <View style={styles.tableHeader}>
+      <Text style={[styles.tableHeaderText, styles.orderIdColumn]}>Order ID</Text>
+      <Text style={[styles.tableHeaderText, styles.billNumberColumn]}>Bill Number</Text>
+      <Text style={[styles.tableHeaderText, styles.garmentTypeColumn]}>Garment Type</Text>
+      <Text style={[styles.tableHeaderText, styles.statusColumn]}>Status</Text>
+      <Text style={[styles.tableHeaderText, styles.dateColumn]}>Order Date</Text>
+      <Text style={[styles.tableHeaderText, styles.dateColumn]}>Due Date</Text>
+      <Text style={[styles.tableHeaderText, styles.paymentColumn]}>Payment Mode</Text>
+      <Text style={[styles.tableHeaderText, styles.paymentColumn]}>Payment Status</Text>
+      <Text style={[styles.tableHeaderText, styles.amountColumn]}>Advance Amount</Text>
+      <Text style={[styles.tableHeaderText, styles.amountColumn]}>Total Amount</Text>
+    </View>
+  );
+
   const renderOrderItem = ({ item }) => (
-    <View style={styles.orderCard}>
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Order ID:</Text>
-        <Text style={styles.orderValue}>{item.id}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Bill Number:</Text>
-        <Text style={styles.orderValue}>{item.billnumberinput2 || 'N/A'}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Garment Type:</Text>
-        <Text style={styles.orderValue}>{item.garment_type || 'N/A'}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Status:</Text>
-        <Text style={styles.orderValue}>{item.status || 'N/A'}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Order Date:</Text>
-        <Text style={styles.orderValue}>{formatDateTime(item.order_date)}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Due Date:</Text>
-        <Text style={styles.orderValue}>{formatDateTime(item.due_date)}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Payment Mode:</Text>
-        <Text style={styles.orderValue}>{item.payment_mode || 'N/A'}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Payment Status:</Text>
-        <Text style={styles.orderValue}>{item.payment_status || 'N/A'}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Advance Amount:</Text>
-        <Text style={styles.orderValue}>₹{item.payment_amount || 0}</Text>
-      </View>
-      
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Total Amount:</Text>
-        <Text style={styles.orderValue}>₹{item.total_amt || 0}</Text>
-      </View>
+    <View style={styles.tableRow}>
+      <Text style={[styles.tableCellText, styles.orderIdColumn]}>{item.order_id}</Text>
+      <Text style={[styles.tableCellText, styles.billNumberColumn]}>{item.bill_number || 'N/A'}</Text>
+      <Text style={[styles.tableCellText, styles.garmentTypeColumn]}>{item.garment_type || 'N/A'}</Text>
+      <Text style={[styles.tableCellText, styles.statusColumn]}>{item.status || 'N/A'}</Text>
+      <Text style={[styles.tableCellText, styles.dateColumn]}>{formatDateTime(item.order_date)}</Text>
+      <Text style={[styles.tableCellText, styles.dateColumn]}>{formatDateTime(item.due_date)}</Text>
+      <Text style={[styles.tableCellText, styles.paymentColumn]}>{item.payment_mode || 'N/A'}</Text>
+      <Text style={[styles.tableCellText, styles.paymentColumn]}>{item.payment_status || 'N/A'}</Text>
+      <Text style={[styles.tableCellText, styles.amountColumn]}>₹{item.advance_amount || 0}</Text>
+      <Text style={[styles.tableCellText, styles.amountColumn]}>₹{item.total_amount || 0}</Text>
     </View>
   );
 
@@ -183,14 +235,18 @@ export default function CustomerInfoScreen({ navigation }) {
               {/* Orders Section */}
               {customerFound && (
                 <View style={styles.ordersSection}>
+                  {renderSummaryCard()}
                   <Text style={styles.sectionTitle}>Customer Orders ({customerOrders.length})</Text>
-                  <FlatList
-                    data={customerOrders}
-                    renderItem={renderOrderItem}
-                    keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
-                    scrollEnabled={false}
-                    showsVerticalScrollIndicator={false}
-                  />
+                  <View style={styles.tableContainer}>
+                    {renderTableHeader()}
+                    <FlatList
+                      data={customerOrders}
+                      renderItem={renderOrderItem}
+                      keyExtractor={(item, index) => `${item?.order_id || 'no-id'}-${index}`}
+                      scrollEnabled={false}
+                      showsVerticalScrollIndicator={false}
+                    />
+                  </View>
                 </View>
               )}
 
@@ -239,14 +295,18 @@ export default function CustomerInfoScreen({ navigation }) {
               {/* Orders Section */}
               {customerFound && (
                 <View style={styles.ordersSection}>
+                  {renderSummaryCard()}
                   <Text style={styles.sectionTitle}>Customer Orders ({customerOrders.length})</Text>
-                  <FlatList
-                    data={customerOrders}
-                    renderItem={renderOrderItem}
-                    keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
-                    scrollEnabled={false}
-                    showsVerticalScrollIndicator={false}
-                  />
+                  <View style={styles.tableContainer}>
+                    {renderTableHeader()}
+                    <FlatList
+                      data={customerOrders}
+                      renderItem={renderOrderItem}
+                      keyExtractor={(item, index) => `${item?.order_id || 'no-id'}-${index}`}
+                      scrollEnabled={false}
+                      showsVerticalScrollIndicator={false}
+                    />
+                  </View>
                 </View>
               )}
 
@@ -344,30 +404,61 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginBottom: 8,
   },
-  orderCard: {
-    backgroundColor: '#f8f9fa',
+  tableContainer: {
+    backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
-  orderRow: {
+  tableHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: '#dee2e6',
   },
-  orderLabel: {
-    fontSize: 12,
-    color: '#7f8c8d',
+  tableHeaderText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#495057',
+    textAlign: 'center',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+    backgroundColor: '#fff',
+  },
+  tableCellText: {
+    fontSize: 13,
+    color: '#2c3e50',
+    textAlign: 'center',
     fontWeight: '500',
+  },
+  orderIdColumn: {
     flex: 1,
   },
-  orderValue: {
-    fontSize: 12,
-    color: '#2c3e50',
-    fontWeight: '500',
-    flex: 2,
-    textAlign: 'right',
+  billNumberColumn: {
+    flex: 1.2,
+  },
+  garmentTypeColumn: {
+    flex: 1.2,
+  },
+  statusColumn: {
+    flex: 1,
+  },
+  dateColumn: {
+    flex: 1.4,
+  },
+  paymentColumn: {
+    flex: 1.2,
+  },
+  amountColumn: {
+    flex: 1.4,
   },
   noOrdersContainer: {
     padding: 32,
@@ -380,4 +471,35 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
   },
-}); 
+  summaryCard: {
+    backgroundColor: '#e8f5e8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#27ae60',
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#27ae60',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#2c3e50',
+    fontWeight: '500',
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: '#27ae60',
+    fontWeight: 'bold',
+  },
+});

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starset Consultancy Services</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <header class="header">
+        <div class="header-logo">
+            <img src="logo.png" alt="starsetlogo">
+            <div class="header-navigation">
+                <h2>Starset Consultancy Services</h2>
+            </div>
+        </div>
+    </header>
+    <main class="main">
+        <div class="main-header">
+        </div>
+        <div class="horizontal-tabs">
+            <a href="index.html" class="nav-link">
+                <!-- Embedded SVG home icon -->
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                Home
+            </a>
+        </div>
+        <div class="content-main" >
+
+        <div id="new-bill" class="new-bill">
+            <form id="new-bill-form">
+                
+                <div id="printablearea">
+                <fieldset>
+                    <legend>
+                        <label for="measurments">Measurments:</label>
+                    </legend>
+                    <div class="search-container">
+                        <div class="search-box">
+                        <label for="mobile-number2">Mobile Number:</label>
+                        <input type="text" id="mobile-number2" placeholder="Enter Mobile Number">
+                        <button type="button" id="search-button">Search</button>
+                    </div>
+                   </div>
+          <div class="billnumber">
+            <label for="billnumberinput">Order Number:</label>
+            <input type="number" name="billnumberinput" id="billnumberinput2">
+        </div>
+                    <h3>Select Measurement Type</h3>
+                    <label>
+                    <input type="checkbox" name="measurements-selection" value="pant" onclick="toggleMeasurements()"> Pant
+                    </label>
+                    <label>
+                        <input type="checkbox" name="measurements-selection" value="shirt" onclick="toggleMeasurements()"> Shirt
+                    </label>
+                    <label>
+                        <input type="checkbox" name="measurements-selection" value="extra" onclick="toggleMeasurements()"> Extra
+                    </label>
+                    <fieldset id="pant-section" class="hidden">
+                        <legend>
+                            <h2>Pant Measurment:</h2>
+                        </legend>
+                        <label for="length">length:</label>
+                        <input type="text" name="length" id="length">
+
+                        <label for="kamar">Kamar</label>
+                        <input type="text" name="kamar" id="kamar">
+
+                        <label for="hips">Hips</label>
+                        <input type="text" name="hips" id="hips">
+
+                        <label for="waist">ran</label>
+                        <input type="text" name="waist" id="waist">
+
+                        <label for="Ghutna">Ghutna</label>
+                        <input type="text" name="Ghutna" id="Ghutna">
+
+                        <label for="Bottom">Bottom</label>
+                        <input type="text" name="Bottom" id="Bottom">
+
+                        <label for="seat">seat</label>
+                        <input type="text" name="seat" id="seat">
+
+                        <div id="pantdraw">
+                            <textarea name="pantdraw" id="pantdraw" rows="10" cols="155"></textarea>
+                        </div>
+
+                        <fieldset>
+                        <legend>Pant</legend>
+                        <label for="SideP/Cross">SideP/Cross</label><input type="text" name="SideP/Cross"  id="SideP_Cross" >
+                        <label for="Plates">Plates</label><input type="text" name="Plates"  id="Plates"  >
+                        <label for="Belt">Belt</label><input type="text" name="Belt"  id="Belt"  >
+                        <label for="Back P.">Back P.</label><input type="text" name="Back P."  id="Back_P"  >
+                        <label for="WP.">WP.</label><input type="text" name="WP."  id="WP"  >
+                        </fieldset>
+                    </fieldset>
+                    
+                    <fieldset id="shirt-section" class="hidden">
+                        <legend>
+                            <h2>
+                                shirt Measurments
+                            </h2>
+                        </legend>
+                        <label for="shirtlength">length:</label>
+                        <input type="text" name="shirtlength" id="shirtlength">
+
+                        <label for="body">body</label>
+                        <input type="text" name="body" id="body">
+
+                        <label for="Loose">Loose</label>
+                        <input type="text" name="Loose" id="Loose">
+
+                        <label for="Shoulder">Shoulder</label>
+                        <input type="text" name="Shoulder" id="Shoulder">
+
+                        <label for="Astin">Astin</label>
+                        <input type="text" name="Astin" id="Astin">
+
+                        <label for="collor">Collor</label>
+                        <input type="text" name="collor" id="collor">
+
+                        <label for="allose">Aloose</label>
+                        <input type="text" name="allose" id="allose">
+
+                        <div id="shirtdraw">
+                            <textarea name="shirtdraw" id="shirtdraw" rows="10" cols="155"></textarea>
+                        </div>
+                        
+                <fieldset>
+                    <legend>Shirt</legend>
+                <label for="Callar">Collar</label><input type="text" name="Callar"  id="Callar"  >
+                <label for="Cuff">Cuff</label><input type="text" name="Cuff"  id="Cuff"  >
+                <label for="Pkt.">Pkt.</label><input type="text" name="Pkt."  id="Pkt"  >
+                <label for="Loose">Loose</label><input type="text" name="Loose"  id="LooseShirt"  >
+                <label for="DT/TT">DT/TT</label><input type="text" name="DT/TT"  id="DT_TT"  >
+                </fieldset>
+                    </fieldset>
+                </fieldset>
+
+                <div id="extra-section" class="hidden">
+                    <legend>
+                        <textarea name="extra-input" id="extra-input" rows="10" cols="160"></textarea>
+                    </legend>
+                </div>
+
+                <fieldset>
+                    <legend>Garment Type:</legend>
+                    <label for="shirt">
+                        <input type="checkbox" id="garment_type" name="garment_type" value="Suit"  >
+                        Suit.
+                    </label>
+                    <label for="pants">
+                        <input type="checkbox" id="garment_type" name="garment_type" value="Safari/Jacket">
+                        Safari/Jacket.
+                    </label>
+                    <label for="jacket">
+                        <input type="checkbox" id="garment_type" name="garment_type" value="Pant">
+                        Pant.
+                    </label>
+                    <label for="other">
+                        <input type="checkbox" id="garment_type" name="garment_type" value="Shirt">
+                        Shirt.
+                    </label>
+                    <label for="sadri">
+                        <input type="checkbox" id="garment_type" name="garment_type" value="Sadri">
+                        Sadri
+                    </label>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Payment Mode:</legend>
+                    <label>
+                        <input type="radio" id="Payment" name="payment_mode" value="Cash" required>
+                        Cash
+                    </label>
+                    <label>
+                        <input type="radio" id="Payment" class="hidden" name="payment_mode" value="Cash" required>
+                    </label>
+                </fieldset>
+
+                <label for="quantity"></label>
+                    <input type="number" id="quantity" class="hidden" name="quantity" min="1" >
+
+                    <label for="today-date">Order Date:</label>
+                    <input type="date" id="today-date" name="today_date" required>
+                    
+                    <label for="due-date">Delivery Date:</label>
+                    <input type="date" id="due-date" name="due_date" required>
+
+                    <label for="payementstatus">Payment Status:</label>
+                <select id="payementstatus" onchange="">
+                    <option value="pending">pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="advance">advance</option>
+                </select>
+                <label for="advance_amt">Advance Amount:</label>
+                <input type="number" name="advance_amt" id="advance_amt" value="0">
+                </div>
+
+                <div class="form-column2">
+                    <div id="customerbill">
+                    <div class="bill-logo"><img src="Shop.jpeg" alt="log" ></div>
+                    <h2>Customer Information</h2>
+                    <div class="billnumber">
+                        <label for="billnumberinput">Order Number:</label>
+                        <input type="number" name="billnumberinput" id="billnumberinput3">
+                    </div>
+
+                    <table class="info-table">
+                        <tr>
+                            <td>
+                                <label for="customer-name">Customer Name:</label>
+                                <input type="text" id="customer-name" name="customer_name" required>
+                            </td>
+                            <td>
+                                <label for="date_issue">Date:</label>
+                                <input type="date" id="date_issue" name="date_issue" required>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label for="mobile-number">Mobile Number:</label>
+                                <input type="tel" id="mobile-number" name="mobile_number" pattern="[0-9]{10}" placeholder="1234567890" required>
+                            </td>
+                            <td>
+                                <label for="delivery-date">Delivery Date:</label>
+                                <input type="date" id="delivery-date" name="delivery-date" required>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="content-container">
+                    <table id="customer-table">
+                        <thead>
+                            <tr>
+                                <th>Particulars</th>
+                                <th>Qty</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Suit</td>
+                                <td><input type="number" name="suit_qty" id="suit_qty" oninput="calculateTotals()"></td>
+                                <td><input type="number" name="suit_amount" id="suit_amount" oninput="calculateTotals()"></td>
+                            </tr>
+                    
+                            <tr>
+                                <td>Safari/Jacket</td>
+                                <td><input type="number" name="safari_qty" id="safari_qty" oninput="calculateTotals()"></td>
+                                <td><input type="number" name="safari_amount" id="safari_amount" oninput="calculateTotals()"></td>
+                            </tr>
+                    
+                            <tr>
+                                <td>Pant</td>
+                                <td><input type="number" name="pant_qty" id="pant_qty" oninput="calculateTotals()"></td>
+                                <td><input type="number" name="pant_amount" id="pant_amount" oninput="calculateTotals()"></td>
+                            </tr>
+                    
+                            <tr>
+                                <td>Shirt</td>
+                                <td><input type="number" name="shirt_qty" id="shirt_qty" oninput="calculateTotals()"></td>
+                                <td><input type="number" name="shirt_amount" id="shirt_amount" oninput="calculateTotals()"></td>
+                            </tr>
+
+                            <tr>
+                                <td>Sadri</td>
+                                <td><input type="number" name="sadri_qty" id="sadri_qty" oninput="calculateTotals()"></td>
+                                <td><input type="number" name="sadri_amount" id="sadri_amount" oninput="calculateTotals()"></td>
+                            </tr>
+                    
+                            <tr>
+                                <td><strong>Total</strong></td>
+                                <td><input type="number" name="total_qty" id="total_qty" readonly></td>
+                                <td><input type="number" name="total_amt" id="total_amt" readonly></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="suit-specialist">
+                        <img src="suitpic.jpg" alt="Suit Specialist">
+                    </div>
+                    </div>
+                    
+<div class="footer">
+Thank You, Visit Again!<br>
+<strong>Sunday Holiday</strong>
+</div>  
+                </div> 
+                </div>
+
+                <div class="centering">
+                    <button type="button" id="printmeasurements" class="button save-print" onclick="printMeasurements()">Print Measurements</button>
+                    <button type="submit" id="savePrintBtn" class="button save-print">Save and Print Bill</button>
+                    <button type="button" id="printOnlyBtn" class="button save-print" onclick="enhancedSaveAndPrint()">Print Bill Only</button>
+                    <button type="button" id="downloadPdfBtn" class="button save-print" onclick="downloadBillAsPDF()">Download PDF</button>
+                </div>
+            </form>
+            <div id="response"></div>
+            </div>
+        </div>
+    </main>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> 
+    <script src="/frontend/html2canvas.min.js"></script>
+    <script src="/frontend/jspdf.umd.min.js"></script>
+
+    <script src="NewBill.js"></script>
+    <script src="billnumber.js"></script>
+    <script src="printmeasurement.js"></script>
+    <script src="enhanced-bill-print.js"></script>
+    <script src="debug-bill-test.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('today-date').addEventListener('input', function () {
+                const todayDate = this.value;
+                document.getElementById('date_issue').value = todayDate;
+            });
+
+            document.getElementById('due-date').addEventListener('input', function () {
+                const dueDate = this.value;
+                document.getElementById('delivery-date').value = dueDate;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 -- Table order and constraints may not be valid for execution.
 
 CREATE TABLE public.Daily_Expenses (
+  id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
   Date date NOT NULL,
   material_cost double precision,
   material_type text,
@@ -9,15 +10,14 @@ CREATE TABLE public.Daily_Expenses (
   miscellaneous_item text,
   chai_pani_cost double precision,
   Total_Pay double precision,
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
   CONSTRAINT Daily_Expenses_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.Worker_Expense (
-  worker_id integer,
-  Amt_Paid numeric,
+  id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
   date date NOT NULL,
   name text NOT NULL,
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
+  Amt_Paid numeric,
+  worker_id integer,
   CONSTRAINT Worker_Expense_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.billno (
@@ -26,23 +26,23 @@ CREATE TABLE public.billno (
   CONSTRAINT billno_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.bills (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
+  customer_name text NOT NULL,
+  mobile_number text NOT NULL,
+  date_issue date NOT NULL,
+  delivery_date date NOT NULL,
   suit_qty integer,
   safari_qty integer,
   pant_qty integer,
   shirt_qty integer,
   sadri_qty integer,
   total_qty integer,
-  payment_amount double precision,
-  customer_name text NOT NULL,
-  mobile_number text NOT NULL,
-  date_issue date NOT NULL,
-  delivery_date date NOT NULL,
   today_date date NOT NULL,
   due_date date NOT NULL,
   total_amt double precision NOT NULL,
   payment_mode text NOT NULL,
   payment_status text NOT NULL,
+  payment_amount double precision,
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
   CONSTRAINT bills_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.measurements (
@@ -82,15 +82,12 @@ CREATE TABLE public.order_worker_association (
   order_id integer NOT NULL,
   worker_id integer NOT NULL,
   CONSTRAINT order_worker_association_pkey PRIMARY KEY (order_id, worker_id),
-  CONSTRAINT order_worker_association_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES public.workers(id),
-  CONSTRAINT order_worker_association_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
+  CONSTRAINT order_worker_association_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
+  CONSTRAINT order_worker_association_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES public.workers(id)
 );
 CREATE TABLE public.orders (
-  Work_pay double precision,
-  billnumberinput2 double precision,
-  updated_at date,
-  garment_type text NOT NULL,
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
+  garment_type text NOT NULL,
   status text NOT NULL,
   order_date date NOT NULL,
   due_date date NOT NULL,
@@ -98,11 +95,15 @@ CREATE TABLE public.orders (
   payment_mode text NOT NULL,
   payment_status text NOT NULL,
   payment_amount double precision NOT NULL,
+  Work_pay double precision,
+  billnumberinput2 double precision,
   bill_id integer NOT NULL,
+  updated_at date,
   CONSTRAINT orders_pkey PRIMARY KEY (id),
   CONSTRAINT orders_bill_id_fkey FOREIGN KEY (bill_id) REFERENCES public.bills(id)
 );
 CREATE TABLE public.workers (
+  id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
   name text,
   number text,
   Rate double precision,
@@ -110,6 +111,5 @@ CREATE TABLE public.workers (
   Jacket double precision,
   Sadri double precision,
   Others double precision,
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
   CONSTRAINT workers_pkey PRIMARY KEY (id)
 );

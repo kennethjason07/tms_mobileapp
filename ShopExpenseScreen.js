@@ -158,11 +158,6 @@ export default function ShopExpenseScreen({ navigation }) {
     }
   };
 
-  const calculateTotalExpenses = () => {
-    return filteredExpenses.reduce((total, expense) => {
-      return total + (parseFloat(expense.Total_Pay) || 0);
-    }, 0);
-  };
 
   const getTodayDate = () => {
     const today = new Date();
@@ -301,17 +296,6 @@ export default function ShopExpenseScreen({ navigation }) {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{filteredExpenses.length}</Text>
-          <Text style={styles.statLabel}>Total Entries</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>₹{calculateTotalExpenses().toFixed(2)}</Text>
-          <Text style={styles.statLabel}>Total Expenses</Text>
-        </View>
       </View>
 
       {Platform.OS === 'web' ? (
@@ -511,7 +495,7 @@ export default function ShopExpenseScreen({ navigation }) {
                     (parseFloat(newExpense.chai_pani_cost) || 0)}
                 </Text>
               </View>
-            </KeyboardAvoidingView>
+            </ScrollView>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -655,7 +639,7 @@ export default function ShopExpenseScreen({ navigation }) {
                     ).toFixed(2)}
                   </Text>
                 </View>
-              </KeyboardAvoidingView>
+              </ScrollView>
             )}
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -747,26 +731,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
-    marginBottom: 8,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    marginTop: 4,
   },
   listContainer: {
     padding: 16,

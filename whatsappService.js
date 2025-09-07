@@ -108,6 +108,193 @@ Your Tailor Shop`;
     }).join('\n');
 
     return details || '• Order details not available';
+  },
+
+  // Format measurements for WhatsApp message
+  formatMeasurementsForWhatsApp(measurements) {
+    if (!measurements) {
+      return '📏 *Measurements:* Not available\n\n';
+    }
+
+    const measurementSections = [];
+
+    // Pant measurements
+    const pantMeasurements = {
+      'Length': measurements.pant_length,
+      'Kamar (Waist)': measurements.pant_kamar,
+      'Hips': measurements.pant_hips,
+      'Waist': measurements.pant_waist,
+      'Ghutna (Knee)': measurements.pant_ghutna,
+      'Bottom': measurements.pant_bottom,
+      'Seat': measurements.pant_seat,
+      'Side P Cross': measurements.SideP_Cross,
+      'Plates': measurements.Plates,
+      'Belt': measurements.Belt,
+      'Back P': measurements.Back_P,
+      'WP': measurements.WP
+    };
+
+    const pantItems = Object.entries(pantMeasurements)
+      .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+      .map(([key, value]) => `  • ${key}: ${value}`);
+
+    if (pantItems.length > 0) {
+      measurementSections.push('👖 *Pant Measurements:*\n' + pantItems.join('\n'));
+    }
+
+    // Shirt measurements
+    const shirtMeasurements = {
+      'Length': measurements.shirt_length,
+      'Body': measurements.shirt_body,
+      'Loose': measurements.shirt_loose,
+      'Shoulder': measurements.shirt_shoulder,
+      'Astin (Sleeve)': measurements.shirt_astin,
+      'Collar': measurements.shirt_collar,
+      'A Loose': measurements.shirt_aloose,
+      'Collar Type': measurements.Callar,
+      'Cuff': measurements.Cuff,
+      'Pocket': measurements.Pkt,
+      'Loose Shirt': measurements.LooseShirt,
+      'DT/TT': measurements.DT_TT
+    };
+
+    const shirtItems = Object.entries(shirtMeasurements)
+      .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+      .map(([key, value]) => `  • ${key}: ${value}`);
+
+    if (shirtItems.length > 0) {
+      measurementSections.push('👔 *Shirt Measurements:*\n' + shirtItems.join('\n'));
+    }
+
+    // Extra measurements
+    if (measurements.extra_measurements && measurements.extra_measurements.trim() !== '') {
+      measurementSections.push('📝 *Additional Notes:*\n  • ' + measurements.extra_measurements.trim());
+    }
+
+    if (measurementSections.length === 0) {
+      return '📏 *Measurements:* Not available\n\n';
+    }
+
+    return '📏 *Customer Measurements:*\n\n' + measurementSections.join('\n\n') + '\n\n';
+  },
+
+  // Generate worker assignment message with measurements
+  generateWorkerAssignmentMessage(customerName, billNumber, garmentType, measurements) {
+    const measurementsText = this.formatMeasurementsForWhatsApp(measurements);
+    
+    const message = `🎯 *New Work Assignment*
+
+Hi! You have been assigned a new order:
+
+📋 *Order Details:*
+  • Customer: ${customerName || 'N/A'}
+  • Bill Number: #${billNumber || 'N/A'}
+  • Garment Type: ${garmentType || 'N/A'}
+
+${measurementsText}Please start working on this order. Thank you!
+
+Best regards,
+Your Tailor Shop`;
+
+    return message;
+  }
+};
+
+// WhatsApp Redirect Service - Opens WhatsApp with pre-filled message
+export const WhatsAppRedirectService = {
+  // Open WhatsApp with pre-filled message
+  openWhatsAppWithMessage(phoneNumber, message) {
+    try {
+      // Validate phone number first
+      if (!phoneNumber || typeof phoneNumber !== 'string' || phoneNumber.trim() === '') {
+        return { success: false, message: 'No WhatsApp number available for this customer' };
+      }
+
+      // Format phone number to remove any non-digits and add country code if needed
+      let formattedPhone = phoneNumber.replace(/\D/g, ''); // Remove all non-digits
+      
+      // Validate phone number length and format
+      if (formattedPhone.length < 10) {
+        return { success: false, message: 'Invalid phone number format' };
+      }
+      
+      // Add country code if not present (assuming India +91)
+      if (formattedPhone.length === 10 && /^[6-9]/.test(formattedPhone)) {
+        formattedPhone = '91' + formattedPhone;
+      } else if (formattedPhone.length === 11 && formattedPhone.startsWith('0')) {
+        // Remove leading 0 and add country code
+        formattedPhone = '91' + formattedPhone.substring(1);
+      } else if (formattedPhone.length === 13 && formattedPhone.startsWith('91')) {
+        // Already has country code
+        // Keep as is
+      } else {
+        return { success: false, message: 'Invalid phone number format for WhatsApp' };
+      }
+      
+      // Validate message
+      if (!message || message.trim() === '') {
+        return { success: false, message: 'No message content to send' };
+      }
+      
+      // Encode the message for URL
+      const encodedMessage = encodeURIComponent(message);
+      
+      // Create WhatsApp URL with pre-filled message
+      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+      
+      // Check if we're in a web environment or React Native
+      if (typeof window !== 'undefined' && typeof window.open === 'function') {
+        // Web environment - open in new window
+        try {
+          window.open(whatsappUrl, '_blank');
+          return { success: true, message: 'WhatsApp opened successfully in browser' };
+        } catch (webError) {
+          console.error('Failed to open WhatsApp in web:', webError);
+          return { success: false, message: 'Failed to open WhatsApp in browser. Please check if popup blocking is disabled.' };
+        }
+      } else {
+        // React Native environment - use Linking
+        try {
+          const { Linking } = require('react-native');
+          
+          // For React Native, we'll use a simpler approach and handle errors
+          Linking.openURL(whatsappUrl)
+            .then(() => {
+              console.log('WhatsApp opened successfully');
+            })
+            .catch(err => {
+              console.error('Failed to open WhatsApp:', err);
+              // Don't throw here as it's async
+            });
+            
+          // Return success immediately for React Native as we can't wait for the async result
+          return { success: true, message: 'Attempting to open WhatsApp...' };
+        } catch (linkingError) {
+          console.error('Linking module error:', linkingError);
+          return { success: false, message: 'WhatsApp is not available on this device' };
+        }
+      }
+    } catch (error) {
+      console.error('Error opening WhatsApp:', error);
+      return { success: false, message: `No WhatsApp exists for this number: ${error.message}` };
+    }
+  },
+
+  // Generate WhatsApp URL for sharing
+  generateWhatsAppUrl(phoneNumber, message) {
+    try {
+      let formattedPhone = phoneNumber.replace(/\D/g, '');
+      
+      if (formattedPhone.length === 10 && formattedPhone.startsWith('9')) {
+        formattedPhone = '91' + formattedPhone;
+      }
+      
+      const encodedMessage = encodeURIComponent(message);
+      return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+    } catch (error) {
+      console.error('Error generating WhatsApp URL:', error);
+      return null;
+    }
   }
 };
 
@@ -148,4 +335,4 @@ export const WhatsAppConfig = {
       return { success: false, message: `Connection error: ${error.message}` };
     }
   }
-}; 
+};

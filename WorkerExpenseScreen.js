@@ -147,11 +147,6 @@ export default function WorkerExpenseScreen({ navigation }) {
     }
   };
 
-  const calculateTotalExpenses = () => {
-    return filteredExpenses.reduce((total, expense) => {
-      return total + (expense.Amt_Paid || 0);
-    }, 0);
-  };
 
   const getWorkerName = (workerId) => {
     const worker = workers.find(w => w.id === workerId);
@@ -280,17 +275,6 @@ export default function WorkerExpenseScreen({ navigation }) {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{filteredExpenses.length}</Text>
-          <Text style={styles.statLabel}>Total Entries</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>₹{calculateTotalExpenses().toFixed(2)}</Text>
-          <Text style={styles.statLabel}>Total Paid</Text>
-        </View>
       </View>
 
       {Platform.OS === 'web' ? (
@@ -730,26 +714,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
-    marginBottom: 8,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    marginTop: 4,
   },
   listContainer: {
     padding: 16,

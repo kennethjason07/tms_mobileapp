@@ -53,9 +53,9 @@ const WebScrollView = ({ children, style = {}, contentContainerStyle = {}, shows
     
     // Dynamic height calculation based on screen size
     const getResponsiveHeight = () => {
-      if (isSmallScreen) return 'calc(100vh - 60px)';
-      if (isMediumScreen) return 'calc(100vh - 80px)';
-      return 'calc(100vh - 100px)';
+      if (isSmallScreen) return screenData.height - 60;
+      if (isMediumScreen) return screenData.height - 80;
+      return screenData.height - 100;
     };
 
     // For web, create a container with responsive CSS scrolling
@@ -63,15 +63,9 @@ const WebScrollView = ({ children, style = {}, contentContainerStyle = {}, shows
       ...style,
       flex: 1,
       height: getResponsiveHeight(),
-      maxHeight: '100vh',
-      overflowY: 'auto',
-      overflowX: 'hidden',
-      WebkitOverflowScrolling: 'touch',
-      scrollBehavior: 'smooth',
+      maxHeight: screenData.height,
+      overflow: 'auto',
       position: 'relative',
-      // Custom scrollbar styling for web (Firefox)
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#c1c1c1 #f1f1f1',
     };
 
     // Responsive content styling
@@ -82,11 +76,11 @@ const WebScrollView = ({ children, style = {}, contentContainerStyle = {}, shows
     };
 
     return (
-      <div style={webStyle} className="custom-scrollview">
-        <div style={webContentStyle}>
+      <View style={webStyle}>
+        <View style={webContentStyle}>
           {children}
-        </div>
-      </div>
+        </View>
+      </View>
     );
   }
 

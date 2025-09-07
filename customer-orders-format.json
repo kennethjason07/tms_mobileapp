@@ -1,0 +1,70 @@
+{
+  "customer_orders": [
+    {
+      "order_id": 5480,
+      "bill_number": 7875,
+      "garment_type": "Shirt",
+      "status": "Pending",
+      "order_date": "2025-04-14",
+      "due_date": "2025-03-22",
+      "payment_mode": "Cash",
+      "payment_status": "pending",
+      "advance_amount": 0,
+      "total_amount": 1390
+    },
+    {
+      "order_id": 5479,
+      "bill_number": 7875,
+      "garment_type": "Shirt",
+      "status": "Pending",
+      "order_date": "2025-04-14",
+      "due_date": "2025-03-22",
+      "payment_mode": "Cash",
+      "payment_status": "pending",
+      "advance_amount": 0,
+      "total_amount": 1390
+    },
+    {
+      "order_id": 5478,
+      "bill_number": 7875,
+      "garment_type": "Pant",
+      "status": "Pending",
+      "order_date": "2025-04-14",
+      "due_date": "2025-03-22",
+      "payment_mode": "Cash",
+      "payment_status": "pending",
+      "advance_amount": 0,
+      "total_amount": 1390
+    },
+    {
+      "order_id": 5366,
+      "bill_number": 7837,
+      "garment_type": "Shirt",
+      "status": "Pending",
+      "order_date": "2025-03-28",
+      "due_date": "2025-03-21",
+      "payment_mode": "Cash",
+      "payment_status": "pending",
+      "advance_amount": 0,
+      "total_amount": 960
+    },
+    {
+      "order_id": 5365,
+      "bill_number": 7837,
+      "garment_type": "Pant",
+      "status": "Pending",
+      "order_date": "2025-03-28",
+      "due_date": "2025-03-21",
+      "payment_mode": "Cash",
+      "payment_status": "pending",
+      "advance_amount": 0,
+      "total_amount": 960
+    }
+  ],
+  "metadata": {
+    "total_orders": 5,
+    "total_bills": 2,
+    "total_amount": 6090,
+    "last_updated": "2025-01-06T10:53:58Z"
+  }
+}

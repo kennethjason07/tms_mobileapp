@@ -98,71 +98,97 @@ export default function DashboardScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f7fa', ...(Platform.OS === 'web' && { height: '100vh' }) }}>
+    <View style={{ 
+      flex: 1, 
+      backgroundColor: '#f5f7fa', 
+      ...(Platform.OS === 'web' && { 
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden'
+      }) 
+    }}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'light-content'} backgroundColor="#2980b9" />
-      <View style={{
-        backgroundColor: '#2980b9',
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
-        paddingBottom: 32,
-        paddingHorizontal: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-      }}>
-        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+      
+      {Platform.OS === 'web' ? (
+        // Web Layout with full scrolling
+        <WebScrollView 
+          style={{ 
+            flex: 1,
+            height: '100vh',
+            width: '100vw'
+          }} 
+          contentContainerStyle={{ 
+            paddingBottom: isSmallScreen ? 100 : 120,
+            minHeight: 'max-content'
+          }} 
+          showsVerticalScrollIndicator={true}
+        >
+          {/* Header */}
           <View style={{
-            width: 100,
-            height: 100,
-            borderRadius: 50,
-            backgroundColor: '#fff',
-            padding: 4,
-            marginBottom: 20,
-            elevation: 4,
+            backgroundColor: '#2980b9',
+            paddingTop: 40,
+            paddingBottom: 32,
+            paddingHorizontal: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderBottomLeftRadius: 32,
+            borderBottomRightRadius: 32,
+            elevation: 8,
             shadowColor: '#000',
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            marginBottom: 24,
           }}>
-            <Image 
-              source={require('./assets/logo.jpg')} 
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                borderRadius: 46,
-                resizeMode: 'cover'
-              }} 
-            />
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+              <View style={{
+                width: 100,
+                height: 100,
+                borderRadius: 50,
+                backgroundColor: '#fff',
+                padding: 4,
+                marginBottom: 20,
+                elevation: 4,
+                shadowColor: '#000',
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
+              }}>
+                <Image 
+                  source={require('./assets/logo.jpg')} 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: 46,
+                    resizeMode: 'cover'
+                  }} 
+                />
+              </View>
+              <Text style={{ 
+                fontSize: 28, 
+                fontWeight: 'bold', 
+                color: '#fff', 
+                textAlign: 'center', 
+                letterSpacing: 1.2, 
+                marginBottom: 8,
+                textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 3,
+              }}>Maximus Consultancy Service</Text>
+              <Text style={{ 
+                fontSize: 18, 
+                color: '#ecf0f1', 
+                textAlign: 'center', 
+                opacity: 0.95,
+                fontWeight: '500',
+                letterSpacing: 0.5,
+              }}>Welcome! Manage your tailoring business with ease.</Text>
+            </View>
           </View>
-          <Text style={{ 
-            fontSize: 28, 
-            fontWeight: 'bold', 
-            color: '#fff', 
-            textAlign: 'center', 
-            letterSpacing: 1.2, 
-            marginBottom: 8,
-            textShadowColor: 'rgba(0, 0, 0, 0.3)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 3,
-          }}>Maximus Consultancy Service</Text>
-          <Text style={{ 
-            fontSize: 18, 
-            color: '#ecf0f1', 
-            textAlign: 'center', 
-            opacity: 0.95,
-            fontWeight: '500',
-            letterSpacing: 0.5,
-          }}>Welcome! Manage your tailoring business with ease.</Text>
-        </View>
-      </View>
-      {/* Main Content */}
-      <WebScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingLeft: responsivePadding, paddingRight: responsivePadding, paddingTop: 24, paddingBottom: isSmallScreen ? 60 : 80 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontSize: fontSizes.title, fontWeight: 'bold', color: '#34495e', marginBottom: 18, marginLeft: 4 }}>Dashboard</Text>
+          
+          {/* Main Content */}
+          <View style={{ paddingLeft: responsivePadding, paddingRight: responsivePadding }}>
+            <Text style={{ fontSize: fontSizes.title, fontWeight: 'bold', color: '#34495e', marginBottom: 18, marginLeft: 4 }}>Dashboard</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: isLargeScreen ? 'flex-start' : 'space-between', marginBottom: 20, gap: isLargeScreen ? 10 : 0 }}>
           {/* Navigation Cards in the specified order */}
           <DashboardCard
@@ -170,6 +196,15 @@ export default function DashboardScreen({ navigation }) {
             label="New Bill"
             desc="Create and manage new customer bills"
             onPress={() => navigation.navigate('NewBill')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
+          />
+          <DashboardCard
+            icon={<MaterialCommunityIcons name="file-document-outline" size={32} color="#9b59b6" />}
+            label="Generate Bill"
+            desc="Search and print existing bills"
+            onPress={() => navigation.navigate('GenerateBill')}
             width={cardWidth}
             fontSizes={fontSizes}
             isSmallScreen={isSmallScreen}
@@ -237,8 +272,171 @@ export default function DashboardScreen({ navigation }) {
             fontSizes={fontSizes}
             isSmallScreen={isSmallScreen}
           />
-        </View>
-      </WebScrollView>
+            </View>
+          </View>
+        </WebScrollView>
+      ) : (
+        // Mobile Layout with SafeAreaView
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={{
+            backgroundColor: '#2980b9',
+            paddingTop: Platform.OS === 'ios' ? 60 : 40,
+            paddingBottom: 32,
+            paddingHorizontal: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderBottomLeftRadius: 32,
+            borderBottomRightRadius: 32,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+          }}>
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+              <View style={{
+                width: 100,
+                height: 100,
+                borderRadius: 50,
+                backgroundColor: '#fff',
+                padding: 4,
+                marginBottom: 20,
+                elevation: 4,
+                shadowColor: '#000',
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
+              }}>
+                <Image 
+                  source={require('./assets/logo.jpg')} 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: 46,
+                    resizeMode: 'cover'
+                  }} 
+                />
+              </View>
+              <Text style={{ 
+                fontSize: 28, 
+                fontWeight: 'bold', 
+                color: '#fff', 
+                textAlign: 'center', 
+                letterSpacing: 1.2, 
+                marginBottom: 8,
+                textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 3,
+              }}>Maximus Consultancy Service</Text>
+              <Text style={{ 
+                fontSize: 18, 
+                color: '#ecf0f1', 
+                textAlign: 'center', 
+                opacity: 0.95,
+                fontWeight: '500',
+                letterSpacing: 0.5,
+              }}>Welcome! Manage your tailoring business with ease.</Text>
+            </View>
+          </View>
+          
+          <WebScrollView 
+            style={{ flex: 1 }} 
+            contentContainerStyle={{ 
+              paddingLeft: responsivePadding, 
+              paddingRight: responsivePadding, 
+              paddingTop: 24, 
+              paddingBottom: isSmallScreen ? 60 : 80 
+            }} 
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={{ fontSize: fontSizes.title, fontWeight: 'bold', color: '#34495e', marginBottom: 18, marginLeft: 4 }}>Dashboard</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: isLargeScreen ? 'flex-start' : 'space-between', marginBottom: 20, gap: isLargeScreen ? 10 : 0 }}>
+              {/* Navigation Cards in the specified order */}
+              <DashboardCard
+                icon={<MaterialCommunityIcons name="calendar-plus" size={32} color="#c0392b" />}
+                label="New Bill"
+                desc="Create and manage new customer bills"
+                onPress={() => navigation.navigate('NewBill')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<MaterialCommunityIcons name="file-document-outline" size={32} color="#9b59b6" />}
+                label="Generate Bill"
+                desc="Search and print existing bills"
+                onPress={() => navigation.navigate('GenerateBill')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<Ionicons name="person-circle-outline" size={32} color="#16a085" />}
+                label="Customer Information"
+                desc="View and manage customer details"
+                onPress={() => navigation.navigate('CustomerInfo')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<MaterialCommunityIcons name="clipboard-list-outline" size={32} color="#27ae60" />}
+                label="Orders Overview"
+                desc="Track and manage all orders"
+                onPress={() => navigation.navigate('OrdersOverview')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<FontAwesome5 name="money-bill-wave" size={32} color="#e67e22" />}
+                label="Shop Expenses"
+                desc="Manage shop expenses and costs"
+                onPress={() => navigation.navigate('ShopExpense')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<FontAwesome5 name="user-tie" size={32} color="#8e44ad" />}
+                label="Worker Expenses"
+                desc="Track worker payments and expenses"
+                onPress={() => navigation.navigate('WorkerExpense')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<FontAwesome5 name="calendar-week" size={32} color="#2980b9" />}
+                label="Weekly Pay Calculation"
+                desc="Calculate worker weekly payments"
+                onPress={() => navigation.navigate('WeeklyPay')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<Ionicons name="people" size={32} color="#2980b9" />}
+                label="Worker Detailed Overview"
+                desc="View detailed worker performance"
+                onPress={() => navigation.navigate('Workers')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<MaterialCommunityIcons name="chart-bar" size={32} color="#e67e22" />}
+                label="Daily Profit"
+                desc="Track daily and monthly profits"
+                onPress={() => navigation.navigate('DailyProfit')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+            </View>
+          </WebScrollView>
+        </SafeAreaView>
+      )}
     </View>
   );
 }

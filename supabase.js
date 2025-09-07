@@ -217,7 +217,9 @@ export const SupabaseAPI = {
 
           orders = ordersData.map(order => ({
             ...order,
-            bills: billsMap[order.bill_id]
+            bills: billsMap[order.bill_id],
+            customer_mobile: billsMap[order.bill_id]?.mobile_number || null,
+            customer_name: billsMap[order.bill_id]?.customer_name || null
           }))
           }
         } catch (numericSearchError) {
@@ -252,7 +254,9 @@ export const SupabaseAPI = {
 
             orders = ordersData.map(order => ({
               ...order,
-              bills: billsMap[order.bill_id]
+              bills: billsMap[order.bill_id],
+              customer_mobile: billsMap[order.bill_id]?.mobile_number || null,
+              customer_name: billsMap[order.bill_id]?.customer_name || null
             }))
           }
         } catch (castSearchError) {
@@ -1148,5 +1152,25 @@ export const SupabaseAPI = {
       .update({ billno: currentBillno + 1 })
       .eq('id', id);
     if (error) throw error;
+  },
+
+  // Get measurements by mobile number
+  async getMeasurementsByMobileNumber(mobileNumber) {
+    try {
+      const { data, error } = await supabase
+        .from('measurements')
+        .select('*')
+        .eq('phone_number', mobileNumber)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        throw error;
+      }
+      
+      return data; // Will be null if no measurements found
+    } catch (error) {
+      console.error('Error fetching measurements by mobile number:', error);
+      throw error;
+    }
   }
-} 
+}

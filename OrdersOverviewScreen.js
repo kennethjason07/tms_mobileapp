@@ -16,14 +16,90 @@ import {
   KeyboardAvoidingView,
   Pressable,
   SafeAreaView,
+  Linking,
 } from 'react-native';
 import WebScrollView from './components/WebScrollView';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { SupabaseAPI } from './supabase';
-import { WhatsAppService } from './whatsappService';
+import { SupabaseAPI, supabase } from './supabase';
+import { WhatsAppService, WhatsAppRedirectService } from './whatsappService';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
+
+// Function to expand orders by garment type and quantity
+const expandOrdersByGarmentAndQuantity = (orders) => {
+  const expandedOrders = [];
+  
+  orders.forEach(order => {
+    // Extract garment quantities from the bills data (stored when bill was created)
+    const bill = order.bills || {};
+    const garmentTypes = [
+      { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
+      { type: 'Safari/Jacket', qty: parseInt(bill.safari_qty) || 0 },
+      { type: 'Pant', qty: parseInt(bill.pant_qty) || 0 },
+      { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
+      { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
+    ];
+    
+    // If no specific quantities are available, fall back to parsing garment_type string
+    const hasSpecificQuantities = garmentTypes.some(g => g.qty > 0);
+    
+    if (!hasSpecificQuantities && order.garment_type) {
+      // Parse garment_type string like "Pant, Shirt" and create one row for each
+      const garmentTypesFromString = order.garment_type.split(',').map(type => type.trim());
+      garmentTypesFromString.forEach((garmentType, index) => {
+        expandedOrders.push({
+          ...order,
+          // Create unique ID for each expanded row
+              expanded_id: order.id + '_' + garmentType + '_' + index,
+          original_id: order.id, // Keep reference to original order
+          garment_type: garmentType,
+          expanded_garment_type: garmentType,
+          garment_quantity: 1,
+          garment_index: index,
+          // Set worker limit based on garment type
+          max_workers: garmentType.toLowerCase().includes('shirt') ? 3 : 2
+        });
+      });
+    } else {
+      // Create expanded rows based on specific quantities
+      garmentTypes.forEach(({ type, qty }) => {
+        if (qty > 0) {
+          // Create multiple rows if quantity > 1
+          for (let i = 0; i < qty; i++) {
+            expandedOrders.push({
+              ...order,
+              // Create unique ID for each expanded row
+              expanded_id: order.id + '_' + type + '_' + i,
+              original_id: order.id, // Keep reference to original order
+              garment_type: type,
+              expanded_garment_type: type,
+              garment_quantity: 1, // Each row represents quantity of 1
+              garment_index: i,
+              // Set worker limit based on garment type
+              max_workers: type.toLowerCase().includes('shirt') ? 3 : 2
+            });
+          }
+        }
+      });
+    }
+    
+    // If no garments were expanded (no quantities and no garment_type), keep original row
+    if (expandedOrders.filter(eo => eo.original_id === order.id).length === 0) {
+      expandedOrders.push({
+        ...order,
+        expanded_id: order.id + '_default_0',
+        original_id: order.id,
+        expanded_garment_type: order.garment_type || 'N/A',
+        garment_quantity: 1,
+        garment_index: 0,
+        max_workers: 2 // Default to 2 workers
+      });
+    }
+  });
+  
+  return expandedOrders;
+};
 
 export default function OrdersOverviewScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
@@ -87,12 +163,15 @@ export default function OrdersOverviewScreen({ navigation }) {
           return dateB - dateA;
         });
       
-      setOrders(processedOrders);
-      setFilteredOrders(processedOrders);
+      // Expand orders by garment type and quantity
+      const expandedOrders = expandOrdersByGarmentAndQuantity(processedOrders);
+      
+      setOrders(expandedOrders);
+      setFilteredOrders(expandedOrders);
       setWorkers(workersData);
     } catch (error) {
       console.error('OrdersOverviewScreen - Error loading data:', error);
-      Alert.alert('Error', `Failed to load data: ${error.message}`);
+      Alert.alert('Error', 'Failed to load data: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -142,8 +221,15 @@ export default function OrdersOverviewScreen({ navigation }) {
     try {
       setLoading(true);
       const data = await SupabaseAPI.searchOrders(searchQuery);
+      // Process search results to match frontend structure
+      const processedData = data.map(order => ({
+        ...order,
+        deliveryDate: order.due_date,
+        workers: order.order_worker_association?.map(assoc => assoc.workers) || []
+      }));
+      
       // Sort by order_date descending, then billnumberinput2 descending
-      const sortedData = data.sort((a, b) => {
+      const sortedData = processedData.sort((a, b) => {
         const dateA = new Date(normalizeDate(a.order_date));
         const dateB = new Date(normalizeDate(b.order_date));
         if (dateA.getTime() === dateB.getTime()) {
@@ -151,7 +237,10 @@ export default function OrdersOverviewScreen({ navigation }) {
         }
         return dateB - dateA;
       });
-      setFilteredOrders(sortedData);
+      
+      // Expand search results by garment type and quantity
+      const expandedSearchResults = expandOrdersByGarmentAndQuantity(sortedData);
+      setFilteredOrders(expandedSearchResults);
     } catch (error) {
       Alert.alert('Error', `Search failed: ${error.message}`);
     } finally {
@@ -159,20 +248,30 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
   };
 
-  const handleUpdateStatus = async (orderId, newStatus) => {
-    if (!orderId || orderId === 'null' || orderId === null) {
+  const handleUpdateStatus = async (expandedOrderId, newStatus) => {
+    if (!expandedOrderId) {
       Alert.alert('Error', 'Invalid order ID. Cannot update status.');
       return;
     }
 
     try {
       setLoading(true);
-      await SupabaseAPI.updateOrderStatus(orderId, newStatus);
+      // Find the expanded order to get the original order ID
+      const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
+      const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
       
-      // If status is being set to completed, check if all orders for this bill are completed
-      if (newStatus.toLowerCase() === 'completed') {
-        // Find the current order to get its bill_id
-        const currentOrder = orders.find(order => order.id === orderId);
+      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
+        Alert.alert('Error', 'Invalid original order ID. Cannot update status.');
+        setLoading(false);
+        return;
+      }
+      
+      await SupabaseAPI.updateOrderStatus(originalOrderId, newStatus);
+      
+        // If status is being set to completed, check if all orders for this bill are completed
+        if (newStatus.toLowerCase() === 'completed') {
+          // Find the current order to get its bill_id (use the expanded order)
+          const currentOrder = expandedOrder;
         if (currentOrder && currentOrder.bill_id) {
           try {
             // Get all orders for this bill
@@ -184,7 +283,7 @@ export default function OrdersOverviewScreen({ navigation }) {
             );
             
             if (allCompleted && bill) {
-              // Send WhatsApp notification
+              // Redirect to WhatsApp with pre-filled message
               try {
                 const customerInfo = WhatsAppService.getCustomerInfoFromBill(bill);
                 const orderDetails = WhatsAppService.generateOrderDetailsString(billOrders);
@@ -194,23 +293,52 @@ export default function OrdersOverviewScreen({ navigation }) {
                   orderDetails
                 );
                 
-                if (customerInfo.mobile) {
-                  await WhatsAppService.sendWhatsAppMessage(customerInfo.mobile, message);
-                  Alert.alert(
-                    'Success', 
-                    'Order status updated successfully and WhatsApp notification sent to customer!'
-                  );
+                if (customerInfo.mobile && customerInfo.mobile.trim() !== '') {
+                  // Validate mobile number format
+                  const cleanMobile = customerInfo.mobile.replace(/\D/g, '');
+                  
+                  // Check if mobile number is valid (should be 10 digits starting with 6-9 for India)
+                  if (cleanMobile.length === 10 && /^[6-9]/.test(cleanMobile)) {
+                    // Use redirect service to open WhatsApp with pre-filled message
+                    try {
+                      const result = WhatsAppRedirectService.openWhatsAppWithMessage(customerInfo.mobile, message);
+                      
+                      if (result.success) {
+                        Alert.alert(
+                          'Success', 
+                          'Order status updated successfully! WhatsApp opened with your completion message ready to send.'
+                        );
+                      } else {
+                        Alert.alert(
+                          'Success', 
+                          `Order status updated successfully. ${result.message}`
+                        );
+                      }
+                    } catch (redirectError) {
+                      console.error('WhatsApp redirect failed:', redirectError);
+                      Alert.alert(
+                        'Success', 
+                        'Order status updated successfully. No WhatsApp exists for this number.'
+                      );
+                    }
+                  } else {
+                    // Invalid mobile number format
+                    Alert.alert(
+                      'Success', 
+                      `Order status updated successfully. WhatsApp redirect skipped - invalid mobile number format (${customerInfo.mobile}).`
+                    );
+                  }
                 } else {
                   Alert.alert(
                     'Success', 
-                    'Order status updated successfully. WhatsApp notification skipped - no mobile number found.'
+                    'Order status updated successfully. WhatsApp redirect skipped - no mobile number found.'
                   );
                 }
               } catch (whatsappError) {
-                console.error('WhatsApp notification error:', whatsappError);
+                console.error('WhatsApp redirect error:', whatsappError);
                 Alert.alert(
                   'Success', 
-                  'Order status updated successfully. WhatsApp notification failed - please check your API configuration.'
+                  'Order status updated successfully. WhatsApp redirect failed - please make sure WhatsApp is installed.'
                 );
               }
             } else {
@@ -235,15 +363,25 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
   };
 
-  const handleUpdatePaymentStatus = async (orderId, newPaymentStatus) => {
-    if (!orderId || orderId === 'null' || orderId === null) {
+  const handleUpdatePaymentStatus = async (expandedOrderId, newPaymentStatus) => {
+    if (!expandedOrderId) {
       Alert.alert('Error', 'Invalid order ID. Cannot update payment status.');
       return;
     }
 
     try {
       setLoading(true);
-      await SupabaseAPI.updatePaymentStatus(orderId, newPaymentStatus);
+      // Find the expanded order to get the original order ID
+      const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
+      const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
+      
+      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
+        Alert.alert('Error', 'Invalid original order ID. Cannot update payment status.');
+        setLoading(false);
+        return;
+      }
+      
+      await SupabaseAPI.updatePaymentStatus(originalOrderId, newPaymentStatus);
       loadData();
       Alert.alert('Success', 'Payment status updated successfully');
     } catch (error) {
@@ -253,15 +391,25 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
   };
 
-  const handleUpdatePaymentMode = async (orderId, newPaymentMode) => {
-    if (!orderId || orderId === 'null' || orderId === null) {
+  const handleUpdatePaymentMode = async (expandedOrderId, newPaymentMode) => {
+    if (!expandedOrderId) {
       Alert.alert('Error', 'Invalid order ID. Cannot update payment mode.');
       return;
     }
 
     try {
       setLoading(true);
-      await SupabaseAPI.updatePaymentMode(orderId, newPaymentMode);
+      // Find the expanded order to get the original order ID
+      const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
+      const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
+      
+      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
+        Alert.alert('Error', 'Invalid original order ID. Cannot update payment mode.');
+        setLoading(false);
+        return;
+      }
+      
+      await SupabaseAPI.updatePaymentMode(originalOrderId, newPaymentMode);
       loadData();
       Alert.alert('Success', 'Payment mode updated successfully');
     } catch (error) {
@@ -271,8 +419,8 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
   };
 
-  const handleUpdateTotalAmount = async (orderId, newAmount) => {
-    if (!orderId || orderId === 'null' || orderId === null) {
+  const handleUpdateTotalAmount = async (expandedOrderId, newAmount) => {
+    if (!expandedOrderId) {
       Alert.alert('Error', 'Invalid order ID. Cannot update total amount.');
       return;
     }
@@ -284,7 +432,17 @@ export default function OrdersOverviewScreen({ navigation }) {
 
     try {
       setLoading(true);
-      await SupabaseAPI.updateOrderTotalAmount(orderId, parseFloat(newAmount));
+      // Find the expanded order to get the original order ID
+      const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
+      const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
+      
+      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
+        Alert.alert('Error', 'Invalid original order ID. Cannot update total amount.');
+        setLoading(false);
+        return;
+      }
+      
+      await SupabaseAPI.updateOrderTotalAmount(originalOrderId, parseFloat(newAmount));
       loadData();
       Alert.alert('Success', 'Total amount updated successfully');
     } catch (error) {
@@ -294,8 +452,8 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
   };
 
-  const handleUpdatePaymentAmount = async (orderId, newAmount) => {
-    if (!orderId || orderId === 'null' || orderId === null) {
+  const handleUpdatePaymentAmount = async (expandedOrderId, newAmount) => {
+    if (!expandedOrderId) {
       Alert.alert('Error', 'Invalid order ID. Cannot update payment amount.');
       return;
     }
@@ -307,7 +465,17 @@ export default function OrdersOverviewScreen({ navigation }) {
 
     try {
       setLoading(true);
-      await SupabaseAPI.updatePaymentAmount(orderId, parseFloat(newAmount));
+      // Find the expanded order to get the original order ID
+      const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
+      const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
+      
+      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
+        Alert.alert('Error', 'Invalid original order ID. Cannot update payment amount.');
+        setLoading(false);
+        return;
+      }
+      
+      await SupabaseAPI.updatePaymentAmount(originalOrderId, parseFloat(newAmount));
       loadData();
       Alert.alert('Success', 'Payment amount updated successfully');
     } catch (error) {
@@ -345,8 +513,8 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
   };
 
-  const handleAssignWorkers = async (orderId) => {
-    const workerIds = selectedWorkers[orderId];
+  const handleAssignWorkers = async (expandedOrderId) => {
+    const workerIds = selectedWorkers[expandedOrderId];
     if (!workerIds || workerIds.length === 0) {
       Alert.alert('Error', 'Please select at least one worker.');
       return;
@@ -354,28 +522,175 @@ export default function OrdersOverviewScreen({ navigation }) {
 
     try {
       setLoading(true);
-      const result = await SupabaseAPI.assignWorkersToOrder(orderId, workerIds);
+      // Find the expanded order to get the original order ID
+      const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
+      const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
+      
+      if (!originalOrderId) {
+        Alert.alert('Error', 'Could not find original order ID.');
+        setLoading(false);
+        return;
+      }
+      
+      const result = await SupabaseAPI.assignWorkersToOrder(originalOrderId, workerIds);
+      
+      // Find the current order to get bill information (use the expanded order)
+      const currentOrder = expandedOrder;
+      
+      // Debug logging
+      console.log('Current order data:', {
+        id: currentOrder?.id,
+        bill_id: currentOrder?.bill_id,
+        customer_mobile: currentOrder?.customer_mobile,
+        customer_name: currentOrder?.customer_name,
+        bills: currentOrder?.bills
+      });
       
       // Manually update the order in local state for immediate UI feedback
       const assignedWorkerObjects = workers.filter(worker => workerIds.includes(worker.id));
       
       setOrders(prevOrders =>
         prevOrders.map(order =>
-          order.id === orderId
+          (order.expanded_id || order.id) === expandedOrderId
             ? { ...order, Work_pay: result.work_pay, workers: assignedWorkerObjects }
             : order
         )
       );
       setFilteredOrders(prevOrders =>
         prevOrders.map(order =>
-          order.id === orderId
+          (order.expanded_id || order.id) === expandedOrderId
             ? { ...order, Work_pay: result.work_pay, workers: assignedWorkerObjects }
             : order
         )
       );
       
-      setWorkerDropdownVisible(prev => ({ ...prev, [orderId]: false }));
-      Alert.alert('Success', `Workers assigned successfully. Total Work Pay: ₹${result.work_pay.toFixed(2)}`);
+      // Send measurements to each assigned worker via WhatsApp
+      try {
+        // Try to get customer mobile from multiple possible sources
+        let customerMobile = currentOrder?.customer_mobile || 
+                           currentOrder?.bills?.mobile_number || 
+                           null;
+        
+        console.log('=== MEASUREMENT DEBUG INFO ===');
+        console.log('Customer mobile resolved to:', customerMobile);
+        console.log('Bill number being worked on:', currentOrder?.billnumberinput2);
+        console.log('Number of workers to assign:', assignedWorkerObjects.length);
+        console.log('Worker names being assigned:', assignedWorkerObjects.map(w => w.name));
+        console.log('Available mobile sources:', {
+          customer_mobile: currentOrder?.customer_mobile,
+          bills_mobile: currentOrder?.bills?.mobile_number
+        });
+        
+        // If no customer mobile found but we have bill_id, try to fetch bill data directly
+        if (!customerMobile && currentOrder?.bill_id) {
+          console.log('No customer mobile found, attempting direct bill lookup for bill_id:', currentOrder.bill_id);
+          try {
+            const { data: bill, error: billError } = await supabase
+              .from('bills')
+              .select('*')
+              .eq('id', currentOrder.bill_id)
+              .single();
+              
+            if (!billError && bill) {
+              console.log('Direct bill lookup successful:', {
+                customer_name: bill.customer_name,
+                mobile_number: bill.mobile_number
+              });
+              customerMobile = bill.mobile_number;
+              // Update currentOrder with bill data for this session
+              currentOrder.bills = bill;
+              currentOrder.customer_mobile = bill.mobile_number;
+              currentOrder.customer_name = bill.customer_name;
+            } else {
+              console.error('Direct bill lookup failed:', billError);
+            }
+          } catch (directBillError) {
+            console.error('Error in direct bill lookup:', directBillError);
+          }
+        }
+        
+        if (currentOrder && customerMobile) {
+          console.log('Attempting to fetch measurements for mobile:', customerMobile);
+          
+          // Fetch measurements for the customer
+          const measurements = await SupabaseAPI.getMeasurementsByMobileNumber(customerMobile);
+          
+          console.log('Measurements fetched:', measurements ? 'Found' : 'Not found');
+          console.log('Measurement data preview:', measurements ? Object.keys(measurements) : 'N/A');
+          
+          // Send WhatsApp message to each assigned worker
+          for (const worker of assignedWorkerObjects) {
+            if (worker.number) {
+              try {
+                const message = WhatsAppService.generateWorkerAssignmentMessage(
+                  currentOrder.customer_name || currentOrder?.bills?.customer_name || 'Customer',
+                  currentOrder.billnumberinput2 || orderId,
+                  currentOrder.garment_type || 'N/A',
+                  measurements
+                );
+                
+                console.log(`Sending WhatsApp to worker ${worker.name} at ${worker.number}`);
+                
+                // Use WhatsApp redirect service to open WhatsApp with pre-filled message
+                const whatsappResult = WhatsAppRedirectService.openWhatsAppWithMessage(worker.number, message);
+                
+                if (!whatsappResult.success) {
+                  console.warn(`Failed to open WhatsApp for worker ${worker.name}: ${whatsappResult.message}`);
+                }
+              } catch (workerMessageError) {
+                console.error(`Error sending message to worker ${worker.name}:`, workerMessageError);
+              }
+            } else {
+              console.warn(`Worker ${worker.name} has no phone number`);
+            }
+          }
+          
+          Alert.alert(
+            'Success', 
+            `Workers assigned successfully. Total Work Pay: ₹${result.work_pay.toFixed(2)}\n\nWhatsApp messages with measurement details have been prepared for each worker.`
+          );
+        } else {
+          console.warn('Customer mobile not found. Order data:', currentOrder);
+          
+          // Still send WhatsApp messages to workers but without measurements
+          for (const worker of assignedWorkerObjects) {
+            if (worker.number) {
+              try {
+                const message = WhatsAppService.generateWorkerAssignmentMessage(
+                  currentOrder?.customer_name || currentOrder?.bills?.customer_name || 'Customer',
+                  currentOrder?.billnumberinput2 || orderId,
+                  currentOrder?.garment_type || 'N/A',
+                  null // No measurements
+                );
+                
+                console.log(`Sending WhatsApp (without measurements) to worker ${worker.name} at ${worker.number}`);
+                
+                // Use WhatsApp redirect service to open WhatsApp with pre-filled message
+                const whatsappResult = WhatsAppRedirectService.openWhatsAppWithMessage(worker.number, message);
+                
+                if (!whatsappResult.success) {
+                  console.warn(`Failed to open WhatsApp for worker ${worker.name}: ${whatsappResult.message}`);
+                }
+              } catch (workerMessageError) {
+                console.error(`Error sending message to worker ${worker.name}:`, workerMessageError);
+              }
+            }
+          }
+          
+          Alert.alert(
+            'Success', 
+            `Workers assigned successfully. Total Work Pay: ₹${result.work_pay.toFixed(2)}\n\nNote: Customer mobile number not found, measurements could not be sent.`
+          );
+        }
+      } catch (measurementError) {
+        console.error('Error fetching measurements or sending WhatsApp messages:', measurementError);
+        Alert.alert(
+          'Success', 
+          `Workers assigned successfully. Total Work Pay: ₹${result.work_pay.toFixed(2)}\n\nNote: Failed to send measurements to workers.`
+        );
+      }
+      
+      setWorkerDropdownVisible(prev => ({ ...prev, [expandedOrderId]: false }));
     } catch (error) {
       Alert.alert('Error', `Failed to assign workers: ${error.message}`);
     } finally {
@@ -480,9 +795,14 @@ export default function OrdersOverviewScreen({ navigation }) {
   const renderTableRow = (order, index) => {
     const workerNames = order.workers?.map(worker => worker.name).join(", ") || "Not Assigned";
     const pendingAmount = (order.total_amt || 0) - (order.payment_amount || 0);
-    const isWorkerDropdownOpen = workerDropdownVisible[order.id] || false;
-    const uniqueKey = `order-${order.id || 'null'}-${index}`;
-    const hasValidId = order.id && order.id !== 'null' && order.id !== null;
+    const expandedOrderId = order.expanded_id || order.id;
+    const isWorkerDropdownOpen = workerDropdownVisible[expandedOrderId] || false;
+    const uniqueKey = 'order-' + (expandedOrderId || 'null') + '-' + index;
+    const hasValidId = order.original_id || order.id;
+    const displayGarmentType = order.expanded_garment_type || order.garment_type || 'N/A';
+    // Add garment count indicator if garment_index is a valid number (including 0)
+    const hasValidIndex = typeof order.garment_index === 'number' && order.garment_index >= 0;
+    const garmentDisplay = hasValidIndex ? displayGarmentType + ' (' + (order.garment_index + 1) + ')' : displayGarmentType;
 
     return (
       <View key={uniqueKey} style={[styles.tableRow, Platform.OS === 'web' && { display: 'flex', flexDirection: 'row' }]}>
@@ -493,7 +813,7 @@ export default function OrdersOverviewScreen({ navigation }) {
           <Text style={styles.cellText}>{order.billnumberinput2 || "N/A"}</Text>
         </View>
         <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
-          <Text style={styles.cellText}>{order.garment_type || 'N/A'}</Text>
+          <Text style={styles.cellText}>{garmentDisplay}</Text>
         </View>
         <View style={[styles.cell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
           <Text style={styles.cellText}>{order.status || 'N/A'}</Text>
@@ -504,19 +824,19 @@ export default function OrdersOverviewScreen({ navigation }) {
             <View style={styles.buttonGroup}>
               <TouchableOpacity
                 style={[styles.statusButton, order.status === 'pending' && styles.statusButtonActive]}
-                onPress={() => handleUpdateStatus(order.id, 'pending')}
+                onPress={() => handleUpdateStatus(expandedOrderId, 'pending')}
               >
                 <Text style={styles.statusButtonText}>Pending</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.statusButton, order.status === 'completed' && styles.statusButtonActive]}
-                onPress={() => handleUpdateStatus(order.id, 'completed')}
+                onPress={() => handleUpdateStatus(expandedOrderId, 'completed')}
               >
                 <Text style={styles.statusButtonText}>Completed</Text>
               </TouchableOpacity>
-    <TouchableOpacity
+              <TouchableOpacity
                 style={[styles.statusButton, order.status === 'cancelled' && styles.statusButtonActive]}
-                onPress={() => handleUpdateStatus(order.id, 'cancelled')}
+                onPress={() => handleUpdateStatus(expandedOrderId, 'cancelled')}
               >
                 <Text style={styles.statusButtonText}>Cancelled</Text>
               </TouchableOpacity>
@@ -538,13 +858,13 @@ export default function OrdersOverviewScreen({ navigation }) {
             <View style={styles.buttonGroup}>
               <TouchableOpacity
                 style={[styles.paymentButton, order.payment_mode === 'UPI' && styles.paymentButtonActive]}
-                onPress={() => handleUpdatePaymentMode(order.id, 'UPI')}
+                onPress={() => handleUpdatePaymentMode(expandedOrderId, 'UPI')}
               >
                 <Text style={styles.paymentButtonText}>UPI</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.paymentButton, order.payment_mode === 'Cash' && styles.paymentButtonActive]}
-                onPress={() => handleUpdatePaymentMode(order.id, 'Cash')}
+                onPress={() => handleUpdatePaymentMode(expandedOrderId, 'Cash')}
               >
                 <Text style={styles.paymentButtonText}>Cash</Text>
               </TouchableOpacity>
@@ -563,19 +883,19 @@ export default function OrdersOverviewScreen({ navigation }) {
             <View style={styles.buttonGroup}>
               <TouchableOpacity
                 style={[styles.paymentStatusButton, order.payment_status === 'pending' && styles.paymentStatusButtonActive]}
-                onPress={() => handleUpdatePaymentStatus(order.id, 'pending')}
+                onPress={() => handleUpdatePaymentStatus(expandedOrderId, 'pending')}
               >
                 <Text style={styles.paymentStatusButtonText}>Pending</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.paymentStatusButton, order.payment_status === 'paid' && styles.paymentStatusButtonActive]}
-                onPress={() => handleUpdatePaymentStatus(order.id, 'paid')}
+                onPress={() => handleUpdatePaymentStatus(expandedOrderId, 'paid')}
               >
                 <Text style={styles.paymentStatusButtonText}>Paid</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.paymentStatusButton, order.payment_status === 'cancelled' && styles.paymentStatusButtonActive]}
-                onPress={() => handleUpdatePaymentStatus(order.id, 'cancelled')}
+                onPress={() => handleUpdatePaymentStatus(expandedOrderId, 'cancelled')}
               >
                 <Text style={styles.paymentStatusButtonText}>Cancelled</Text>
               </TouchableOpacity>
@@ -589,19 +909,19 @@ export default function OrdersOverviewScreen({ navigation }) {
           {hasValidId ? (
             <TextInput
               style={styles.amountInput}
-              value={editingAmounts[`total_${order.id}`] !== undefined 
-                ? editingAmounts[`total_${order.id}`] 
+              value={editingAmounts[`total_${expandedOrderId}`] !== undefined 
+                ? editingAmounts[`total_${expandedOrderId}`] 
                 : (order.total_amt?.toString() || '0')}
               onChangeText={(text) => setEditingAmounts(prev => ({
                 ...prev,
-                [`total_${order.id}`]: text
+                [`total_${expandedOrderId}`]: text
               }))}
               onBlur={(e) => {
-                const value = editingAmounts[`total_${order.id}`] || e.nativeEvent.text;
-                handleUpdateTotalAmount(order.id, value);
+                const value = editingAmounts[`total_${expandedOrderId}`] || e.nativeEvent.text;
+                handleUpdateTotalAmount(expandedOrderId, value);
                 setEditingAmounts(prev => {
                   const newState = { ...prev };
-                  delete newState[`total_${order.id}`];
+                  delete newState[`total_${expandedOrderId}`];
                   return newState;
                 });
               }}
@@ -616,19 +936,19 @@ export default function OrdersOverviewScreen({ navigation }) {
           {hasValidId ? (
             <TextInput
               style={styles.amountInput}
-              value={editingAmounts[`payment_${order.id}`] !== undefined 
-                ? editingAmounts[`payment_${order.id}`] 
+              value={editingAmounts[`payment_${expandedOrderId}`] !== undefined 
+                ? editingAmounts[`payment_${expandedOrderId}`] 
                 : (order.payment_amount?.toString() || '0')}
               onChangeText={(text) => setEditingAmounts(prev => ({
                 ...prev,
-                [`payment_${order.id}`]: text
+                [`payment_${expandedOrderId}`]: text
               }))}
               onBlur={(e) => {
-                const value = editingAmounts[`payment_${order.id}`] || e.nativeEvent.text;
-                handleUpdatePaymentAmount(order.id, value);
+                const value = editingAmounts[`payment_${expandedOrderId}`] || e.nativeEvent.text;
+                handleUpdatePaymentAmount(expandedOrderId, value);
                 setEditingAmounts(prev => {
                   const newState = { ...prev };
-                  delete newState[`payment_${order.id}`];
+                  delete newState[`payment_${expandedOrderId}`];
                   return newState;
                 });
               }}
@@ -653,12 +973,12 @@ export default function OrdersOverviewScreen({ navigation }) {
             <>
               <TouchableOpacity
                 style={styles.dropdownButton}
-                onPress={() => toggleWorkerDropdown(order.id)}
+                onPress={() => toggleWorkerDropdown(expandedOrderId)}
               >
                 <Text style={styles.dropdownButtonText}>
                   {order.workers && order.workers.length > 0
-                    ? `${workerNames}`
-                    : 'Select Workers'}
+                    ? workerNames + ' (max: ' + (order.max_workers || 2) + ')'
+                    : 'Select Workers (max: ' + (order.max_workers || 2) + ')'}
                 </Text>
                 <Text style={styles.dropdownArrow}>{isWorkerDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
@@ -668,7 +988,7 @@ export default function OrdersOverviewScreen({ navigation }) {
                   visible={true}
                   transparent={true}
                   animationType="fade"
-                  onRequestClose={() => closeWorkerDropdown(order.id)}
+                  onRequestClose={() => closeWorkerDropdown(expandedOrderId)}
                 >
                   <KeyboardAvoidingView 
                     style={{ flex: 1 }} 
@@ -677,14 +997,14 @@ export default function OrdersOverviewScreen({ navigation }) {
                     <TouchableOpacity
                       style={styles.modalOverlay}
                       activeOpacity={1}
-                      onPress={() => closeWorkerDropdown(order.id)}
+                      onPress={() => closeWorkerDropdown(expandedOrderId)}
                     >
                       <View style={styles.dropdownModal} onStartShouldSetResponder={() => true}>
                         <View style={styles.modalHeader}>
                           <Text style={styles.dropdownTitle}>Select Workers</Text>
                           <TouchableOpacity
                             style={styles.modalCloseButton}
-                            onPress={() => closeWorkerDropdown(order.id)}
+                            onPress={() => closeWorkerDropdown(expandedOrderId)}
                           >
                             <Text style={styles.modalCloseButtonText}>✕</Text>
                           </TouchableOpacity>
@@ -696,19 +1016,21 @@ export default function OrdersOverviewScreen({ navigation }) {
                           keyboardShouldPersistTaps="handled"
                         >
                           {workers.map((worker, workerIndex) => {
-                            const isSelected = selectedWorkers[order.id]?.includes(worker.id);
-                            const selectionCount = selectedWorkers[order.id]?.length || 0;
-                            const isDisabled = !isSelected && selectionCount >= 2;
+                            const isSelected = selectedWorkers[order.expanded_id || order.id]?.includes(worker.id);
+                            const selectionCount = selectedWorkers[order.expanded_id || order.id]?.length || 0;
+                            // Use the max_workers from the expanded order data
+                            const maxWorkers = order.max_workers || 2;
+                            const isDisabled = !isSelected && selectionCount >= maxWorkers;
                             return (
                               <TouchableOpacity
-                                key={`worker-${worker.id || 'null'}-${workerIndex}`}
+                                key={'worker-' + (worker.id || 'null') + '-' + workerIndex}
                                 style={[
                                   styles.workerOption,
                                   isSelected && styles.workerOptionSelected,
                                   isDisabled && { opacity: 0.5 }
                                 ]}
                                 onPress={() => {
-                                  if (!isDisabled) handleWorkerSelection(order.id, worker.id);
+                                  if (!isDisabled) handleWorkerSelection(order.expanded_id || order.id, worker.id);
                                 }}
                                 disabled={isDisabled}
                               >
@@ -726,13 +1048,13 @@ export default function OrdersOverviewScreen({ navigation }) {
                         <View style={styles.dropdownActions}>
                           <TouchableOpacity
                             style={styles.cancelButton}
-                            onPress={() => closeWorkerDropdown(order.id)}
+                            onPress={() => closeWorkerDropdown(expandedOrderId)}
                           >
                             <Text style={styles.cancelButtonText}>Cancel</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.assignButton}
-                            onPress={() => handleAssignWorkers(order.id)}
+                            onPress={() => handleAssignWorkers(expandedOrderId)}
                           >
                             <Text style={styles.assignButtonText}>Assign Workers</Text>
                           </TouchableOpacity>
@@ -752,7 +1074,14 @@ export default function OrdersOverviewScreen({ navigation }) {
           <Text style={styles.cellText}>{workerNames}</Text>
         </View>
         <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
-          <Text style={styles.cellText}>{Array.isArray(order.workers) && order.workers.length > 0 && typeof order.Work_pay === 'number' && !isNaN(order.Work_pay) ? order.Work_pay : 0}</Text>
+          <Text style={styles.cellText}>
+            {(() => {
+              if (Array.isArray(order.workers) && order.workers.length > 0 && typeof order.Work_pay === 'number' && !isNaN(order.Work_pay)) {
+                return order.Work_pay;
+              }
+              return 0;
+            })()}
+          </Text>
         </View>
       </View>
     );
@@ -823,26 +1152,62 @@ export default function OrdersOverviewScreen({ navigation }) {
       <View style={styles.filterRow}>
         <Text style={styles.filterLabel}>Delivery Date:</Text>
         <View style={styles.dateFilterContainer}>
-          <TouchableOpacity
-            style={styles.datePickerButton}
-            onPress={openDatePicker}
-          >
-            <Text style={styles.datePickerButtonText}>
-              {filters.deliveryDate ? filters.deliveryDate : 'Select Date'}
-            </Text>
-          </TouchableOpacity>
-          {filters.deliveryDate && (
-            <TouchableOpacity
-              style={styles.clearDateButton}
-              onPress={clearDateFilter}
-            >
-              <Text style={styles.clearDateButtonText}>✕</Text>
-            </TouchableOpacity>
+          {Platform.OS === 'web' ? (
+            // Web calendar input
+            <View style={styles.webDateInputContainer}>
+              <TextInput
+                style={{
+                  padding: 10,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: '#ddd',
+                  fontSize: 14,
+                  backgroundColor: '#fff',
+                  color: '#333',
+                  minWidth: 150,
+                  height: 40,
+                }}
+                value={filters.deliveryDate || ''}
+                onChangeText={(selectedDate) => {
+                  setFilters(prev => ({ ...prev, deliveryDate: selectedDate }));
+                }}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#999"
+              />
+              {filters.deliveryDate && (
+                <TouchableOpacity
+                  style={styles.clearDateButton}
+                  onPress={clearDateFilter}
+                >
+                  <Text style={styles.clearDateButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            // Mobile date picker button
+            <>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={openDatePicker}
+              >
+                <Text style={styles.datePickerButtonText}>
+                  {filters.deliveryDate ? filters.deliveryDate : 'Select Date'}
+                </Text>
+              </TouchableOpacity>
+              {filters.deliveryDate && (
+                <TouchableOpacity
+                  style={styles.clearDateButton}
+                  onPress={clearDateFilter}
+                >
+                  <Text style={styles.clearDateButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
       </View>
 
-      {showDatePicker && (
+      {showDatePicker && Platform.OS !== 'web' && (
         <DateTimePicker
           value={selectedDate}
           mode="date"
@@ -973,34 +1338,34 @@ export default function OrdersOverviewScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <WebScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
+        <View style={{ flex: 1, overflow: 'hidden' }}>
+          <WebScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
             {renderFilters()}
             {currentOrders.length > 0 ? (
               <View style={styles.tableContainer}>
-                <div style={{ 
-                  overflowX: 'auto', 
-                  overflowY: 'auto', 
-                  width: '100%',
-                  maxHeight: '70vh',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px'
+                <View style={{ 
+                  overflow: 'auto', 
+                  flex: 1,
+                  maxHeight: 600,
+                  borderWidth: 1,
+                  borderColor: '#ddd',
+                  borderRadius: 8
                 }}>
-                  <div style={{
-                    minWidth: '2470px',
+                  <View style={{
+                    minWidth: 2470,
                     display: 'flex',
                     flexDirection: 'column'
                   }}>
                     {renderTableHeader()}
-                    <div style={{
+                    <View style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      minWidth: '2470px'
+                      minWidth: 2470
                     }}>
                       {currentOrders.map((order, index) => renderTableRow(order, index))}
-                    </div>
-                  </div>
-                </div>
+                    </View>
+                  </View>
+                </View>
               </View>
             ) : (
               <View style={styles.noDataContainer}>
@@ -1203,6 +1568,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  webDateInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   tableContainer: {
     backgroundColor: '#f8f9fa',
     borderRadius: 8,
@@ -1349,8 +1719,8 @@ const styles = StyleSheet.create({
   dropdownModal: {
     backgroundColor: 'white',
     borderRadius: 12,
-    width: '85%',
-    maxHeight: '70%',
+    width: '95%',
+    height: '80%',
     elevation: 8,
     shadowColor: '#000',
     shadowOpacity: 0.3,
