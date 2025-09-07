@@ -589,6 +589,12 @@ export const SupabaseAPI = {
 
   // Upsert measurements for a customer (insert or update by phone_number)
   async upsertMeasurements(measurements, mobile_number) {
+    // Validate mobile number
+    const phone = (mobile_number ?? '').toString().trim();
+    if (!phone) {
+      throw new Error('Missing mobile number for measurements upsert');
+    }
+
     // Only include allowed fields and phone_number, never id
     const allowedFields = [
       'pant_length', 'pant_kamar', 'pant_hips', 'pant_waist', 'pant_ghutna', 'pant_bottom', 'pant_seat',
@@ -596,17 +602,37 @@ export const SupabaseAPI = {
       'shirt_length', 'shirt_body', 'shirt_loose', 'shirt_shoulder', 'shirt_astin', 'shirt_collar', 'shirt_aloose',
       'Callar', 'Cuff', 'Pkt', 'LooseShirt', 'DT_TT', 'extra_measurements'
     ];
-    const payload = { phone_number: mobile_number };
+
+    const payload = { phone_number: phone };
     for (const key of allowedFields) {
-      if (Object.prototype.hasOwnProperty.call(measurements, key)) {
+      if (Object.prototype.hasOwnProperty.call(measurements || {}, key)) {
         payload[key] = measurements[key];
       }
     }
-    const { data, error } = await supabase
-      .from('measurements')
-      .upsert([payload], { onConflict: ['phone_number'] });
-    if (error) throw error;
-    return data;
+
+    // Retry wrapper for transient network issues
+    const maxAttempts = 3;
+    let lastError;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const { data, error } = await supabase
+          .from('measurements')
+          .upsert(payload, { onConflict: 'phone_number' })
+          .select();
+        if (error) throw error;
+        return data;
+      } catch (err) {
+        lastError = err;
+        const isLast = attempt === maxAttempts;
+        console.error(`upsertMeasurements attempt ${attempt} failed:`, err?.message || err);
+        if (isLast) break;
+        // small backoff
+        await new Promise(r => setTimeout(r, 400 * attempt));
+      }
+    }
+    // Re-throw with clearer context
+    const details = (lastError && (lastError.message || lastError.details || lastError.code)) || 'Unknown error';
+    throw new Error(`Failed to upsert measurements: ${details}`);
   },
 
   // Daily Expenses API (replaces route14.py)

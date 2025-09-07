@@ -30,6 +30,59 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
+// Function to expand orders by garment type and quantity
+// Based on the backend logic: each garment gets its own order row, so we need to group by bill_id and number them
+const expandOrdersByGarmentAndQuantity = (orders) => {
+  // Group orders by bill_id first
+  const ordersByBill = {};
+  orders.forEach(order => {
+    const billId = order.bill_id || 'no-bill';
+    if (!ordersByBill[billId]) {
+      ordersByBill[billId] = [];
+    }
+    ordersByBill[billId].push(order);
+  });
+  
+  const finalExpandedOrders = [];
+  
+  // Process each bill group to create proper garment rows
+  Object.entries(ordersByBill).forEach(([billId, billOrders]) => {
+    // Get the first order to access bill data
+    const firstOrder = billOrders[0];
+    const bill = firstOrder.bills || {};
+    
+    // Define garment types and their quantities from the bill
+    const garmentTypes = [
+      { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
+      { type: 'Safari/Jacket', qty: parseInt(bill.safari_qty) || 0 },
+      { type: 'Pant', qty: parseInt(bill.pant_qty) || 0 },
+      { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
+      { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
+    ];
+    
+    // Create rows for each garment type based on quantities
+    garmentTypes.forEach(({ type, qty }) => {
+      if (qty > 0) {
+        // Create multiple rows if quantity > 1
+        for (let i = 0; i < qty; i++) {
+          finalExpandedOrders.push({
+            ...firstOrder,
+            // Create unique ID for each expanded row
+            expanded_id: firstOrder.id + '_' + type + '_' + i,
+            original_id: firstOrder.id, // Keep reference to original order
+            garment_type: type,
+            expanded_garment_type: type,
+            garment_quantity: 1, // Each row represents quantity of 1
+            garment_index: i, // This will be 0, 1, 2, etc. for each garment type
+          });
+        }
+      }
+    });
+  });
+  
+  return finalExpandedOrders;
+};
+
 // Generate measurements table for printing
 function generateAllMeasurementsTable(measurements) {
   const labelize = (key) =>
@@ -300,10 +353,17 @@ export default function GenerateBillScreen({ navigation }) {
   const [activeDateField, setActiveDateField] = useState(null); // 'order' or 'due'
   const [selectedOrderDate, setSelectedOrderDate] = useState(new Date());
   
+  // Use IST timezone for initial date
+  const getISTDateString = () => {
+    const utcDate = new Date();
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
+    return istDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+  };
+  
   const [billData, setBillData] = useState({
     customer_name: '',
     mobile_number: '',
-    order_date: new Date().toISOString().split('T')[0],
+    order_date: getISTDateString(), // Use IST date
     due_date: '',
     payment_status: 'pending',
     payment_mode: '',
@@ -468,7 +528,11 @@ export default function GenerateBillScreen({ navigation }) {
   const handleDateChange = (event, date) => {
     setDatePickerVisible(false);
     if (date) {
-      const formattedDate = date.toISOString().split('T')[0];
+      // Convert selected date to IST timezone
+      const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+      const formattedDate = istDate.toISOString().split('T')[0];
+      console.log('🇮🇳 Date selected (IST):', formattedDate);
+      
       if (activeDateField === 'order') {
         setBillData(prev => ({ ...prev, order_date: formattedDate }));
         setSelectedOrderDate(date);
@@ -513,7 +577,9 @@ export default function GenerateBillScreen({ navigation }) {
               billnumberinput2: bill.billnumberinput2 || searchQuery,
             });
             
-            setOrders(billOrders);
+            // Expand orders by garment type and quantity
+            const expandedOrders = expandOrdersByGarmentAndQuantity(billOrders);
+            setOrders(expandedOrders);
             
             // Calculate itemized bill from orders
             const itemized = {
@@ -1529,12 +1595,18 @@ export default function GenerateBillScreen({ navigation }) {
             <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
               <Text style={dynamicStyles.sectionTitle}>Order Items ({orders.length})</Text>
               
-              {orders.map((order, index) => (
-                <View key={index} style={styles.orderItem}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Item:</Text>
-                    <Text style={styles.detailValue}>{order.garment_type}</Text>
-                  </View>
+              {orders.map((order, index) => {
+                const displayGarmentType = order.expanded_garment_type || order.garment_type || 'N/A';
+                // Add garment count indicator if garment_index is a valid number (including 0)
+                const hasValidIndex = typeof order.garment_index === 'number' && order.garment_index >= 0;
+                const garmentDisplay = hasValidIndex ? displayGarmentType + ' (' + (order.garment_index + 1) + ')' : displayGarmentType;
+                
+                return (
+                  <View key={index} style={styles.orderItem}>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Item:</Text>
+                      <Text style={styles.detailValue}>{garmentDisplay}</Text>
+                    </View>
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Status:</Text>
                     <Text style={[styles.detailValue, { color: order.status === 'completed' ? '#27ae60' : '#e74c3c' }]}>
@@ -1546,8 +1618,9 @@ export default function GenerateBillScreen({ navigation }) {
                     <Text style={styles.detailValue}>₹{order.total_amt}</Text>
                   </View>
                   {index < orders.length - 1 && <View style={styles.orderSeparator} />}
-                </View>
-              ))}
+                  </View>
+                );
+              })}
             </View>
           )}
 

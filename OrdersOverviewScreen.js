@@ -28,11 +28,25 @@ const { width } = Dimensions.get('window');
 
 // Function to expand orders by garment type and quantity
 const expandOrdersByGarmentAndQuantity = (orders) => {
-  const expandedOrders = [];
-  
+  // Group orders by bill_id first
+  const ordersByBill = {};
   orders.forEach(order => {
-    // Extract garment quantities from the bills data (stored when bill was created)
-    const bill = order.bills || {};
+    const billId = order.bill_id || 'no-bill';
+    if (!ordersByBill[billId]) {
+      ordersByBill[billId] = [];
+    }
+    ordersByBill[billId].push(order);
+  });
+  
+  const finalExpandedOrders = [];
+  
+  // Process each bill group to create proper garment rows
+  Object.entries(ordersByBill).forEach(([billId, billOrders]) => {
+    // Get the first order to access bill data
+    const firstOrder = billOrders[0];
+    const bill = firstOrder.bills || {};
+    
+    // Define garment types and their quantities from the bill
     const garmentTypes = [
       { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
       { type: 'Safari/Jacket', qty: parseInt(bill.safari_qty) || 0 },
@@ -41,64 +55,32 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
       { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
     ];
     
-    // If no specific quantities are available, fall back to parsing garment_type string
-    const hasSpecificQuantities = garmentTypes.some(g => g.qty > 0);
-    
-    if (!hasSpecificQuantities && order.garment_type) {
-      // Parse garment_type string like "Pant, Shirt" and create one row for each
-      const garmentTypesFromString = order.garment_type.split(',').map(type => type.trim());
-      garmentTypesFromString.forEach((garmentType, index) => {
-        expandedOrders.push({
-          ...order,
-          // Create unique ID for each expanded row
-              expanded_id: order.id + '_' + garmentType + '_' + index,
-          original_id: order.id, // Keep reference to original order
-          garment_type: garmentType,
-          expanded_garment_type: garmentType,
-          garment_quantity: 1,
-          garment_index: index,
-          // Set worker limit based on garment type
-          max_workers: garmentType.toLowerCase().includes('shirt') ? 3 : 2
-        });
-      });
-    } else {
-      // Create expanded rows based on specific quantities
-      garmentTypes.forEach(({ type, qty }) => {
-        if (qty > 0) {
-          // Create multiple rows if quantity > 1
-          for (let i = 0; i < qty; i++) {
-            expandedOrders.push({
-              ...order,
-              // Create unique ID for each expanded row
-              expanded_id: order.id + '_' + type + '_' + i,
-              original_id: order.id, // Keep reference to original order
-              garment_type: type,
-              expanded_garment_type: type,
-              garment_quantity: 1, // Each row represents quantity of 1
-              garment_index: i,
-              // Set worker limit based on garment type
-              max_workers: type.toLowerCase().includes('shirt') ? 3 : 2
-            });
-          }
+    // Create rows for each garment type based on quantities
+    garmentTypes.forEach(({ type, qty }) => {
+      if (qty > 0) {
+        // Create multiple rows if quantity > 1
+        for (let i = 0; i < qty; i++) {
+          const expandedId = firstOrder.id + '_' + type + '_' + i;
+          console.log(`Creating expanded order: ${expandedId} for original order ${firstOrder.id}`);
+          
+          finalExpandedOrders.push({
+            ...firstOrder,
+            // Create unique ID for each expanded row
+            expanded_id: expandedId,
+            original_id: firstOrder.id, // Keep reference to original order
+            garment_type: type,
+            expanded_garment_type: type,
+            garment_quantity: 1, // Each row represents quantity of 1
+            garment_index: i, // This will be 0, 1, 2, etc. for each garment type
+            // Set worker limit based on garment type
+            max_workers: type.toLowerCase().includes('shirt') ? 3 : 2
+          });
         }
-      });
-    }
-    
-    // If no garments were expanded (no quantities and no garment_type), keep original row
-    if (expandedOrders.filter(eo => eo.original_id === order.id).length === 0) {
-      expandedOrders.push({
-        ...order,
-        expanded_id: order.id + '_default_0',
-        original_id: order.id,
-        expanded_garment_type: order.garment_type || 'N/A',
-        garment_quantity: 1,
-        garment_index: 0,
-        max_workers: 2 // Default to 2 workers
-      });
-    }
+      }
+    });
   });
   
-  return expandedOrders;
+  return finalExpandedOrders;
 };
 
 export default function OrdersOverviewScreen({ navigation }) {
@@ -144,6 +126,27 @@ export default function OrdersOverviewScreen({ navigation }) {
         SupabaseAPI.getWorkers()
       ]);
       
+      // Debug raw data from Supabase
+      console.log('\n🔍 === RAW DATA FROM SUPABASE ===');
+      console.log('📊 Total orders fetched from Supabase:', ordersData?.length || 0);
+      if (ordersData && ordersData.length > 0) {
+        // Show first few raw orders
+        console.log('\n🐁 First 3 RAW orders from Supabase:');
+        ordersData.slice(0, 3).forEach((order, index) => {
+          console.log(`  ${index + 1}. ID: ${order.id}, Bill: ${order.billnumberinput2}, Date: ${order.order_date}`);
+        });
+        
+        // Check if bill 8023 is in the raw data
+        const rawBill8023 = ordersData.filter(order => Number(order.billnumberinput2) === 8023);
+        console.log(`\n🎯 Bill 8023 in RAW data: ${rawBill8023.length} orders`);
+        if (rawBill8023.length > 0) {
+          rawBill8023.forEach((order, index) => {
+            console.log(`  🏅 Raw 8023-${index + 1}: ID ${order.id}, Garment: ${order.garment_type}`);
+          });
+        }
+      }
+      console.log('🔍 === END RAW DATA DEBUG ===\n');
+      
       // Process orders data to match frontend structure
       const processedOrders = ordersData
         // REMOVE the filter so all orders are shown
@@ -152,19 +155,99 @@ export default function OrdersOverviewScreen({ navigation }) {
           deliveryDate: order.due_date,
           workers: order.order_worker_association?.map(assoc => assoc.workers) || []
         }))
-        // Sort by order_date descending, then billnumberinput2 descending
+        // Sort by billnumberinput2 descending (8023, 8022, 8021... with 8023 at the top)
         .sort((a, b) => {
-          const dateA = new Date(normalizeDate(a.order_date));
-          const dateB = new Date(normalizeDate(b.order_date));
-          if (dateA.getTime() === dateB.getTime()) {
-            // If dates are the same, sort by billnumberinput2 descending
-            return (b.billnumberinput2 || 0) - (a.billnumberinput2 || 0);
+          // Handle billnumberinput2 - it can be stored as double precision in DB
+          const billNumberA = Number(a.billnumberinput2) || 0;
+          const billNumberB = Number(b.billnumberinput2) || 0;
+          
+          // Primary sort: by bill number descending (highest first)
+          if (billNumberB !== billNumberA) {
+            const result = billNumberB - billNumberA; // Descending: 8023, 8022, 8021...
+            console.log(`🔢 Sorting: Bill ${billNumberB} vs ${billNumberA} = ${result > 0 ? 'B first' : 'A first'}`);
+            return result;
           }
-          return dateB - dateA;
+          
+          // Secondary sort: by order ID descending if bill numbers are same
+          const orderResult = (b.id || 0) - (a.id || 0);
+          console.log(`🆔 Same bill numbers, sorting by ID: ${b.id} vs ${a.id} = ${orderResult}`);
+          return orderResult;
         });
+      
+      // COMPREHENSIVE BILL NUMBER ANALYSIS
+      console.log('\n🔢 === COMPREHENSIVE BILL ANALYSIS ===');
+      console.log('📊 Total processed orders:', processedOrders.length);
+      
+      if (processedOrders.length > 0) {
+        // Extract all unique bill numbers and sort them
+        const allBillNumbers = [...new Set(processedOrders.map(order => Number(order.billnumberinput2) || 0))]
+          .filter(num => num > 0)
+          .sort((a, b) => b - a); // Descending order
+        
+        console.log('\n📈 ALL UNIQUE BILL NUMBERS IN DATABASE:');
+        console.log(`🔢 Total unique bills: ${allBillNumbers.length}`);
+        console.log(`🏆 Highest bill number: ${allBillNumbers[0]}`);
+        console.log(`🔴 Lowest bill number: ${allBillNumbers[allBillNumbers.length - 1]}`);
+        
+        // Show top 20 bill numbers
+        console.log('\n🏅 TOP 20 BILL NUMBERS:');
+        allBillNumbers.slice(0, 20).forEach((billNum, index) => {
+          const isBill8023 = billNum === 8023;
+          const icon = isBill8023 ? '🏅' : (index < 5 ? '🔵' : '⚫');
+          const count = processedOrders.filter(o => Number(o.billnumberinput2) === billNum).length;
+          console.log(`  ${icon} ${index + 1}. Bill: ${billNum} (${count} orders)${isBill8023 ? ' ← BILL 8023 FOUND!' : ''}`);
+        });
+        
+        // Check for bill 8023 specifically
+        const bill8023Index = allBillNumbers.indexOf(8023);
+        if (bill8023Index === -1) {
+          console.log('\n❌ PROBLEM FOUND: Bill 8023 does NOT exist in the database!');
+          console.log('🔍 Instead, we have these recent bills:');
+          allBillNumbers.slice(0, 10).forEach((bill, index) => {
+            console.log(`  ${index + 1}. Bill ${bill}`);
+          });
+        } else {
+          console.log(`\n✅ Bill 8023 found at position ${bill8023Index + 1} in bill list`);
+        }
+        
+      // Show actual first order details with user-friendly explanation
+      console.log('\n📜 ACTUAL TOP ORDER DETAILS:');
+      const topOrder = processedOrders[0];
+      console.log(`  Bill Number: ${topOrder.billnumberinput2}`);
+      console.log(`  Order ID: ${topOrder.id}`);
+      console.log(`  Order Date: ${topOrder.order_date}`);
+      console.log(`  Status: ${topOrder.status}`);
+      console.log(`  Payment Status: ${topOrder.payment_status}`);
+      
+      // User-friendly explanation of sorting
+      if (allBillNumbers[0] !== 8023) {
+        console.log(`\n📋 SORTING EXPLANATION FOR USER:`);
+        console.log(`  ✅ Orders are sorted correctly by bill number (highest to lowest)`);
+        console.log(`  🏆 Highest bill in database: ${allBillNumbers[0]}`);
+        console.log(`  ❓ If you expected bill 8023 to be at the top, it may not exist in the database yet`);
+      }
+      }
       
       // Expand orders by garment type and quantity
       const expandedOrders = expandOrdersByGarmentAndQuantity(processedOrders);
+      
+      console.log('\n📎 Total expanded orders:', expandedOrders.length);
+      if (expandedOrders.length > 0) {
+        console.log('\n📝 TOP 10 EXPANDED ORDERS:');
+        expandedOrders.slice(0, 10).forEach((order, index) => {
+          const isBill8023 = Number(order.billnumberinput2) === 8023;
+          const icon = isBill8023 ? '🏅' : (index < 5 ? '🔵' : '⚫');
+          console.log(`  ${icon} ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}, Garment: ${order.garment_type}${isBill8023 ? ' ← BILL 8023!' : ''}`);
+        });
+        
+        // Check if bill 8023 orders are at the top
+        const bill8023Orders = expandedOrders.filter(o => Number(o.billnumberinput2) === 8023);
+        console.log(`\n🎯 Bill 8023 expanded orders found: ${bill8023Orders.length}`);
+        bill8023Orders.forEach((order, index) => {
+          console.log(`  🏅 8023-${index + 1}: ${order.garment_type} (ID: ${order.id}, Expanded: ${order.expanded_id})`);
+        });
+      }
+      console.log('\n🏁 === END SORTING DEBUG ===\n');
       
       setOrders(expandedOrders);
       setFilteredOrders(expandedOrders);
@@ -198,14 +281,17 @@ export default function OrdersOverviewScreen({ navigation }) {
       );
     }
 
-    // Sort by order_date descending, then billnumberinput2 descending
+    // Sort by billnumberinput2 descending (8023, 8022, 8021... with latest at top)
     filtered = filtered.sort((a, b) => {
-      const dateA = new Date(normalizeDate(a.order_date));
-      const dateB = new Date(normalizeDate(b.order_date));
-      if (dateA.getTime() === dateB.getTime()) {
-        return (b.billnumberinput2 || 0) - (a.billnumberinput2 || 0);
+      const billNumberA = Number(a.billnumberinput2) || 0;
+      const billNumberB = Number(b.billnumberinput2) || 0;
+      
+      if (billNumberB !== billNumberA) {
+        return billNumberB - billNumberA; // Descending: 8023, 8022, 8021...
       }
-      return dateB - dateA;
+      
+      // Secondary sort by order ID if bill numbers are same
+      return (b.id || 0) - (a.id || 0);
     });
 
     setFilteredOrders(filtered);
@@ -228,14 +314,16 @@ export default function OrdersOverviewScreen({ navigation }) {
         workers: order.order_worker_association?.map(assoc => assoc.workers) || []
       }));
       
-      // Sort by order_date descending, then billnumberinput2 descending
+      // Sort by billnumberinput2 descending (8023, 8022, 8021... with latest at top)
       const sortedData = processedData.sort((a, b) => {
-        const dateA = new Date(normalizeDate(a.order_date));
-        const dateB = new Date(normalizeDate(b.order_date));
-        if (dateA.getTime() === dateB.getTime()) {
-          return (b.billnumberinput2 || 0) - (a.billnumberinput2 || 0);
+        const billNumberA = Number(a.billnumberinput2) || 0;
+        const billNumberB = Number(b.billnumberinput2) || 0;
+        
+        if (billNumberB !== billNumberA) {
+          return billNumberB - billNumberA; // Descending: 8023, 8022, 8021...
         }
-        return dateB - dateA;
+        
+        return (b.id || 0) - (a.id || 0);
       });
       
       // Expand search results by garment type and quantity
@@ -256,17 +344,105 @@ export default function OrdersOverviewScreen({ navigation }) {
 
     try {
       setLoading(true);
-      // Find the expanded order to get the original order ID
-      const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
+      
+      // Debug: Log all available orders to understand the structure
+      console.log('\n=== DELIVERY UPDATE DEBUG ===');
+      console.log('Looking for expandedOrderId:', expandedOrderId, '(type:', typeof expandedOrderId, ')');
+      console.log('New delivery status:', newStatus);
+      console.log('Total orders in state:', orders.length);
+      console.log('Total filtered orders:', filteredOrders.length);
+      
+      // Try multiple search strategies with better validation
+      let expandedOrder = null;
+      let searchStrategy = null;
+      
+      // Strategy 1: Direct expanded_id match
+      expandedOrder = orders.find(order => order.expanded_id === expandedOrderId);
+      if (expandedOrder) searchStrategy = 'orders.expanded_id';
+      
+      // Strategy 2: If not found, try searching in filteredOrders
+      if (!expandedOrder) {
+        expandedOrder = filteredOrders.find(order => order.expanded_id === expandedOrderId);
+        if (expandedOrder) searchStrategy = 'filteredOrders.expanded_id';
+      }
+      
+      // Strategy 3: If still not found, try regular ID match (string and number)
+      if (!expandedOrder) {
+        expandedOrder = orders.find(order => 
+          order.id.toString() === expandedOrderId.toString() ||
+          order.id === expandedOrderId
+        );
+        if (expandedOrder) searchStrategy = 'orders.id';
+      }
+      
+      // Strategy 4: Try filteredOrders with regular ID
+      if (!expandedOrder) {
+        expandedOrder = filteredOrders.find(order => 
+          order.id.toString() === expandedOrderId.toString() ||
+          order.id === expandedOrderId
+        );
+        if (expandedOrder) searchStrategy = 'filteredOrders.id';
+      }
+      
+      // Get original order ID with validation
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
       
-      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
-        Alert.alert('Error', 'Invalid original order ID. Cannot update status.');
+      console.log('Delivery search results:', {
+        searchStrategy,
+        expandedOrder: expandedOrder ? {
+          id: expandedOrder.id,
+          original_id: expandedOrder.original_id,
+          expanded_id: expandedOrder.expanded_id,
+          billnumberinput2: expandedOrder.billnumberinput2,
+          garment_type: expandedOrder.garment_type
+        } : null,
+        originalOrderId,
+        originalOrderIdType: typeof originalOrderId
+      });
+      
+      // Enhanced validation
+      if (!expandedOrder) {
+        console.error('❌ Order not found using any strategy');
+        console.error('Available order IDs in orders:', orders.slice(0, 10).map(o => ({ id: o.id, expanded_id: o.expanded_id })));
+        console.error('Available order IDs in filteredOrders:', filteredOrders.slice(0, 10).map(o => ({ id: o.id, expanded_id: o.expanded_id })));
+        Alert.alert(
+          'Error', 
+          `Order not found with ID: ${expandedOrderId}\n\nThis might happen if:\n• The page needs refreshing\n• The order was deleted\n• There's a data sync issue\n\nPlease try refreshing the page.`
+        );
         setLoading(false);
         return;
       }
       
-      await SupabaseAPI.updateOrderStatus(originalOrderId, newStatus);
+      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null || originalOrderId === undefined) {
+        console.error('❌ Invalid original order ID:', originalOrderId);
+        Alert.alert(
+          'Error', 
+          `Invalid order reference found.\n\nOrder ID: ${expandedOrderId}\nOriginal ID: ${originalOrderId}\n\nPlease try refreshing the page.`
+        );
+        setLoading(false);
+        return;
+      }
+      
+      // Ensure originalOrderId is a number
+      const numericOrderId = Number(originalOrderId);
+      if (isNaN(numericOrderId) || numericOrderId <= 0) {
+        console.error('❌ Original order ID is not a valid number:', originalOrderId);
+        Alert.alert(
+          'Error', 
+          `Invalid order ID format: ${originalOrderId}\n\nExpected a positive number. Please try refreshing the page.`
+        );
+        setLoading(false);
+        return;
+      }
+      
+      console.log('✅ About to update delivery status:', {
+        numericOrderId,
+        newStatus,
+        billNumber: expandedOrder.billnumberinput2
+      });
+      console.log('=== END DELIVERY DEBUG ===\n');
+      
+      await SupabaseAPI.updateOrderStatus(numericOrderId, newStatus);
       
         // If status is being set to completed, check if all orders for this bill are completed
         if (newStatus.toLowerCase() === 'completed') {
@@ -342,22 +518,26 @@ export default function OrdersOverviewScreen({ navigation }) {
                 );
               }
             } else {
-              Alert.alert('Success', 'Order status updated successfully');
+              Alert.alert('Success', `Delivery status updated to "${newStatus}" for bill ${expandedOrder.billnumberinput2}`);
             }
           } catch (billError) {
             console.error('Error checking bill completion:', billError);
-            Alert.alert('Success', 'Order status updated successfully');
+            Alert.alert('Success', `Delivery status updated to "${newStatus}" for bill ${expandedOrder.billnumberinput2}`);
           }
         } else {
-          Alert.alert('Success', 'Order status updated successfully');
+          Alert.alert('Success', `Delivery status updated to "${newStatus}" for bill ${expandedOrder.billnumberinput2}`);
         }
       } else {
-        Alert.alert('Success', 'Order status updated successfully');
+        Alert.alert('Success', `Delivery status updated to "${newStatus}" for bill ${expandedOrder.billnumberinput2}`);
       }
       
       loadData();
     } catch (error) {
-      Alert.alert('Error', `Failed to update status: ${error.message}`);
+      console.error('❌ Delivery status update failed:', error);
+      Alert.alert(
+        'Error', 
+        `Failed to update delivery status: ${error.message}\n\nIf this persists, please check:\n• Internet connection\n• Database permissions\n• Contact support`
+      );
     } finally {
       setLoading(false);
     }
@@ -371,21 +551,115 @@ export default function OrdersOverviewScreen({ navigation }) {
 
     try {
       setLoading(true);
-      // Find the expanded order to get the original order ID
-      const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
+      
+      // Debug: Log all available orders to understand the structure
+      console.log('\n=== PAYMENT UPDATE DEBUG ===');
+      console.log('Looking for expandedOrderId:', expandedOrderId, '(type:', typeof expandedOrderId, ')');
+      console.log('New payment status:', newPaymentStatus);
+      console.log('Total orders in state:', orders.length);
+      console.log('Total filtered orders:', filteredOrders.length);
+      
+      // Try multiple search strategies with better validation
+      let expandedOrder = null;
+      let searchStrategy = null;
+      
+      // Strategy 1: Direct expanded_id match
+      expandedOrder = orders.find(order => order.expanded_id === expandedOrderId);
+      if (expandedOrder) searchStrategy = 'orders.expanded_id';
+      
+      // Strategy 2: If not found, try searching in filteredOrders
+      if (!expandedOrder) {
+        expandedOrder = filteredOrders.find(order => order.expanded_id === expandedOrderId);
+        if (expandedOrder) searchStrategy = 'filteredOrders.expanded_id';
+      }
+      
+      // Strategy 3: If still not found, try regular ID match (string and number)
+      if (!expandedOrder) {
+        expandedOrder = orders.find(order => 
+          order.id.toString() === expandedOrderId.toString() ||
+          order.id === expandedOrderId
+        );
+        if (expandedOrder) searchStrategy = 'orders.id';
+      }
+      
+      // Strategy 4: Try filteredOrders with regular ID
+      if (!expandedOrder) {
+        expandedOrder = filteredOrders.find(order => 
+          order.id.toString() === expandedOrderId.toString() ||
+          order.id === expandedOrderId
+        );
+        if (expandedOrder) searchStrategy = 'filteredOrders.id';
+      }
+      
+      // Get original order ID with validation
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
       
-      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
-        Alert.alert('Error', 'Invalid original order ID. Cannot update payment status.');
+      console.log('Search results:', {
+        searchStrategy,
+        expandedOrder: expandedOrder ? {
+          id: expandedOrder.id,
+          original_id: expandedOrder.original_id,
+          expanded_id: expandedOrder.expanded_id,
+          billnumberinput2: expandedOrder.billnumberinput2,
+          garment_type: expandedOrder.garment_type
+        } : null,
+        originalOrderId,
+        originalOrderIdType: typeof originalOrderId
+      });
+      
+      // Enhanced validation
+      if (!expandedOrder) {
+        console.error('❌ Order not found using any strategy');
+        console.error('Available order IDs in orders:', orders.slice(0, 10).map(o => ({ id: o.id, expanded_id: o.expanded_id })));
+        console.error('Available order IDs in filteredOrders:', filteredOrders.slice(0, 10).map(o => ({ id: o.id, expanded_id: o.expanded_id })));
+        Alert.alert(
+          'Error', 
+          `Order not found with ID: ${expandedOrderId}\n\nThis might happen if:\n• The page needs refreshing\n• The order was deleted\n• There's a data sync issue\n\nPlease try refreshing the page.`
+        );
         setLoading(false);
         return;
       }
       
-      await SupabaseAPI.updatePaymentStatus(originalOrderId, newPaymentStatus);
+      if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null || originalOrderId === undefined) {
+        console.error('❌ Invalid original order ID:', originalOrderId);
+        Alert.alert(
+          'Error', 
+          `Invalid order reference found.\n\nOrder ID: ${expandedOrderId}\nOriginal ID: ${originalOrderId}\n\nPlease try refreshing the page.`
+        );
+        setLoading(false);
+        return;
+      }
+      
+      // Ensure originalOrderId is a number
+      const numericOrderId = Number(originalOrderId);
+      if (isNaN(numericOrderId) || numericOrderId <= 0) {
+        console.error('❌ Original order ID is not a valid number:', originalOrderId);
+        Alert.alert(
+          'Error', 
+          `Invalid order ID format: ${originalOrderId}\n\nExpected a positive number. Please try refreshing the page.`
+        );
+        setLoading(false);
+        return;
+      }
+      
+      console.log('✅ About to update payment status:', {
+        numericOrderId,
+        newPaymentStatus,
+        billNumber: expandedOrder.billnumberinput2
+      });
+      console.log('=== END PAYMENT DEBUG ===\n');
+      
+      await SupabaseAPI.updatePaymentStatus(numericOrderId, newPaymentStatus);
+      
+      Alert.alert('Success', `Payment status updated to "${newPaymentStatus}" for bill ${expandedOrder.billnumberinput2}`);
       loadData();
-      Alert.alert('Success', 'Payment status updated successfully');
+      
     } catch (error) {
-      Alert.alert('Error', `Failed to update payment status: ${error.message}`);
+      console.error('❌ Payment status update failed:', error);
+      Alert.alert(
+        'Error', 
+        `Failed to update payment status: ${error.message}\n\nIf this persists, please check:\n• Internet connection\n• Database permissions\n• Contact support`
+      );
     } finally {
       setLoading(false);
     }
@@ -803,6 +1077,7 @@ export default function OrdersOverviewScreen({ navigation }) {
     // Add garment count indicator if garment_index is a valid number (including 0)
     const hasValidIndex = typeof order.garment_index === 'number' && order.garment_index >= 0;
     const garmentDisplay = hasValidIndex ? displayGarmentType + ' (' + (order.garment_index + 1) + ')' : displayGarmentType;
+    
 
     return (
       <View key={uniqueKey} style={[styles.tableRow, Platform.OS === 'web' && { display: 'flex', flexDirection: 'row' }]}>
@@ -1336,6 +1611,28 @@ export default function OrdersOverviewScreen({ navigation }) {
           <Text style={styles.searchButtonText}>Search</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Status Indicator */}
+      {filteredOrders.length > 0 && (
+        <View style={{
+          backgroundColor: '#f8f9fa',
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          borderLeftWidth: 4,
+          borderLeftColor: '#2980b9',
+          marginHorizontal: 16,
+          marginBottom: 8,
+          borderRadius: 4
+        }}>
+          <Text style={{
+            fontSize: 14,
+            color: '#2c3e50',
+            fontWeight: '600'
+          }}>
+            📋 Showing {filteredOrders.length} orders • Latest Bill: {filteredOrders[0]?.billnumberinput2 || 'N/A'} • Orders sorted by bill number (latest first)
+          </Text>
+        </View>
+      )}
 
       {Platform.OS === 'web' ? (
         <View style={{ flex: 1, overflow: 'hidden' }}>
@@ -1901,3 +2198,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

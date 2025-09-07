@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starset Consultancy Services</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+</head>
+<body>
+    <header class="header">
+        <div class="header-logo">
+            <img src="logo.png" alt="starsetlogo">
+            <div class="header-navigation">
+                <h2>Starset Consultancy Services</h2>
+            </div>
+        </div>
+    </header>
+    <main class="main">
+        <div class="main-header">
+        </div>
+        <div class="horizontal-tabs">
+            <a href="index.html" class="nav-link">
+                <!-- Embedded SVG home icon -->
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                Home
+            </a>
+        </div>
+        <div class="content-main" >
+            <div id="profit" class="profit">
+                <h1>Date Wise Profit</h1>
+                <div>
+                    <label for="profit-date">Select Date:</label>
+                    <input type="date" id="profit-date">
+                    <button id="fetch-daily-profit-btn">Fetch Daily Profit</button>
+                    <button id="fetch-monthly-profit-btn">Fetch Monthly Profit</button>
+                </div>
+                <div id="profit-results"></div>                    
+            </div>
+        </div>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> 
+
+
+    <script type="module" src="Daily-profit.js"></script>
+    <script src="billnumber.js"></script>
+</body>
+</html>

@@ -843,9 +843,8 @@ export default function NewBillScreen({ navigation }) {
         console.log('Measurements upsert result:', upsertResult);
       } catch (err) {
         console.error('Error upserting measurements:', err);
-        Alert.alert('Error', 'Failed to save measurements.');
-        setSaving(false);
-        return false;
+        // Do not block bill save if measurements fail; warn and continue
+        Alert.alert('Warning', 'Measurements could not be saved due to network issue. Bill will still be saved.');
       }
 
       // 1. Fetch current order number
@@ -855,13 +854,23 @@ export default function NewBillScreen({ navigation }) {
 
       // 2. Use orderNumber for the new bill
       const totals = calculateTotals();
-      const todayStr = new Date().toISOString().split('T')[0]; // Always use today
+      
+      // CRITICAL FIX: Use IST timezone for bill dates (not UTC)
+      const getISTDateString = () => {
+        const utcDate = new Date();
+        const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
+        return istDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      };
+      
+      const todayStr = getISTDateString(); // Use IST date instead of UTC
+      console.log('🇮🇳 Saving bill with IST date:', todayStr);
+      
       let billToSave = {
         customer_name: billData.customer_name,
         mobile_number: billData.mobile_number,
-        date_issue: todayStr, // force today
+        date_issue: todayStr, // IST today
         delivery_date: billData.due_date,
-        today_date: todayStr, // force today
+        today_date: todayStr, // IST today
         due_date: billData.due_date,
         payment_status: billData.payment_status,
         payment_mode: billData.payment_mode,
@@ -903,7 +912,7 @@ export default function NewBillScreen({ navigation }) {
         bill_id: billId,
         billnumberinput2: orderNumber ? orderNumber.toString() : null, // Ensure string or null
         garment_type: getGarmentTypes(),
-        order_date: todayStr, // force today
+        order_date: todayStr, // IST today
         due_date: billData.due_date,
         total_amt: parseFloat(totals.total_amt),
         payment_amount: parseFloat(billData.payment_amount) || 0,
@@ -991,10 +1000,17 @@ export default function NewBillScreen({ navigation }) {
   };
 
   const resetForm = () => {
+    // Use IST timezone for form reset too
+    const getISTDateString = () => {
+      const utcDate = new Date();
+      const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
+      return istDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    };
+    
     setBillData({
       customer_name: '',
       mobile_number: '',
-      order_date: new Date().toISOString().split('T')[0],
+      order_date: getISTDateString(), // Use IST for initial date
       due_date: '',
       payment_status: 'pending',
       payment_mode: '',
@@ -1195,6 +1211,24 @@ export default function NewBillScreen({ navigation }) {
 
   const handlePrintBill = async () => {
     try {
+      // Web: use pre-printed template printer if available
+      if (typeof window !== 'undefined') {
+        try {
+          if (typeof window.printPreprintedBill === 'function') {
+            console.log('Using pre-printed bill template for printing');
+            window.printPreprintedBill();
+            return;
+          }
+          if (typeof window.enhancedSaveAndPrint === 'function') {
+            console.log('Using enhancedSaveAndPrint fallback');
+            window.enhancedSaveAndPrint();
+            return;
+          }
+        } catch (webPrintErr) {
+          console.warn('Web print path failed, falling back to RN print:', webPrintErr);
+        }
+      }
+
       // Use current bill number or generate one if not available
       let orderNumber = billData.billnumberinput2;
       if (!orderNumber) {

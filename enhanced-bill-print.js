@@ -321,6 +321,164 @@ function generateBillHTML() {
     `;
 }
 
+// Print to pre-printed template: positions only the variable text to align with the paper
+function printPreprintedBill() {
+    // Collect data from the existing inputs
+    const customerName = document.getElementById("customer-name")?.value || '';
+    const mobileNumber = document.getElementById("mobile-number")?.value || '';
+    const orderDate = document.getElementById("date_issue")?.value || document.getElementById("today-date")?.value || '';
+    const deliveryDate = document.getElementById("delivery-date")?.value || document.getElementById("due-date")?.value || '';
+    const orderNumber = document.getElementById("billnumberinput2")?.value || document.getElementById("billnumberinput3")?.value || '';
+
+    const suitQty = document.getElementById('suit_qty')?.value || '';
+    const suitAmount = document.getElementById('suit_amount')?.value || '';
+    const safariQty = document.getElementById('safari_qty')?.value || '';
+    const safariAmount = document.getElementById('safari_amount')?.value || '';
+    const pantQty = document.getElementById('pant_qty')?.value || '';
+    const pantAmount = document.getElementById('pant_amount')?.value || '';
+    const shirtQty = document.getElementById('shirt_qty')?.value || '';
+    const shirtAmount = document.getElementById('shirt_amount')?.value || '';
+    const sadriQty = document.getElementById('sadri_qty')?.value || '';
+    const sadriAmount = document.getElementById('sadri_amount')?.value || '';
+
+    const advanceAmount = document.getElementById("advance_amt")?.value || '';
+    const totalAmount = [suitAmount, safariAmount, pantAmount, shirtAmount, sadriAmount]
+        .map(v => parseFloat(v) || 0).reduce((a,b)=>a+b,0);
+
+    // Measurements (IDs follow existing form)
+    const m = (id) => document.getElementById(id)?.value || '';
+    const meas = {
+        SideP_Cross: m('SideP_Cross'), Plates: m('Plates'), Belt: m('Belt'), Back_P: m('Back_P'), WP: m('WP'),
+        pant_length: m('length'), pant_kamar: m('kamar'), pant_hips: m('hips'), pant_waist: m('waist'), pant_ghutna: m('Ghutna'), pant_bottom: m('Bottom'), pant_seat: m('seat'),
+        shirt_length: m('shirtlength'), shirt_body: m('body'), shirt_loose: m('Loose'), shirt_shoulder: m('Shoulder'), shirt_astin: m('Astin'), shirt_collar: m('collor'),
+        shirt_aloose: m('allose'), Callar: m('Callar'), Cuff: m('Cuff'), Pkt: m('Pkt'), LooseShirt: m('LooseShirt'), DT_TT: m('DT_TT')
+    };
+
+    // Calibration offsets in millimeters to fine-tune alignment on your printer
+    const OFFSET_X_MM = 0; // adjust right/left
+    const OFFSET_Y_MM = 0; // adjust up/down
+
+    const pageHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Print Bill</title>
+  <style>
+    @page { size: A4; margin: 8mm; }
+    body { font-family: Arial, sans-serif; }
+    .sheet { position: relative; width: 190mm; height: 277mm; }
+    .pos { position: absolute; transform: translate(calc(${OFFSET_X_MM}mm), calc(${OFFSET_Y_MM}mm)); font-size: 12pt; }
+    .small { font-size: 11pt; }
+    .xs { font-size: 10pt; }
+    /* Top customer block */
+    .name { left: 22mm; top: 40mm; }
+    .orderNo { left: 148mm; top: 40mm; text-align: right; width: 35mm; }
+    .date { left: 22mm; top: 49mm; }
+    .cell { left: 22mm; top: 58mm; }
+    .ddate { left: 148mm; top: 58mm; text-align: right; width: 35mm; }
+    /* Items table (approximate cells) */
+    .item-suit-qty { left: 100mm; top: 78mm; text-align: center; width: 20mm; }
+    .item-suit-amt { left: 123mm; top: 78mm; text-align: right; width: 30mm; }
+    .item-safari-qty { left: 100mm; top: 96mm; text-align: center; width: 20mm; }
+    .item-safari-amt { left: 123mm; top: 96mm; text-align: right; width: 30mm; }
+    .item-pant-qty { left: 100mm; top: 114mm; text-align: center; width: 20mm; }
+    .item-pant-amt { left: 123mm; top: 114mm; text-align: right; width: 30mm; }
+    .item-shirt-qty { left: 100mm; top: 132mm; text-align: center; width: 20mm; }
+    .item-shirt-amt { left: 123mm; top: 132mm; text-align: right; width: 30mm; }
+    .item-sadri-qty { left: 100mm; top: 150mm; text-align: center; width: 20mm; }
+    .item-sadri-amt { left: 123mm; top: 150mm; text-align: right; width: 30mm; }
+    .total { left: 80mm; top: 170mm; text-align: right; width: 73mm; font-weight: bold; }
+    /* Pant measurements box */
+    .pant-length { left: 30mm; top: 202mm; }
+    .pant-kamar { left: 74mm; top: 202mm; }
+    .pant-hips { left: 118mm; top: 202mm; }
+    .pant-waist { left: 160mm; top: 202mm; }
+    .pant-ghutna { left: 30mm; top: 214mm; }
+    .pant-bottom { left: 74mm; top: 214mm; }
+    .pant-seat { left: 118mm; top: 214mm; }
+    .sidep { left: 30mm; top: 226mm; }
+    .plates { left: 62mm; top: 226mm; }
+    .belt { left: 94mm; top: 226mm; }
+    .backp { left: 126mm; top: 226mm; }
+    .wp { left: 158mm; top: 226mm; }
+    .pant-date { left: 150mm; top: 192mm; text-align: right; width: 35mm; }
+    .pant-no { left: 150mm; top: 199mm; text-align: right; width: 35mm; }
+    /* Shirt measurements box */
+    .shirt-collar { left: 30mm; top: 256mm; }
+    .shirt-cuff { left: 62mm; top: 256mm; }
+    .shirt-pkt { left: 94mm; top: 256mm; }
+    .shirt-loose { left: 126mm; top: 256mm; }
+    .shirt-dttt { left: 158mm; top: 256mm; }
+    .shirt-date { left: 150mm; top: 246mm; text-align: right; width: 35mm; }
+    .shirt-no { left: 150mm; top: 253mm; text-align: right; width: 35mm; }
+  </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <div class="pos name">${customerName}</div>
+      <div class="pos orderNo">${orderNumber}</div>
+      <div class="pos date">${orderDate}</div>
+      <div class="pos cell">${mobileNumber}</div>
+      <div class="pos ddate">${deliveryDate}</div>
+
+      <div class="pos item-suit-qty">${suitQty}</div>
+      <div class="pos item-suit-amt">${suitAmount}</div>
+      <div class="pos item-safari-qty">${safariQty}</div>
+      <div class="pos item-safari-amt">${safariAmount}</div>
+      <div class="pos item-pant-qty">${pantQty}</div>
+      <div class="pos item-pant-amt">${pantAmount}</div>
+      <div class="pos item-shirt-qty">${shirtQty}</div>
+      <div class="pos item-shirt-amt">${shirtAmount}</div>
+      <div class="pos item-sadri-qty">${sadriQty}</div>
+      <div class="pos item-sadri-amt">${sadriAmount}</div>
+      <div class="pos total">${totalAmount.toFixed(2)}</div>
+
+      <!-- Pant measurements -->
+      <div class="pos pant-date xs">${orderDate}</div>
+      <div class="pos pant-no xs">${orderNumber}</div>
+      <div class="pos pant-length xs">${meas.pant_length}</div>
+      <div class="pos pant-kamar xs">${meas.pant_kamar}</div>
+      <div class="pos pant-hips xs">${meas.pant_hips}</div>
+      <div class="pos pant-waist xs">${meas.pant_waist}</div>
+      <div class="pos pant-ghutna xs">${meas.pant_ghutna}</div>
+      <div class="pos pant-bottom xs">${meas.pant_bottom}</div>
+      <div class="pos pant-seat xs">${meas.pant_seat}</div>
+      <div class="pos sidep xs">${meas.SideP_Cross}</div>
+      <div class="pos plates xs">${meas.Plates}</div>
+      <div class="pos belt xs">${meas.Belt}</div>
+      <div class="pos backp xs">${meas.Back_P}</div>
+      <div class="pos wp xs">${meas.WP}</div>
+
+      <!-- Shirt measurements -->
+      <div class="pos shirt-date xs">${orderDate}</div>
+      <div class="pos shirt-no xs">${orderNumber}</div>
+      <div class="pos shirt-collar xs">${meas.shirt_collar}</div>
+      <div class="pos shirt-cuff xs">${meas.Cuff}</div>
+      <div class="pos shirt-pkt xs">${meas.Pkt}</div>
+      <div class="pos shirt-loose xs">${meas.shirt_loose}</div>
+      <div class="pos shirt-dttt xs">${meas.DT_TT}</div>
+    </div>
+  </body>
+</html>`;
+
+    const win = window.open('', '', 'width=800,height=900,scrollbars=yes');
+    if (!win) {
+        alert('Please allow popups for this website to enable printing.');
+        return;
+    }
+    win.document.open();
+    win.document.write(pageHTML);
+    win.document.close();
+    win.onload = function() {
+        setTimeout(() => {
+            win.focus();
+            win.print();
+            win.onafterprint = function() { win.close(); };
+        }, 400);
+    };
+}
+
 // Enhanced save and print function
 function enhancedSaveAndPrint() {
     const billHTML = generateBillHTML();

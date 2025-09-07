@@ -16,6 +16,59 @@ import { Picker } from '@react-native-picker/picker';
 import { SupabaseAPI } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
 
+// Function to expand orders by garment type and quantity
+// Based on the backend logic: each garment gets its own order row, so we need to group by bill_id and number them
+const expandOrdersByGarmentAndQuantity = (orders) => {
+  // Group orders by bill_id first
+  const ordersByBill = {};
+  orders.forEach(order => {
+    const billId = order.bill_id || 'no-bill';
+    if (!ordersByBill[billId]) {
+      ordersByBill[billId] = [];
+    }
+    ordersByBill[billId].push(order);
+  });
+  
+  const finalExpandedOrders = [];
+  
+  // Process each bill group to create proper garment rows
+  Object.entries(ordersByBill).forEach(([billId, billOrders]) => {
+    // Get the first order to access bill data
+    const firstOrder = billOrders[0];
+    const bill = firstOrder.bills || {};
+    
+    // Define garment types and their quantities from the bill
+    const garmentTypes = [
+      { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
+      { type: 'Safari/Jacket', qty: parseInt(bill.safari_qty) || 0 },
+      { type: 'Pant', qty: parseInt(bill.pant_qty) || 0 },
+      { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
+      { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
+    ];
+    
+    // Create rows for each garment type based on quantities
+    garmentTypes.forEach(({ type, qty }) => {
+      if (qty > 0) {
+        // Create multiple rows if quantity > 1
+        for (let i = 0; i < qty; i++) {
+          finalExpandedOrders.push({
+            ...firstOrder,
+            // Create unique ID for each expanded row
+            expanded_id: firstOrder.id + '_' + type + '_' + i,
+            original_id: firstOrder.id, // Keep reference to original order
+            garment_type: type,
+            expanded_garment_type: type,
+            garment_quantity: 1, // Each row represents quantity of 1
+            garment_index: i, // This will be 0, 1, 2, etc. for each garment type
+          });
+        }
+      }
+    });
+  });
+  
+  return finalExpandedOrders;
+};
+
 export default function WorkerDetailScreen({ navigation }) {
   const [workers, setWorkers] = useState([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState('');
@@ -51,7 +104,9 @@ export default function WorkerDetailScreen({ navigation }) {
     try {
       setOrdersLoading(true);
       const orders = await SupabaseAPI.getOrdersForWorker(workerId);
-      setWorkerOrders(orders);
+      // Expand orders by garment type and quantity
+      const expandedOrders = expandOrdersByGarmentAndQuantity(orders);
+      setWorkerOrders(expandedOrders);
     } catch (error) {
       console.error('Error fetching orders for worker:', error);
       setWorkerOrders([]);
@@ -70,31 +125,38 @@ export default function WorkerDetailScreen({ navigation }) {
     return `${day}-${month}-${year}`;
   };
 
-  const renderOrderItem = ({ item }) => (
-    <View style={styles.orderCard}>
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Bill Number:</Text>
-        <Text style={styles.orderValue}>{item.billnumberinput2 || 'N/A'}</Text>
-        </View>
-
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Garment Type:</Text>
-        <Text style={styles.orderValue}>{item.garment_type || 'N/A'}</Text>
+  const renderOrderItem = ({ item }) => {
+    const displayGarmentType = item.expanded_garment_type || item.garment_type || 'N/A';
+    // Add garment count indicator if garment_index is a valid number (including 0)
+    const hasValidIndex = typeof item.garment_index === 'number' && item.garment_index >= 0;
+    const garmentDisplay = hasValidIndex ? displayGarmentType + ' (' + (item.garment_index + 1) + ')' : displayGarmentType;
+    
+    return (
+      <View style={styles.orderCard}>
+        <View style={styles.orderRow}>
+          <Text style={styles.orderLabel}>Bill Number:</Text>
+          <Text style={styles.orderValue}>{item.billnumberinput2 || 'N/A'}</Text>
           </View>
+
+        <View style={styles.orderRow}>
+          <Text style={styles.orderLabel}>Garment Type:</Text>
+          <Text style={styles.orderValue}>{garmentDisplay}</Text>
+            </View>
 
       <View style={styles.orderRow}>
         <Text style={styles.orderLabel}>Order Date:</Text>
         <Text style={styles.orderValue}>{formatDate(item.order_date)}</Text>
           </View>
 
-      <View style={styles.orderRow}>
-        <Text style={styles.orderLabel}>Status:</Text>
-        <Text style={[styles.orderValue, { color: getStatusColor(item.status) }]}>
-          {item.status || 'N/A'}
-            </Text>
+        <View style={styles.orderRow}>
+          <Text style={styles.orderLabel}>Status:</Text>
+          <Text style={[styles.orderValue, { color: getStatusColor(item.status) }]}>
+            {item.status || 'N/A'}
+              </Text>
+            </View>
           </View>
-        </View>
-  );
+    );
+  };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {

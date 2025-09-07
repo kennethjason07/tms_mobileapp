@@ -20,6 +20,59 @@ import { SupabaseAPI } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { createShadowStyle, shadowPresets } from './utils/shadowUtils';
 
+// Function to expand orders by garment type and quantity
+// Based on the backend logic: each garment gets its own order row, so we need to group by bill_id and number them
+const expandOrdersByGarmentAndQuantity = (orders) => {
+  // Group orders by bill_id first
+  const ordersByBill = {};
+  orders.forEach(order => {
+    const billId = order.bill_id || 'no-bill';
+    if (!ordersByBill[billId]) {
+      ordersByBill[billId] = [];
+    }
+    ordersByBill[billId].push(order);
+  });
+  
+  const finalExpandedOrders = [];
+  
+  // Process each bill group to create proper garment rows
+  Object.entries(ordersByBill).forEach(([billId, billOrders]) => {
+    // Get the first order to access bill data
+    const firstOrder = billOrders[0];
+    const bill = firstOrder.bills || {};
+    
+    // Define garment types and their quantities from the bill
+    const garmentTypes = [
+      { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
+      { type: 'Safari/Jacket', qty: parseInt(bill.safari_qty) || 0 },
+      { type: 'Pant', qty: parseInt(bill.pant_qty) || 0 },
+      { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
+      { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
+    ];
+    
+    // Create rows for each garment type based on quantities
+    garmentTypes.forEach(({ type, qty }) => {
+      if (qty > 0) {
+        // Create multiple rows if quantity > 1
+        for (let i = 0; i < qty; i++) {
+          finalExpandedOrders.push({
+            ...firstOrder,
+            // Create unique ID for each expanded row
+            expanded_id: firstOrder.order_id + '_' + type + '_' + i,
+            original_id: firstOrder.order_id, // Keep reference to original order
+            garment_type: type,
+            expanded_garment_type: type,
+            garment_quantity: 1, // Each row represents quantity of 1
+            garment_index: i, // This will be 0, 1, 2, etc. for each garment type
+          });
+        }
+      }
+    });
+  });
+  
+  return finalExpandedOrders;
+};
+
 export default function CustomerInfoScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [customerOrders, setCustomerOrders] = useState([]);
@@ -82,7 +135,9 @@ export default function CustomerInfoScreen({ navigation }) {
       const customerData = transformCustomerData(rawCustomerData);
       
       if (customerData && customerData.customer_orders && customerData.customer_orders.length > 0) {
-        setCustomerOrders(customerData.customer_orders);
+        // Expand orders by garment type and quantity
+        const expandedOrders = expandOrdersByGarmentAndQuantity(customerData.customer_orders);
+        setCustomerOrders(expandedOrders);
         setCustomerMetadata(customerData.metadata || null);
         setCustomerFound(true);
       } else {
@@ -154,11 +209,17 @@ export default function CustomerInfoScreen({ navigation }) {
     </View>
   );
 
-  const renderOrderItem = ({ item }) => (
-    <View style={styles.tableRow}>
-      <Text style={[styles.tableCellText, styles.orderIdColumn]}>{item.order_id}</Text>
-      <Text style={[styles.tableCellText, styles.billNumberColumn]}>{item.bill_number || 'N/A'}</Text>
-      <Text style={[styles.tableCellText, styles.garmentTypeColumn]}>{item.garment_type || 'N/A'}</Text>
+  const renderOrderItem = ({ item }) => {
+    const displayGarmentType = item.expanded_garment_type || item.garment_type || 'N/A';
+    // Add garment count indicator if garment_index is a valid number (including 0)
+    const hasValidIndex = typeof item.garment_index === 'number' && item.garment_index >= 0;
+    const garmentDisplay = hasValidIndex ? displayGarmentType + ' (' + (item.garment_index + 1) + ')' : displayGarmentType;
+    
+    return (
+      <View style={styles.tableRow}>
+        <Text style={[styles.tableCellText, styles.orderIdColumn]}>{item.order_id}</Text>
+        <Text style={[styles.tableCellText, styles.billNumberColumn]}>{item.bill_number || 'N/A'}</Text>
+        <Text style={[styles.tableCellText, styles.garmentTypeColumn]}>{garmentDisplay}</Text>
       <Text style={[styles.tableCellText, styles.statusColumn]}>{item.status || 'N/A'}</Text>
       <Text style={[styles.tableCellText, styles.dateColumn]}>{formatDateTime(item.order_date)}</Text>
       <Text style={[styles.tableCellText, styles.dateColumn]}>{formatDateTime(item.due_date)}</Text>
@@ -166,8 +227,9 @@ export default function CustomerInfoScreen({ navigation }) {
       <Text style={[styles.tableCellText, styles.paymentColumn]}>{item.payment_status || 'N/A'}</Text>
       <Text style={[styles.tableCellText, styles.amountColumn]}>₹{item.advance_amount || 0}</Text>
       <Text style={[styles.tableCellText, styles.amountColumn]}>₹{item.total_amount || 0}</Text>
-    </View>
-  );
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
