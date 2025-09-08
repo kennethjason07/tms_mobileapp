@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,9 +18,7 @@ import {
   KeyboardAvoidingView,
   Pressable,
   SafeAreaView,
-  StatusBar,
 } from 'react-native';
-import WebScrollView from './components/WebScrollView';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
 import * as Print from 'expo-print';
@@ -91,310 +89,6 @@ const generateMeasurementHTML = (billData, measurements) => `
   </html>
 `;
 
-function generateBillItemsTable(itemizedBill) {
-  const items = [
-    { name: 'Suit', qty: itemizedBill.suit_qty, amount: itemizedBill.suit_amount },
-    { name: 'Safari/Jacket', qty: itemizedBill.safari_qty, amount: itemizedBill.safari_amount },
-    { name: 'Pant', qty: itemizedBill.pant_qty, amount: itemizedBill.pant_amount },
-    { name: 'Shirt', qty: itemizedBill.shirt_qty, amount: itemizedBill.shirt_amount }
-  ];
-  
-  const rows = items
-    .filter(item => parseFloat(item.qty) > 0 || parseFloat(item.amount) > 0)
-    .map(item => `
-      <tr>
-        <td style="text-align: left;">${item.name}</td>
-        <td style="text-align: center;">${item.qty || '0'}</td>
-        <td style="text-align: right;">₹${parseFloat(item.amount || 0).toFixed(2)}</td>
-      </tr>
-    `).join('');
-    
-  if (rows === '') {
-    return '<tr><td colspan="3" style="text-align: center;">No items added</td></tr>';
-  }
-  
-  return rows;
-}
-
-const generateBillHTML = (billData, itemizedBill, orderNumber) => {
-  const totalAmount = parseFloat(itemizedBill.suit_amount || 0) + 
-                     parseFloat(itemizedBill.safari_amount || 0) + 
-                     parseFloat(itemizedBill.pant_amount || 0) + 
-                     parseFloat(itemizedBill.shirt_amount || 0);
-  const advanceAmount = parseFloat(billData.payment_amount || 0);
-  const remainingAmount = totalAmount - advanceAmount;
-  
-  return `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-          }
-          .bill-container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-          }
-          .header {
-            text-align: center;
-            border-bottom: 2px solid #333;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-          }
-          .shop-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin: 0;
-          }
-          .shop-subtitle {
-            font-size: 16px;
-            color: #ff6600;
-            margin: 5px 0;
-          }
-          .shop-address {
-            font-size: 12px;
-            color: #666;
-            margin: 5px 0;
-          }
-          .shop-contact {
-            font-size: 12px;
-            color: #666;
-            margin: 5px 0;
-          }
-          .bill-info {
-            display: flex;
-            justify-content: space-between;
-            margin: 15px 0;
-            font-size: 14px;
-          }
-          .customer-info {
-            margin: 15px 0;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 5px;
-          }
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            font-size: 14px;
-          }
-          .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-          }
-          .items-table th {
-            background: #333;
-            color: white;
-            padding: 10px 5px;
-            text-align: center;
-            font-size: 14px;
-          }
-          .items-table td {
-            padding: 8px 5px;
-            border-bottom: 1px solid #ddd;
-            font-size: 14px;
-          }
-          .total-section {
-            margin-top: 15px;
-            padding-top: 10px;
-            border-top: 2px solid #333;
-          }
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            font-size: 14px;
-          }
-          .total-amount {
-            font-weight: bold;
-            font-size: 16px;
-          }
-          .terms {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-            font-size: 11px;
-            color: #666;
-          }
-          .terms h4 {
-            margin: 0 0 10px 0;
-            color: #ff6600;
-            font-size: 13px;
-          }
-          .terms ul {
-            margin: 5px 0;
-            padding-left: 15px;
-          }
-          .terms li {
-            margin: 3px 0;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-            font-size: 14px;
-            font-weight: bold;
-          }
-          .signature-section {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-            font-size: 12px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="bill-container">
-          <div class="header">
-            <h1 class="shop-name">Yak's Men's Wear</h1>
-            <p class="shop-subtitle">Prop : Jaganath Sidda</p>
-            <p class="shop-address">Sulgunte Complex, Opp. Old Service Stand, Near SBI Bank, BIDAR-585 401 (K.S.)</p>
-            <p class="shop-contact">Shop : 8660897168 &nbsp;&nbsp; 9448678033</p>
-          </div>
-          
-          <div class="bill-info">
-            <div><strong>Date:</strong> ${billData.order_date || new Date().toISOString().split('T')[0]}</div>
-            <div><strong>No:</strong> ${orderNumber || billData.billnumberinput2 || '---'}</div>
-          </div>
-          
-          <div class="customer-info">
-            <div class="info-row">
-              <span><strong>Name:</strong></span>
-              <span>${billData.customer_name || '---'}</span>
-            </div>
-            <div class="info-row">
-              <span><strong>Order No:</strong></span>
-              <span>${orderNumber || billData.billnumberinput2 || '---'}</span>
-            </div>
-            <div class="info-row">
-              <span><strong>Date:</strong></span>
-              <span>${billData.order_date || '---'}</span>
-            </div>
-            <div class="info-row">
-              <span><strong>Cell:</strong></span>
-              <span>${billData.mobile_number || '---'}</span>
-            </div>
-            <div class="info-row">
-              <span><strong>D. Date:</strong></span>
-              <span>${billData.due_date || '---'}</span>
-            </div>
-          </div>
-          
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th style="text-align: left;">PARTICULARS</th>
-                <th>QTY.</th>
-                <th>AMOUNT</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${generateBillItemsTable(itemizedBill)}
-            </tbody>
-          </table>
-          
-          <div class="total-section">
-            <div class="total-row">
-              <span><strong>TOTAL</strong></span>
-              <span class="total-amount">₹${totalAmount.toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <div style="text-align: center; margin: 15px 0; font-size: 12px; color: #666;">
-            Good Service<br>
-            Prompt Delivery
-          </div>
-          
-          <div class="terms">
-            <h4>Terms & Conditions :</h4>
-            <ul>
-              <li>1. Delivery will not made without <strong>Receipt</strong></li>
-              <li>2. We are not responsible, if the delivery is not taken within <strong>2 months.</strong></li>
-              <li>3. Trial and Complaint after <strong>7pm &</strong></li>
-              <li><strong>Delivery after 7pm</strong></li>
-            </ul>
-          </div>
-          
-          <div class="footer">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span>Thank You, Visit Again</span>
-              <span style="border: 1px solid #333; padding: 5px 15px; background: #fff;">Sunday Holiday</span>
-              <span>Signature</span>
-            </div>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
-};
-
-// Helper function to parse fractional measurements
-const parseFractionalMeasurement = (input) => {
-  if (!input || input.trim() === '') return '';
-  
-  const trimmedInput = input.trim();
-  
-  // If it's already a decimal number, return as string
-  if (!isNaN(parseFloat(trimmedInput)) && isFinite(trimmedInput)) {
-    return trimmedInput;
-  }
-  
-  // Handle mixed fractions like "22/7/2" -> 22 + 7/2 = 25.5
-  const mixedFractionMatch = trimmedInput.match(/^(\d+)\/(\d+)\/(\d+)$/);
-  if (mixedFractionMatch) {
-    const [, whole, numerator, denominator] = mixedFractionMatch;
-    const wholeNum = parseInt(whole);
-    const num = parseInt(numerator);
-    const den = parseInt(denominator);
-    if (den !== 0) {
-      const result = wholeNum + (num / den);
-      return result.toString();
-    }
-  }
-  
-  // Handle simple fractions like "1/2" -> 0.5
-  const fractionMatch = trimmedInput.match(/^(\d+)\/(\d+)$/);
-  if (fractionMatch) {
-    const [, numerator, denominator] = fractionMatch;
-    const num = parseInt(numerator);
-    const den = parseInt(denominator);
-    if (den !== 0) {
-      const result = num / den;
-      return result.toString();
-    }
-  }
-  
-  // If no pattern matches, return the input as is (for text fields)
-  return trimmedInput;
-};
-
-// Helper function to convert measurement for database storage
-const convertMeasurementForStorage = (value, isNumericField) => {
-  if (!value || value.trim() === '') {
-    return isNumericField ? 0 : '';
-  }
-  
-  if (isNumericField) {
-    const parsed = parseFractionalMeasurement(value);
-    const numValue = parseFloat(parsed);
-    return isNaN(numValue) ? 0 : numValue;
-  } else {
-    // For text fields, store the original input as entered by user
-    return value.trim();
-  }
-};
-
 export default function NewBillScreen({ navigation }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -405,7 +99,6 @@ export default function NewBillScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [selectedDueDate, setSelectedDueDate] = useState(new Date());
-  const [screenData, setScreenData] = useState(Dimensions.get('window'));
   const [measurementType, setMeasurementType] = useState({
     pant: false,
     shirt: false,
@@ -423,28 +116,28 @@ export default function NewBillScreen({ navigation }) {
   });
 
   const [measurements, setMeasurements] = useState({
-    // Pant measurements (stored as strings to allow fractions)
-    pant_length: '',
-    pant_kamar: '',
-    pant_hips: '',
-    pant_waist: '',
-    pant_ghutna: '',
-    pant_bottom: '',
-    pant_seat: '',
+    // Pant measurements
+    pant_length: 0,
+    pant_kamar: 0,
+    pant_hips: 0,
+    pant_waist: 0,
+    pant_ghutna: 0,
+    pant_bottom: 0,
+    pant_seat: 0,
     SideP_Cross: '',
     Plates: '',
     Belt: '',
     Back_P: '',
     WP: '',
     
-    // Shirt measurements (stored as strings to allow fractions)
-    shirt_length: '',
+    // Shirt measurements
+    shirt_length: 0,
     shirt_body: '',
     shirt_loose: '',
-    shirt_shoulder: '',
-    shirt_astin: '',
-    shirt_collar: '',
-    shirt_aloose: '',
+    shirt_shoulder: 0,
+    shirt_astin: 0,
+    shirt_collar: 0,
+    shirt_aloose: 0,
     Callar: '',
     Cuff: '',
     Pkt: '',
@@ -475,100 +168,11 @@ export default function NewBillScreen({ navigation }) {
   // Add state for which date field is being picked
   const [activeDateField, setActiveDateField] = useState(null); // 'order' or 'due'
   const [selectedOrderDate, setSelectedOrderDate] = useState(new Date());
-  
-  // Scroll refs for both web and mobile
-  const webScrollRef = useRef(null);
-  const mobileScrollRef = useRef(null);
 
   useEffect(() => {
     loadData();
     generateBillNumber();
   }, []);
-
-  useEffect(() => {
-    const onChange = (result) => {
-      setScreenData(result.window);
-    };
-
-    const subscription = Dimensions.addEventListener('change', onChange);
-    return () => subscription?.remove();
-  }, []);
-
-  // Responsive layout calculations
-  const isSmallScreen = screenData.width < 768;
-  const isMediumScreen = screenData.width >= 768 && screenData.width < 1024;
-  const isLargeScreen = screenData.width >= 1024;
-  const isExtraLargeScreen = screenData.width >= 1440;
-
-  // Dynamic grid columns based on screen size
-  const getMeasurementColumns = () => {
-    if (isSmallScreen) return 1; // 1 column on small screens
-    if (isMediumScreen) return 2; // 2 columns on medium screens
-    if (isLargeScreen) return 3; // 3 columns on large screens
-    if (isExtraLargeScreen) return 4; // 4 columns on extra large screens
-    return 2; // fallback
-  };
-
-  // Dynamic input width based on screen size and columns
-  const getMeasurementInputWidth = () => {
-    const columns = getMeasurementColumns();
-    const gap = 8; // gap between items
-    return `${(100 / columns) - (gap * (columns - 1) / columns)}%`;
-  };
-
-  // Dynamic button layout
-  const getButtonLayout = () => {
-    if (isSmallScreen) return { direction: 'column', gap: 8 };
-    return { direction: 'row', gap: 16 };
-  };
-
-  // Dynamic modal width
-  const getModalWidth = () => {
-    if (isSmallScreen) return '95%';
-    if (isMediumScreen) return '80%';
-    if (isLargeScreen) return '60%';
-    return '50%';
-  };
-
-  // Dynamic table font size
-  const getTableFontSize = () => {
-    if (isSmallScreen) return 12;
-    if (isMediumScreen) return 14;
-    return 16;
-  };
-
-  // Dynamic padding based on screen size
-  const getResponsivePadding = () => {
-    if (isSmallScreen) return 12;
-    if (isMediumScreen) return 16;
-    if (isLargeScreen) return 20;
-    return 16; // fallback
-  };
-
-  // Dynamic font sizes
-  const getFontSizes = () => {
-    if (isSmallScreen) return { title: 16, subtitle: 14, input: 14, label: 13 };
-    if (isMediumScreen) return { title: 18, subtitle: 16, input: 15, label: 14 };
-    if (isLargeScreen) return { title: 20, subtitle: 18, input: 16, label: 15 };
-    return { title: 18, subtitle: 16, input: 15, label: 14 }; // fallback
-  };
-
-  // Dynamic section spacing
-  const getSectionSpacing = () => {
-    if (isSmallScreen) return 12;
-    if (isMediumScreen) return 16;
-    if (isLargeScreen) return 20;
-    return 16; // fallback
-  };
-
-  const fontSizes = getFontSizes();
-  const responsivePadding = getResponsivePadding();
-  const measurementColumns = getMeasurementColumns();
-  const measurementInputWidth = getMeasurementInputWidth();
-  const sectionSpacing = getSectionSpacing();
-  const buttonLayout = getButtonLayout();
-  const modalWidth = getModalWidth();
-  const tableFontSize = getTableFontSize();
 
   const loadData = async () => {
     try {
@@ -642,61 +246,30 @@ export default function NewBillScreen({ navigation }) {
           payment_amount: customerData.payment_amount?.toString() || prev.payment_amount,
         }));
 
-        // Fill measurements if available, converting database values for display
+        // Fill measurements if available, else reset to defaults
         if (customerData.measurements) {
-          const dbMeasurements = customerData.measurements;
-          setMeasurements({
-            // Convert numeric database values to strings for display
-            pant_length: (dbMeasurements.pant_length || dbMeasurements.pant_length === 0) ? dbMeasurements.pant_length.toString() : '',
-            pant_kamar: (dbMeasurements.pant_kamar || dbMeasurements.pant_kamar === 0) ? dbMeasurements.pant_kamar.toString() : '',
-            pant_hips: (dbMeasurements.pant_hips || dbMeasurements.pant_hips === 0) ? dbMeasurements.pant_hips.toString() : '',
-            pant_waist: (dbMeasurements.pant_waist || dbMeasurements.pant_waist === 0) ? dbMeasurements.pant_waist.toString() : '',
-            pant_ghutna: (dbMeasurements.pant_ghutna || dbMeasurements.pant_ghutna === 0) ? dbMeasurements.pant_ghutna.toString() : '',
-            pant_bottom: (dbMeasurements.pant_bottom || dbMeasurements.pant_bottom === 0) ? dbMeasurements.pant_bottom.toString() : '',
-            pant_seat: (dbMeasurements.pant_seat || dbMeasurements.pant_seat === 0) ? dbMeasurements.pant_seat.toString() : '',
-            shirt_shoulder: (dbMeasurements.shirt_shoulder || dbMeasurements.shirt_shoulder === 0) ? dbMeasurements.shirt_shoulder.toString() : '',
-            shirt_astin: (dbMeasurements.shirt_astin || dbMeasurements.shirt_astin === 0) ? dbMeasurements.shirt_astin.toString() : '',
-            shirt_collar: (dbMeasurements.shirt_collar || dbMeasurements.shirt_collar === 0) ? dbMeasurements.shirt_collar.toString() : '',
-            shirt_aloose: (dbMeasurements.shirt_aloose || dbMeasurements.shirt_aloose === 0) ? dbMeasurements.shirt_aloose.toString() : '',
-            
-            // Text fields stored as-is
-            SideP_Cross: dbMeasurements.SideP_Cross || '',
-            Plates: dbMeasurements.Plates || '',
-            Belt: dbMeasurements.Belt || '',
-            Back_P: dbMeasurements.Back_P || '',
-            WP: dbMeasurements.WP || '',
-            shirt_length: dbMeasurements.shirt_length || '',
-            shirt_body: dbMeasurements.shirt_body || '',
-            shirt_loose: dbMeasurements.shirt_loose || '',
-            Callar: dbMeasurements.Callar || '',
-            Cuff: dbMeasurements.Cuff || '',
-            Pkt: dbMeasurements.Pkt || '',
-            LooseShirt: dbMeasurements.LooseShirt || '',
-            DT_TT: dbMeasurements.DT_TT || '',
-            extra_measurements: dbMeasurements.extra_measurements || '',
-          });
+          setMeasurements({ ...customerData.measurements });
         } else {
           setMeasurements({
-            // Reset all measurements to empty strings to allow fractional input
-            pant_length: '',
-            pant_kamar: '',
-            pant_hips: '',
-            pant_waist: '',
-            pant_ghutna: '',
-            pant_bottom: '',
-            pant_seat: '',
+            pant_length: 0,
+            pant_kamar: 0,
+            pant_hips: 0,
+            pant_waist: 0,
+            pant_ghutna: 0,
+            pant_bottom: 0,
+            pant_seat: 0,
             SideP_Cross: '',
             Plates: '',
             Belt: '',
             Back_P: '',
             WP: '',
-            shirt_length: '',
+            shirt_length: 0,
             shirt_body: '',
             shirt_loose: '',
-            shirt_shoulder: '',
-            shirt_astin: '',
-            shirt_collar: '',
-            shirt_aloose: '',
+            shirt_shoulder: 0,
+            shirt_astin: 0,
+            shirt_collar: 0,
+            shirt_aloose: 0,
             Callar: '',
             Cuff: '',
             Pkt: '',
@@ -715,24 +288,6 @@ export default function NewBillScreen({ navigation }) {
         }
 
         Alert.alert('Success', 'Customer data loaded successfully');
-        
-        // Auto-scroll to measurements section after customer data is loaded
-        setTimeout(() => {
-          if (Platform.OS === 'web' && webScrollRef.current) {
-            try {
-              webScrollRef.current.scrollTo({ y: 600, animated: true });
-            } catch (error) {
-              console.log('Web scroll error:', error);
-            }
-          } else if (mobileScrollRef.current) {
-            try {
-              mobileScrollRef.current.scrollTo({ y: 600, animated: true });
-            } catch (error) {
-              console.log('Mobile scroll error:', error);
-            }
-          }
-        }, 500); // Small delay to ensure UI has updated
-        
       } else {
         Alert.alert('Not Found', 'No customer found with this mobile number');
       }
@@ -805,46 +360,15 @@ export default function NewBillScreen({ navigation }) {
     try {
       setSaving(true);
 
-      // Convert measurements for database storage
-      const measurementsForStorage = {
-        // Numeric fields in database - convert fractions to decimals
-        pant_length: convertMeasurementForStorage(measurements.pant_length, true),
-        pant_kamar: convertMeasurementForStorage(measurements.pant_kamar, true),
-        pant_hips: convertMeasurementForStorage(measurements.pant_hips, true),
-        pant_waist: convertMeasurementForStorage(measurements.pant_waist, true),
-        pant_ghutna: convertMeasurementForStorage(measurements.pant_ghutna, true),
-        pant_bottom: convertMeasurementForStorage(measurements.pant_bottom, true),
-        pant_seat: convertMeasurementForStorage(measurements.pant_seat, true),
-        shirt_shoulder: convertMeasurementForStorage(measurements.shirt_shoulder, true),
-        shirt_astin: convertMeasurementForStorage(measurements.shirt_astin, true),
-        shirt_collar: convertMeasurementForStorage(measurements.shirt_collar, true),
-        shirt_aloose: convertMeasurementForStorage(measurements.shirt_aloose, true),
-        
-        // Text fields in database - store as entered
-        SideP_Cross: convertMeasurementForStorage(measurements.SideP_Cross, false),
-        Plates: convertMeasurementForStorage(measurements.Plates, false),
-        Belt: convertMeasurementForStorage(measurements.Belt, false),
-        Back_P: convertMeasurementForStorage(measurements.Back_P, false),
-        WP: convertMeasurementForStorage(measurements.WP, false),
-        shirt_length: convertMeasurementForStorage(measurements.shirt_length, false),
-        shirt_body: convertMeasurementForStorage(measurements.shirt_body, false),
-        shirt_loose: convertMeasurementForStorage(measurements.shirt_loose, false),
-        Callar: convertMeasurementForStorage(measurements.Callar, false),
-        Cuff: convertMeasurementForStorage(measurements.Cuff, false),
-        Pkt: convertMeasurementForStorage(measurements.Pkt, false),
-        LooseShirt: convertMeasurementForStorage(measurements.LooseShirt, false),
-        DT_TT: convertMeasurementForStorage(measurements.DT_TT, false),
-        extra_measurements: convertMeasurementForStorage(measurements.extra_measurements, false),
-      };
-
       // Upsert measurements for the customer (like legacy backend)
       try {
-        const upsertResult = await SupabaseAPI.upsertMeasurements(measurementsForStorage, billData.mobile_number);
+        const upsertResult = await SupabaseAPI.upsertMeasurements(measurements, billData.mobile_number);
         console.log('Measurements upsert result:', upsertResult);
       } catch (err) {
         console.error('Error upserting measurements:', err);
-        // Do not block bill save if measurements fail; warn and continue
-        Alert.alert('Warning', 'Measurements could not be saved due to network issue. Bill will still be saved.');
+        Alert.alert('Error', 'Failed to save measurements.');
+        setSaving(false);
+        return false;
       }
 
       // 1. Fetch current order number
@@ -854,23 +378,13 @@ export default function NewBillScreen({ navigation }) {
 
       // 2. Use orderNumber for the new bill
       const totals = calculateTotals();
-      
-      // CRITICAL FIX: Use IST timezone for bill dates (not UTC)
-      const getISTDateString = () => {
-        const utcDate = new Date();
-        const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
-        return istDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-      };
-      
-      const todayStr = getISTDateString(); // Use IST date instead of UTC
-      console.log('🇮🇳 Saving bill with IST date:', todayStr);
-      
+      const todayStr = new Date().toISOString().split('T')[0]; // Always use today
       let billToSave = {
         customer_name: billData.customer_name,
         mobile_number: billData.mobile_number,
-        date_issue: todayStr, // IST today
+        date_issue: todayStr, // force today
         delivery_date: billData.due_date,
-        today_date: todayStr, // IST today
+        today_date: todayStr, // force today
         due_date: billData.due_date,
         payment_status: billData.payment_status,
         payment_mode: billData.payment_mode,
@@ -908,46 +422,46 @@ export default function NewBillScreen({ navigation }) {
         return false;
       }
 
-      let orderData = {
-        bill_id: billId,
-        billnumberinput2: orderNumber ? orderNumber.toString() : null, // Ensure string or null
-        garment_type: getGarmentTypes(),
-        order_date: todayStr, // IST today
-        due_date: billData.due_date,
-        total_amt: parseFloat(totals.total_amt),
-        payment_amount: parseFloat(billData.payment_amount) || 0,
-        payment_status: billData.payment_status,
-        payment_mode: billData.payment_mode,
-        status: 'pending',
-        Work_pay: null, // Only set after workers are assigned
-      };
-      // Sanitize orderData
-      Object.keys(orderData).forEach(key => {
-        if (orderData[key] === undefined || orderData[key] === 'undefined') {
-          orderData[key] = null;
-        }
+      // Create individual orders for each garment based on quantities
+      const garmentOrders = createIndividualGarmentOrders(billId, orderNumber, todayStr);
+      
+      if (garmentOrders.length === 0) {
+        Alert.alert('Error', 'No garments to create orders for.');
+        setSaving(false);
+        return false;
+      }
+      
+      console.log(`Creating ${garmentOrders.length} individual garment orders:`);
+      garmentOrders.forEach((order, i) => {
+        console.log(`  ${i + 1}. ${order.garment_type}`);
       });
-      // Log all fields for debugging
-      console.log('Validated orderData fields:', orderData);
-      if (!orderData.bill_id || !orderData.billnumberinput2) {
-        Alert.alert('Error', 'Order number or bill ID is missing. Please try again.');
-        setSaving(false);
-        return false;
+      
+      // Create all individual orders
+      const orderResults = [];
+      for (const orderData of garmentOrders) {
+        try {
+          console.log(`Creating order for: ${orderData.garment_type}`);
+          const orderResult = await SupabaseAPI.createOrder(orderData);
+          
+          if (!orderResult || !orderResult[0] || typeof orderResult[0].id !== 'number') {
+            throw new Error(`Failed to create ${orderData.garment_type} order`);
+          }
+          
+          orderResults.push(orderResult[0]);
+          console.log(`✅ Created ${orderData.garment_type} order with ID: ${orderResult[0].id}`);
+        } catch (error) {
+          console.error(`❌ Failed to create ${orderData.garment_type} order:`, error);
+          Alert.alert('Error', `Failed to create ${orderData.garment_type} order: ${error.message}`);
+          setSaving(false);
+          return false;
+        }
       }
-      console.log('Creating order with data:', orderData);
-      const orderResult = await SupabaseAPI.createOrder(orderData);
-      console.log('Order save result:', orderResult);
-
-      // If orderResult is an array and the billnumberinput2 matches, it's a duplicate
-      if (Array.isArray(orderResult) && orderResult.length > 0 && orderResult[0].billnumberinput2 === orderData.billnumberinput2) {
-        Alert.alert('Error', `Order with bill number ${orderData.billnumberinput2} already exists. Please use a different order number.`);
-        setSaving(false);
-        return false;
-      }
-
-      // Only proceed if a new order was actually created
-      if (!orderResult || !orderResult[0] || typeof orderResult[0].id !== 'number') {
-        Alert.alert('Error', 'Order creation failed. Please try again.');
+      
+      console.log(`✅ Successfully created ${orderResults.length} individual garment orders`);
+      
+      // Check if all orders were created successfully
+      if (orderResults.length !== garmentOrders.length) {
+        Alert.alert('Error', 'Some orders failed to create. Please try again.');
         setSaving(false);
         return false;
       }
@@ -963,9 +477,20 @@ export default function NewBillScreen({ navigation }) {
 
       // Reset form after successful save
       resetForm();
+      
+      // Create success message with garment breakdown
+      const garmentSummary = garmentOrders.reduce((acc, order) => {
+        acc[order.garment_type] = (acc[order.garment_type] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const garmentList = Object.entries(garmentSummary)
+        .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
+        .join(', ');
+      
       Alert.alert(
         'Success', 
-        `Bill created successfully with bill number: ${orderNumber}!`,
+        `Bill ${orderNumber} created successfully!\n\nIndividual orders created:\n${garmentList}\n\nTotal: ${orderResults.length} garment orders`,
         [
           {
             text: 'View Orders',
@@ -989,6 +514,51 @@ export default function NewBillScreen({ navigation }) {
     }
   };
 
+  // Create individual order objects for each garment based on quantities
+  const createIndividualGarmentOrders = (billId, orderNumber, todayStr) => {
+    const orders = [];
+    const totals = calculateTotals();
+    
+    // Define garment types and their quantities
+    const garmentTypes = [
+      { type: 'Suit', qty: parseInt(itemizedBill.suit_qty) || 0 },
+      { type: 'Safari/Jacket', qty: parseInt(itemizedBill.safari_qty) || 0 },
+      { type: 'Pant', qty: parseInt(itemizedBill.pant_qty) || 0 },
+      { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0 },
+      { type: 'Sadri', qty: parseInt(itemizedBill.sadri_qty) || 0 }
+    ];
+    
+    // Create individual order for each garment instance
+    garmentTypes.forEach(({ type, qty }) => {
+      for (let i = 0; i < qty; i++) {
+        const orderData = {
+          bill_id: billId,
+          billnumberinput2: orderNumber ? orderNumber.toString() : null,
+          garment_type: type, // Individual garment type (not combined)
+          order_date: todayStr,
+          due_date: billData.due_date,
+          total_amt: parseFloat(totals.total_amt),
+          payment_amount: parseFloat(billData.payment_amount) || 0,
+          payment_status: billData.payment_status,
+          payment_mode: billData.payment_mode,
+          status: 'pending',
+          Work_pay: null, // Only set after workers are assigned
+        };
+        
+        // Sanitize orderData
+        Object.keys(orderData).forEach(key => {
+          if (orderData[key] === undefined || orderData[key] === 'undefined') {
+            orderData[key] = null;
+          }
+        });
+        
+        orders.push(orderData);
+      }
+    });
+    
+    return orders;
+  };
+  
   const getGarmentTypes = () => {
     const types = [];
     if (parseFloat(itemizedBill.suit_qty) > 0) types.push('Suit');
@@ -1000,43 +570,35 @@ export default function NewBillScreen({ navigation }) {
   };
 
   const resetForm = () => {
-    // Use IST timezone for form reset too
-    const getISTDateString = () => {
-      const utcDate = new Date();
-      const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
-      return istDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-    };
-    
     setBillData({
       customer_name: '',
       mobile_number: '',
-      order_date: getISTDateString(), // Use IST for initial date
+      order_date: new Date().toISOString().split('T')[0],
       due_date: '',
       payment_status: 'pending',
       payment_mode: '',
       payment_amount: '0',
     });
     setMeasurements({
-      // Reset all measurements to empty strings to allow fractional input
-      pant_length: '',
-      pant_kamar: '',
-      pant_hips: '',
-      pant_waist: '',
-      pant_ghutna: '',
-      pant_bottom: '',
-      pant_seat: '',
+      pant_length: 0,
+      pant_kamar: 0,
+      pant_hips: 0,
+      pant_waist: 0,
+      pant_ghutna: 0,
+      pant_bottom: 0,
+      pant_seat: 0,
       SideP_Cross: '',
       Plates: '',
       Belt: '',
       Back_P: '',
       WP: '',
-      shirt_length: '',
+      shirt_length: 0,
       shirt_body: '',
       shirt_loose: '',
-      shirt_shoulder: '',
-      shirt_astin: '',
-      shirt_collar: '',
-      shirt_aloose: '',
+      shirt_shoulder: 0,
+      shirt_astin: 0,
+      shirt_collar: 0,
+      shirt_aloose: 0,
       Callar: '',
       Cuff: '',
       Pkt: '',
@@ -1195,67 +757,11 @@ export default function NewBillScreen({ navigation }) {
   const handlePrintMeasurement = async () => {
     try {
       const html = generateMeasurementHTML(billData, measurements);
-      const result = await Print.printToFileAsync({ html });
-      
-      if (result && result.uri) {
-        await Sharing.shareAsync(result.uri);
-      } else {
-        Alert.alert('Error', 'Failed to generate PDF file');
-        console.error('Print result:', result);
-      }
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri);
     } catch (error) {
       Alert.alert('Error', 'Failed to generate or share measurement PDF');
-      console.error('Print error:', error);
-    }
-  };
-
-  const handlePrintBill = async () => {
-    try {
-      // Web: use pre-printed template printer if available
-      if (typeof window !== 'undefined') {
-        try {
-          if (typeof window.printPreprintedBill === 'function') {
-            console.log('Using pre-printed bill template for printing');
-            window.printPreprintedBill();
-            return;
-          }
-          if (typeof window.enhancedSaveAndPrint === 'function') {
-            console.log('Using enhancedSaveAndPrint fallback');
-            window.enhancedSaveAndPrint();
-            return;
-          }
-        } catch (webPrintErr) {
-          console.warn('Web print path failed, falling back to RN print:', webPrintErr);
-        }
-      }
-
-      // Use current bill number or generate one if not available
-      let orderNumber = billData.billnumberinput2;
-      if (!orderNumber) {
-        try {
-          const billNumber = await generateBillNumber();
-          orderNumber = billNumber;
-        } catch (genError) {
-          console.error('Error generating bill number:', genError);
-          orderNumber = 'TEMP_' + Date.now(); // Fallback order number
-        }
-      }
-      console.log('Generating bill HTML for order:', orderNumber);
-      const html = generateBillHTML(billData, itemizedBill, orderNumber);
-      console.log('HTML generated, calling Print.printToFileAsync');
-      const result = await Print.printToFileAsync({ html });
-      console.log('Print result:', result);
-      
-      if (result && result.uri) {
-        console.log('PDF generated successfully, sharing:', result.uri);
-        await Sharing.shareAsync(result.uri);
-      } else {
-        Alert.alert('Error', 'Failed to generate bill PDF file');
-        console.error('Print result is undefined or missing uri:', result);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to generate or share bill PDF');
-      console.error('Print error:', error);
+      console.error(error);
     }
   };
 
@@ -1282,152 +788,11 @@ export default function NewBillScreen({ navigation }) {
     );
   }
 
-  // Dynamic styles that use responsive values
-  const dynamicStyles = {
-    section: {
-      backgroundColor: '#fff',
-      borderRadius: 16,
-      padding: responsivePadding,
-      marginBottom: sectionSpacing,
-      elevation: 2,
-      shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 2 },
-    },
-    sectionTitle: {
-      fontSize: fontSizes.title,
-      fontWeight: 'bold',
-      color: '#2c3e50',
-      marginBottom: sectionSpacing,
-    },
-    inputLabel: {
-      fontSize: fontSizes.label,
-      fontWeight: '600',
-      color: '#2c3e50',
-      marginBottom: 8,
-    },
-    input: {
-      borderWidth: 1,
-      borderColor: '#ddd',
-      borderRadius: 8,
-      padding: responsivePadding,
-      fontSize: fontSizes.input,
-      backgroundColor: '#fff',
-    },
-    measurementInput: {
-      width: measurementInputWidth,
-      marginRight: isSmallScreen ? 0 : 8,
-      marginBottom: 8,
-    },
-    measurementGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: isSmallScreen ? 'center' : 'flex-start',
-    },
-    measurementTextInput: {
-      borderWidth: 1,
-      borderColor: '#ddd',
-      borderRadius: 8,
-      padding: responsivePadding / 2,
-      fontSize: fontSizes.input,
-      backgroundColor: '#fff',
-      minHeight: isSmallScreen ? 40 : 44,
-    },
-    measurementLabel: {
-      fontSize: fontSizes.label,
-      color: '#2c3e50',
-      marginBottom: 4,
-    },
-    searchRow: {
-      flexDirection: isSmallScreen ? 'column' : 'row',
-      alignItems: isSmallScreen ? 'stretch' : 'center',
-      gap: isSmallScreen ? 8 : 0,
-    },
-    searchInput: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: '#ddd',
-      borderRadius: 8,
-      padding: responsivePadding,
-      fontSize: fontSizes.input,
-      backgroundColor: '#fff',
-      marginRight: isSmallScreen ? 0 : 8,
-    },
-    searchButton: {
-      backgroundColor: '#2980b9',
-      paddingHorizontal: responsivePadding,
-      paddingVertical: responsivePadding,
-      borderRadius: 8,
-      minWidth: isSmallScreen ? '100%' : 'auto',
-    },
-    checkboxRow: {
-      flexDirection: isSmallScreen ? 'column' : 'row',
-      gap: isSmallScreen ? 8 : 0,
-    },
-    checkbox: {
-      paddingHorizontal: responsivePadding,
-      paddingVertical: responsivePadding / 2,
-      borderWidth: 1,
-      borderColor: '#ddd',
-      borderRadius: 8,
-      backgroundColor: '#fff',
-      marginRight: isSmallScreen ? 0 : 8,
-      marginBottom: isSmallScreen ? 8 : 0,
-      alignItems: 'center',
-    },
-    pickerContainer: {
-      flexDirection: isSmallScreen ? 'column' : 'row',
-      borderWidth: 1,
-      borderColor: '#ddd',
-      borderRadius: 8,
-      overflow: 'hidden',
-    },
-    pickerOption: {
-      flex: isSmallScreen ? 0 : 1,
-      paddingVertical: responsivePadding,
-      paddingHorizontal: responsivePadding,
-      alignItems: 'center',
-      backgroundColor: '#fff',
-    },
-    tableText: {
-      fontSize: tableFontSize,
-    },
-    modalContent: {
-      backgroundColor: '#fff',
-      borderRadius: 12,
-      width: modalWidth,
-      maxHeight: '80%',
-    },
-    header: {
-      backgroundColor: '#2980b9',
-      paddingTop: responsivePadding * 2,
-      paddingBottom: responsivePadding * 1.5,
-      paddingHorizontal: responsivePadding,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderBottomLeftRadius: 32,
-      borderBottomRightRadius: 32,
-      elevation: 6,
-      shadowColor: '#000',
-      shadowOpacity: 0.12,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 4 },
-    },
-    headerTitle: {
-      fontSize: fontSizes.title + 4,
-      fontWeight: 'bold',
-      color: '#fff',
-      textAlign: 'center',
-      letterSpacing: 1,
-    },
-  };
-
   return (
     <View style={styles.container}>
       <View style={{
         backgroundColor: '#2980b9',
-        paddingTop: Platform.OS === 'ios' ? 50 : 32,
+        paddingTop: 32,
         paddingBottom: 24,
         paddingHorizontal: 20,
         flexDirection: 'row',
@@ -1454,29 +819,25 @@ export default function NewBillScreen({ navigation }) {
         >
           <Ionicons name="chevron-back-circle" size={40} color="#fff" />
         </Pressable>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', letterSpacing: 1 }}>New Bill</Text>
         </View>
         <Image source={require('./assets/logo.jpg')} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 12, backgroundColor: '#fff' }} />
       </View>
 
       {Platform.OS === 'web' ? (
-        <WebScrollView
-          ref={webScrollRef}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ 
-            paddingBottom: isSmallScreen ? 200 : 180,
-            paddingHorizontal: responsivePadding,
-            minHeight: '100%'
-          }}
-          showsVerticalScrollIndicator={true}
-        >
+        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
+          <ScrollView
+            style={{ overflow: 'visible' }}
+            contentContainerStyle={Platform.OS === 'web' ? { paddingBottom: 120 } : undefined}
+            showsVerticalScrollIndicator={true}
+          >
         {/* Order Number Display */}
-        <View style={[dynamicStyles.section, { marginHorizontal: 0, marginTop: sectionSpacing }]}>
-          <Text style={dynamicStyles.sectionTitle}>Order Number</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Order Number</Text>
           <View style={styles.inputRow}>
             <TextInput
-              style={[dynamicStyles.input, { fontWeight: 'bold', fontSize: fontSizes.title, color: '#2c3e50' }]}
+              style={[styles.input, { fontWeight: 'bold', fontSize: 18, color: '#2c3e50' }]}
               value={billData.billnumberinput2 ? billData.billnumberinput2.toString() : ''}
               onChangeText={text => {
                 // Only allow numbers
@@ -1491,15 +852,15 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Customer Selection */}
-        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
-          <Text style={dynamicStyles.sectionTitle}>Customer Information</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Customer Information</Text>
           
           {/* Customer Search */}
           <View style={styles.searchContainer}>
-            <Text style={dynamicStyles.inputLabel}>Search by Mobile Number:</Text>
-            <View style={dynamicStyles.searchRow}>
+            <Text style={styles.inputLabel}>Search by Mobile Number:</Text>
+            <View style={styles.searchRow}>
               <TextInput
-                style={dynamicStyles.searchInput}
+                style={styles.searchInput}
                 value={customerSearchMobile}
                 onChangeText={setCustomerSearchMobile}
                 placeholder="Enter 10-digit mobile number"
@@ -1507,7 +868,7 @@ export default function NewBillScreen({ navigation }) {
                 maxLength={10}
               />
           <TouchableOpacity
-                style={dynamicStyles.searchButton}
+                style={styles.searchButton}
                 onPress={handleCustomerSearch}
                 disabled={searching}
               >
@@ -1522,9 +883,9 @@ export default function NewBillScreen({ navigation }) {
 
           {/* Customer Details */}
           <View style={styles.inputRow}>
-            <Text style={dynamicStyles.inputLabel}>Customer Name:</Text>
+            <Text style={styles.inputLabel}>Customer Name:</Text>
             <TextInput
-              style={dynamicStyles.input}
+              style={styles.input}
               value={billData.customer_name}
               onChangeText={(text) => setBillData({ ...billData, customer_name: text })}
               placeholder="Customer name"
@@ -1532,9 +893,9 @@ export default function NewBillScreen({ navigation }) {
           </View>
 
           <View style={styles.inputRow}>
-            <Text style={dynamicStyles.inputLabel}>Mobile Number:</Text>
+            <Text style={styles.inputLabel}>Mobile Number:</Text>
             <TextInput
-              style={dynamicStyles.input}
+              style={styles.input}
               value={billData.mobile_number}
               onChangeText={(text) => setBillData({ ...billData, mobile_number: text })}
               placeholder="Mobile number"
@@ -1544,27 +905,27 @@ export default function NewBillScreen({ navigation }) {
           </View>
 
         {/* Measurements Section */}
-        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
-          <Text style={dynamicStyles.sectionTitle}>Measurements</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Measurements</Text>
           
           {/* Measurement Type Selection */}
           <View style={styles.measurementTypeContainer}>
-            <Text style={dynamicStyles.inputLabel}>Select Measurement Type:</Text>
-            <View style={dynamicStyles.checkboxRow}>
+            <Text style={styles.inputLabel}>Select Measurement Type:</Text>
+            <View style={styles.checkboxRow}>
               <TouchableOpacity
-                style={[dynamicStyles.checkbox, measurementType.pant && styles.checkboxSelected]}
+                style={[styles.checkbox, measurementType.pant && styles.checkboxSelected]}
                 onPress={() => toggleMeasurementType('pant')}
               >
                 <Text style={styles.checkboxText}>Pant</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[dynamicStyles.checkbox, measurementType.shirt && styles.checkboxSelected]}
+                style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
                 onPress={() => toggleMeasurementType('shirt')}
               >
                 <Text style={styles.checkboxText}>Shirt</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[dynamicStyles.checkbox, measurementType.extra && styles.checkboxSelected]}
+                style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
                 onPress={() => toggleMeasurementType('extra')}
               >
                 <Text style={styles.checkboxText}>Extra</Text>
@@ -1576,75 +937,75 @@ export default function NewBillScreen({ navigation }) {
           {measurementType.pant && (
             <View style={styles.measurementSection}>
               <Text style={styles.measurementTitle}>Pant Measurements</Text>
-              <View style={dynamicStyles.measurementGrid}>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Length:</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+            <TextInput
+                    style={styles.measurementTextInput}
+                    value={measurements.pant_length.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_length: parseFloat(text) || 0 })}
+                    placeholder="Length"
+              keyboardType="numeric"
+            />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Kamar:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.pant_length}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_length: text })}
-                    placeholder="32, 1/2, 22/7/2"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.pant_kamar.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_kamar: parseFloat(text) || 0 })}
+                    placeholder="Kamar"
+                    keyboardType="numeric"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Kamar:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Hips:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.pant_kamar}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_kamar: text })}
-                    placeholder="34, 3/4"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.pant_hips.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_hips: parseFloat(text) || 0 })}
+                    placeholder="Hips"
+                    keyboardType="numeric"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Hips:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Ran:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.pant_hips}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_hips: text })}
-                    placeholder="36, 1/2"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.pant_waist.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_waist: parseFloat(text) || 0 })}
+                    placeholder="Ran"
+                    keyboardType="numeric"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Ran:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Ghutna:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.pant_waist}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_waist: text })}
-                    placeholder="32, 1/4"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.pant_ghutna.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_ghutna: parseFloat(text) || 0 })}
+                    placeholder="Ghutna"
+                    keyboardType="numeric"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Ghutna:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Bottom:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.pant_ghutna}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_ghutna: text })}
-                    placeholder="24, 3/8"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.pant_bottom.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_bottom: parseFloat(text) || 0 })}
+                    placeholder="Bottom"
+                    keyboardType="numeric"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Bottom:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Seat:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.pant_bottom}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_bottom: text })}
-                    placeholder="18, 1/2"
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Seat:</Text>
-                  <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.pant_seat}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_seat: text })}
-                    placeholder="40, 5/8"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.pant_seat.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_seat: parseFloat(text) || 0 })}
+                    placeholder="Seat"
+                    keyboardType="numeric"
                   />
                 </View>
           </View>
@@ -1655,11 +1016,11 @@ export default function NewBillScreen({ navigation }) {
                 <View style={styles.detailsGrid}>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>SideP/Cross:</Text>
-                    <TextInput
+            <TextInput
                       style={styles.detailTextInput}
                       value={measurements.SideP_Cross}
                       onChangeText={(text) => setMeasurements({ ...measurements, SideP_Cross: text })}
-                      placeholder="2, 1/2, Plain"
+                      placeholder="SideP/Cross"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1668,7 +1029,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Plates}
                       onChangeText={(text) => setMeasurements({ ...measurements, Plates: text })}
-                      placeholder="4, Double"
+                      placeholder="Plates"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1677,7 +1038,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Belt}
                       onChangeText={(text) => setMeasurements({ ...measurements, Belt: text })}
-                      placeholder="Yes, No, 1/2"
+                      placeholder="Belt"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1686,7 +1047,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Back_P}
                       onChangeText={(text) => setMeasurements({ ...measurements, Back_P: text })}
-                      placeholder="2, 1/4"
+                      placeholder="Back P"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1695,7 +1056,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.WP}
                       onChangeText={(text) => setMeasurements({ ...measurements, WP: text })}
-                      placeholder="High, Low"
+                      placeholder="WP"
                     />
                   </View>
                 </View>
@@ -1707,73 +1068,73 @@ export default function NewBillScreen({ navigation }) {
           {measurementType.shirt && (
             <View style={styles.measurementSection}>
               <Text style={styles.measurementTitle}>Shirt Measurements</Text>
-              <View style={dynamicStyles.measurementGrid}>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Length:</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.shirt_length}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_length: text })}
-                    placeholder="28, 1/2, 28/5/8"
-                    keyboardType="default"
-                  />
+                    style={styles.measurementTextInput}
+                    value={measurements.shirt_length.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_length: parseFloat(text) || 0 })}
+                    placeholder="Length"
+              keyboardType="numeric"
+            />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Body:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
+                    style={styles.measurementTextInput}
                     value={measurements.shirt_body}
                     onChangeText={(text) => setMeasurements({ ...measurements, shirt_body: text })}
-                    placeholder="40, Loose, 3/4"
+                    placeholder="Body"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Loose:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
+                    style={styles.measurementTextInput}
                     value={measurements.shirt_loose}
                     onChangeText={(text) => setMeasurements({ ...measurements, shirt_loose: text })}
-                    placeholder="Regular, 1/4"
+                    placeholder="Loose"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Shoulder:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.shirt_shoulder}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_shoulder: text })}
-                    placeholder="18, 1/2"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.shirt_shoulder.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_shoulder: parseFloat(text) || 0 })}
+                    placeholder="Shoulder"
+                    keyboardType="numeric"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Astin:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.shirt_astin}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: text })}
-                    placeholder="24, 3/4"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.shirt_astin.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: parseFloat(text) || 0 })}
+                    placeholder="Astin"
+                    keyboardType="numeric"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Collar:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.shirt_collar}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: text })}
-                    placeholder="15, 1/2"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.shirt_collar.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: parseFloat(text) || 0 })}
+                    placeholder="Collar"
+                    keyboardType="numeric"
                   />
                 </View>
-                <View style={dynamicStyles.measurementInput}>
-                  <Text style={dynamicStyles.measurementLabel}>Aloose:</Text>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
                   <TextInput
-                    style={dynamicStyles.measurementTextInput}
-                    value={measurements.shirt_aloose}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: text })}
-                    placeholder="2, 1/4"
-                    keyboardType="default"
+                    style={styles.measurementTextInput}
+                    value={measurements.shirt_aloose.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: parseFloat(text) || 0 })}
+                    placeholder="Aloose"
+                    keyboardType="numeric"
                   />
                 </View>
           </View>
@@ -1788,7 +1149,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Callar}
                       onChangeText={(text) => setMeasurements({ ...measurements, Callar: text })}
-                      placeholder="Round, Square"
+                      placeholder="Collar"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1797,7 +1158,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Cuff}
                       onChangeText={(text) => setMeasurements({ ...measurements, Cuff: text })}
-                      placeholder="Single, Double"
+                      placeholder="Cuff"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1806,7 +1167,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Pkt}
                       onChangeText={(text) => setMeasurements({ ...measurements, Pkt: text })}
-                      placeholder="1, 2, Flap"
+                      placeholder="Pkt"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1815,7 +1176,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.LooseShirt}
                       onChangeText={(text) => setMeasurements({ ...measurements, LooseShirt: text })}
-                      placeholder="Tight, 1/4"
+                      placeholder="Loose"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -1824,7 +1185,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.DT_TT}
                       onChangeText={(text) => setMeasurements({ ...measurements, DT_TT: text })}
-                      placeholder="DT, TT"
+                      placeholder="DT/TT"
                     />
                   </View>
                 </View>
@@ -1849,7 +1210,7 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Itemized Billing */}
-        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Itemized Billing</Text>
           
           <View style={styles.billingTable}>
@@ -1866,7 +1227,7 @@ export default function NewBillScreen({ navigation }) {
                 style={styles.tableQtyInput}
                 value={itemizedBill.suit_qty}
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_qty: text })}
-                keyboardType="numeric"
+              keyboardType="numeric"
                 placeholder="0"
               />
               <TextInput
@@ -1875,17 +1236,17 @@ export default function NewBillScreen({ navigation }) {
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_amount: text })}
                 keyboardType="numeric"
                 placeholder="0"
-              />
-            </View>
+            />
+          </View>
 
             {/* Safari/Jacket */}
             <View style={styles.tableRow}>
               <Text style={styles.tableItemText}>Safari/Jacket</Text>
-              <TextInput
+            <TextInput
                 style={styles.tableQtyInput}
                 value={itemizedBill.safari_qty}
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_qty: text })}
-                keyboardType="numeric"
+              keyboardType="numeric"
                 placeholder="0"
               />
               <TextInput
@@ -1894,8 +1255,8 @@ export default function NewBillScreen({ navigation }) {
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_amount: text })}
                 keyboardType="numeric"
                 placeholder="0"
-              />
-            </View>
+            />
+          </View>
             
             {/* Pant */}
             <View style={styles.tableRow}>
@@ -1964,7 +1325,7 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Order Details */}
-        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Details</Text>
 
           <View style={styles.inputRow}>
@@ -2099,7 +1460,7 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Summary */}
-        <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Summary</Text>
           
           <View style={styles.summaryContainer}>
@@ -2123,39 +1484,22 @@ export default function NewBillScreen({ navigation }) {
         </View>
 
         {/* Action Buttons */}
-        <View style={[styles.actionButtons, {
-          flexDirection: buttonLayout.direction,
-          gap: buttonLayout.gap,
-          marginTop: sectionSpacing,
-          marginBottom: sectionSpacing * 2,
-          paddingHorizontal: 0
-        }]}>
+        <View style={styles.actionButtons}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.printButton, {
-              flex: buttonLayout.direction === 'row' ? 1 : 0,
-              paddingVertical: isSmallScreen ? 14 : 16,
-              marginRight: buttonLayout.direction === 'row' ? 8 : 0,
-              marginBottom: buttonLayout.direction === 'column' ? 8 : 0,
-              minHeight: 48
-            }]}
+            style={[styles.actionButton, styles.printButton]}
             onPress={handlePrintMeasurement}
             disabled={saving}
           >
             <Text style={styles.printButtonText}>Print Measurements</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, styles.saveButton, {
-              flex: buttonLayout.direction === 'row' ? 1 : 0,
-              paddingVertical: isSmallScreen ? 14 : 16,
-              marginLeft: buttonLayout.direction === 'row' ? 8 : 0,
-              minHeight: 48
-            }]}
+            style={[styles.actionButton, styles.saveButton]}
             onPress={async () => {
               console.log('Save and Print button pressed');
               const saved = await handleSaveBill();
               if (saved) {
-                console.log('Calling handlePrintBill after save');
-                await handlePrintBill();
+                console.log('Calling handlePrintMeasurement after save');
+                await handlePrintMeasurement();
               } else {
                 console.log('Not printing because save failed');
               }
@@ -2169,21 +1513,14 @@ export default function NewBillScreen({ navigation }) {
             )}
           </TouchableOpacity>
         </View> 
-        
-      </WebScrollView>
+      </ScrollView>
+    </View>
   ) : (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
-        ref={mobileScrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ 
-          flexGrow: 1,
-          paddingBottom: isSmallScreen ? 220 : 180,
-          paddingHorizontal: responsivePadding
-        }}
-        showsVerticalScrollIndicator={true}
-        bounces={true}
-        alwaysBounceVertical={false}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
       >
         {/* Order Number Display */}
         <View style={styles.section}>
@@ -2295,70 +1632,70 @@ export default function NewBillScreen({ navigation }) {
                   <Text style={styles.measurementLabel}>Length:</Text>
             <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_length}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_length: text })}
-                    placeholder="32, 1/2, 22/7/2"
-              keyboardType="default"
+                    value={measurements.pant_length.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_length: parseFloat(text) || 0 })}
+                    placeholder="Length"
+              keyboardType="numeric"
             />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Kamar:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_kamar}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_kamar: text })}
-                    placeholder="34, 3/4"
-                    keyboardType="default"
+                    value={measurements.pant_kamar.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_kamar: parseFloat(text) || 0 })}
+                    placeholder="Kamar"
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Hips:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_hips}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_hips: text })}
-                    placeholder="36, 1/2"
-                    keyboardType="default"
+                    value={measurements.pant_hips.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_hips: parseFloat(text) || 0 })}
+                    placeholder="Hips"
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ran:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_waist}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_waist: text })}
-                    placeholder="32, 1/4"
-                    keyboardType="default"
+                    value={measurements.pant_waist.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_waist: parseFloat(text) || 0 })}
+                    placeholder="Ran"
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ghutna:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_ghutna}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_ghutna: text })}
-                    placeholder="24, 3/8"
-                    keyboardType="default"
+                    value={measurements.pant_ghutna.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_ghutna: parseFloat(text) || 0 })}
+                    placeholder="Ghutna"
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Bottom:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_bottom}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_bottom: text })}
-                    placeholder="18, 1/2"
-                    keyboardType="default"
+                    value={measurements.pant_bottom.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_bottom: parseFloat(text) || 0 })}
+                    placeholder="Bottom"
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Seat:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_seat}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_seat: text })}
-                    placeholder="40, 5/8"
-                    keyboardType="default"
+                    value={measurements.pant_seat.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_seat: parseFloat(text) || 0 })}
+                    placeholder="Seat"
+                    keyboardType="numeric"
                   />
                 </View>
           </View>
@@ -2373,7 +1710,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.SideP_Cross}
                       onChangeText={(text) => setMeasurements({ ...measurements, SideP_Cross: text })}
-                      placeholder="2, 1/2, Plain"
+                      placeholder="SideP/Cross"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -2382,7 +1719,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Plates}
                       onChangeText={(text) => setMeasurements({ ...measurements, Plates: text })}
-                      placeholder="4, Double"
+                      placeholder="Plates"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -2391,7 +1728,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Belt}
                       onChangeText={(text) => setMeasurements({ ...measurements, Belt: text })}
-                      placeholder="Yes, No, 1/2"
+                      placeholder="Belt"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -2400,7 +1737,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Back_P}
                       onChangeText={(text) => setMeasurements({ ...measurements, Back_P: text })}
-                      placeholder="2, 1/4"
+                      placeholder="Back P"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -2409,7 +1746,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.WP}
                       onChangeText={(text) => setMeasurements({ ...measurements, WP: text })}
-                      placeholder="High, Low"
+                      placeholder="WP"
                     />
                   </View>
                 </View>
@@ -2426,10 +1763,10 @@ export default function NewBillScreen({ navigation }) {
                   <Text style={styles.measurementLabel}>Length:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_length}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_length: text })}
-                    placeholder="28, 1/2, 28/5/8"
-              keyboardType="default"
+                    value={measurements.shirt_length.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_length: parseFloat(text) || 0 })}
+                    placeholder="Length"
+              keyboardType="numeric"
             />
                 </View>
                 <View style={styles.measurementInput}>
@@ -2438,7 +1775,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_body}
                     onChangeText={(text) => setMeasurements({ ...measurements, shirt_body: text })}
-                    placeholder="40, Loose, 3/4"
+                    placeholder="Body"
                   />
                 </View>
                 <View style={styles.measurementInput}>
@@ -2447,47 +1784,47 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_loose}
                     onChangeText={(text) => setMeasurements({ ...measurements, shirt_loose: text })}
-                    placeholder="Regular, 1/4"
+                    placeholder="Loose"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Shoulder:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_shoulder}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_shoulder: text })}
-                    placeholder="18, 1/2"
-                    keyboardType="default"
+                    value={measurements.shirt_shoulder.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_shoulder: parseFloat(text) || 0 })}
+                    placeholder="Shoulder"
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Astin:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_astin}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: text })}
-                    placeholder="24, 3/4"
-                    keyboardType="default"
+                    value={measurements.shirt_astin.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: parseFloat(text) || 0 })}
+                    placeholder="Astin"
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Collar:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_collar}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: text })}
-                    placeholder="15, 1/2"
-                    keyboardType="default"
+                    value={measurements.shirt_collar.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: parseFloat(text) || 0 })}
+                    placeholder="Collar"
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Aloose:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_aloose}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: text })}
-                    placeholder="2, 1/4"
-                    keyboardType="default"
+                    value={measurements.shirt_aloose.toString()}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: parseFloat(text) || 0 })}
+                    placeholder="Aloose"
+                    keyboardType="numeric"
                   />
                 </View>
           </View>
@@ -2502,7 +1839,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Callar}
                       onChangeText={(text) => setMeasurements({ ...measurements, Callar: text })}
-                      placeholder="Round, Square"
+                      placeholder="Collar"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -2511,7 +1848,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Cuff}
                       onChangeText={(text) => setMeasurements({ ...measurements, Cuff: text })}
-                      placeholder="Single, Double"
+                      placeholder="Cuff"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -2520,7 +1857,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Pkt}
                       onChangeText={(text) => setMeasurements({ ...measurements, Pkt: text })}
-                      placeholder="1, 2, Flap"
+                      placeholder="Pkt"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -2529,7 +1866,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.LooseShirt}
                       onChangeText={(text) => setMeasurements({ ...measurements, LooseShirt: text })}
-                      placeholder="Tight, 1/4"
+                      placeholder="Loose"
                     />
                   </View>
                   <View style={styles.detailInput}>
@@ -2538,7 +1875,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.DT_TT}
                       onChangeText={(text) => setMeasurements({ ...measurements, DT_TT: text })}
-                      placeholder="DT, TT"
+                      placeholder="DT/TT"
                     />
                   </View>
                 </View>
@@ -2580,7 +1917,7 @@ export default function NewBillScreen({ navigation }) {
                 style={styles.tableQtyInput}
                 value={itemizedBill.suit_qty}
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_qty: text })}
-                keyboardType="numeric"
+              keyboardType="numeric"
                 placeholder="0"
               />
               <TextInput
@@ -2589,17 +1926,17 @@ export default function NewBillScreen({ navigation }) {
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_amount: text })}
                 keyboardType="numeric"
                 placeholder="0"
-              />
-            </View>
+            />
+          </View>
 
             {/* Safari/Jacket */}
             <View style={styles.tableRow}>
               <Text style={styles.tableItemText}>Safari/Jacket</Text>
-              <TextInput
+            <TextInput
                 style={styles.tableQtyInput}
                 value={itemizedBill.safari_qty}
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_qty: text })}
-                keyboardType="numeric"
+              keyboardType="numeric"
                 placeholder="0"
               />
               <TextInput
@@ -2608,8 +1945,8 @@ export default function NewBillScreen({ navigation }) {
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_amount: text })}
                 keyboardType="numeric"
                 placeholder="0"
-              />
-            </View>
+            />
+          </View>
             
             {/* Pant */}
             <View style={styles.tableRow}>
@@ -2866,7 +2203,6 @@ export default function NewBillScreen({ navigation }) {
             )}
           </TouchableOpacity>
         </View> 
-        
       </ScrollView>
     </KeyboardAvoidingView>
   )}
@@ -2878,60 +2214,37 @@ export default function NewBillScreen({ navigation }) {
         visible={customerModalVisible}
         onRequestClose={() => setCustomerModalVisible(false)}
       >
-        <KeyboardAvoidingView 
-          style={{ flex: 1 }} 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setCustomerModalVisible(false)}
-          >
-            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select Customer</Text>
-                <TouchableOpacity 
-                  style={styles.modalCloseButton}
-                  onPress={() => setCustomerModalVisible(false)}
-                >
-                  <Text style={styles.closeButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <TextInput
-                style={styles.modalSearchInput}
-                placeholder="Search customers..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-
-              <FlatList
-                data={filteredCustomers}
-                keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
-                showsVerticalScrollIndicator={true}
-                keyboardShouldPersistTaps="handled"
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.customerItem}
-                    onPress={() => handleCustomerSelect(item)}
-                  >
-                    <Text style={styles.customerItemName}>{item.name}</Text>
-                    <Text style={styles.customerItemPhone}>{item.phone}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={styles.modalCancelButton}
-                  onPress={() => setCustomerModalVisible(false)}
-                >
-                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Customer</Text>
+              <TouchableOpacity onPress={() => setCustomerModalVisible(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
+
+            <TextInput
+              style={styles.modalSearchInput}
+              placeholder="Search customers..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+
+            <FlatList
+              data={filteredCustomers}
+              keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.customerItem}
+                  onPress={() => handleCustomerSelect(item)}
+                >
+                  <Text style={styles.customerItemName}>{item.name}</Text>
+                  <Text style={styles.customerItemPhone}>{item.phone}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
       </Modal>
 
       {/* Date Picker Modal */}
@@ -2948,8 +2261,8 @@ export default function NewBillScreen({ navigation }) {
         )
       )}
 
-      {/* Fixed Floating Refresh Button - Always Visible */}
-      <View style={{ position: 'absolute', right: 24, bottom: 180, alignItems: 'flex-end', zIndex: 1000 }}>
+      {/* Floating Action Buttons */}
+      <View style={{ position: 'absolute', right: 24, bottom: 96, alignItems: 'flex-end', zIndex: 100 }}>
         <TouchableOpacity
           style={{
             backgroundColor: '#e74c3c',
@@ -2958,10 +2271,11 @@ export default function NewBillScreen({ navigation }) {
             borderRadius: 30,
             justifyContent: 'center',
             alignItems: 'center',
-            elevation: 10,
+            marginBottom: 0,
+            elevation: 8,
             shadowColor: '#000',
-            shadowOpacity: 0.3,
-            shadowRadius: 10,
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
             shadowOffset: { width: 0, height: 4 },
           }}
           onPress={resetForm}
@@ -2971,7 +2285,6 @@ export default function NewBillScreen({ navigation }) {
           <Ionicons name="refresh" size={36} color="#fff" />
         </TouchableOpacity>
       </View>
-      
       <SafeAreaView style={{ height: 32 }} />
     </View>
   );
@@ -3384,11 +2697,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: '90%',
     maxHeight: '80%',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
   },
   modalHeader: {
     flexDirection: 'row',
@@ -3403,45 +2711,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2c3e50',
   },
-  modalCloseButton: {
-    padding: 12,
-    backgroundColor: '#e74c3c',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
   closeButton: {
-    fontSize: 20,
-    color: '#fff',
-    fontWeight: 'bold',
-    lineHeight: 20,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  modalCancelButton: {
-    backgroundColor: '#95a5a6',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalCancelButtonText: {
-    fontSize: 14,
-    color: 'white',
-    fontWeight: 'bold',
+    fontSize: 24,
+    color: '#7f8c8d',
   },
   modalSearchInput: {
     borderWidth: 1,

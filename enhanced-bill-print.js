@@ -479,8 +479,59 @@ function printPreprintedBill() {
     };
 }
 
-// Enhanced save and print function
+// Enhanced save and print function with PDF generation
 function enhancedSaveAndPrint() {
+    // Check if PDF generator is available
+    if (typeof window.webPDFGenerator !== 'undefined') {
+        console.log('Using enhanced PDF generation');
+        
+        // Offer user choice between PDF and regular printing
+        const userChoice = confirm('Choose your printing method:\n\nOK = Generate PDF (Recommended)\nCancel = Regular Browser Printing');
+        
+        if (userChoice) {
+            return enhancedPDFGeneration();
+        } else {
+            return enhancedRegularPrint();
+        }
+    } else {
+        console.warn('PDF generator not available, using regular print');
+        return enhancedRegularPrint();
+    }
+}
+
+// Enhanced PDF generation function
+async function enhancedPDFGeneration() {
+    try {
+        console.log('Starting enhanced PDF generation...');
+        
+        // Generate bill PDF
+        const billPDFSuccess = await window.webPDFGenerator.generateBillPDF();
+        
+        if (billPDFSuccess) {
+            // Check if measurements should also be generated
+            const measurementsExist = checkForMeasurements();
+            if (measurementsExist) {
+                const includeMeasurements = confirm('Measurements detected! Would you like to also generate a measurement sheet PDF?');
+                if (includeMeasurements) {
+                    await window.webPDFGenerator.generateMeasurementPDF();
+                }
+            }
+            
+            alert('PDF(s) generated successfully and downloaded!');
+            return true;
+        } else {
+            throw new Error('PDF generation failed');
+        }
+        
+    } catch (error) {
+        console.error('Enhanced PDF generation failed:', error);
+        alert('PDF generation failed. Switching to regular printing.');
+        return enhancedRegularPrint();
+    }
+}
+
+// Enhanced regular print function (improved version of original)
+function enhancedRegularPrint() {
     const billHTML = generateBillHTML();
     
     // Create a new window for printing
@@ -488,7 +539,7 @@ function enhancedSaveAndPrint() {
     
     if (!printWindow) {
         alert('Please allow popups for this website to enable printing.');
-        return;
+        return false;
     }
     
     // Write the HTML content to the new window
@@ -508,6 +559,23 @@ function enhancedSaveAndPrint() {
             };
         }, 500);
     };
+    
+    return true;
+}
+
+// Helper function to check if measurements exist (same as in NewBill-updated.js)
+function checkForMeasurements() {
+    const measurementFields = [
+        'length', 'kamar', 'hips', 'waist', 'Ghutna', 'Bottom', 'seat',
+        'SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP',
+        'shirtlength', 'body', 'Loose', 'Shoulder', 'Astin', 'collor', 'allose',
+        'Callar', 'Cuff', 'Pkt', 'LooseShirt', 'DT_TT', 'extra-input'
+    ];
+    
+    return measurementFields.some(fieldId => {
+        const element = document.getElementById(fieldId);
+        return element && element.value && element.value.trim() !== '';
+    });
 }
 
 // Function to print only measurements

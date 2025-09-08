@@ -277,11 +277,60 @@ document.getElementById('new-bill-form').addEventListener('submit', function (ev
     });
 });
 
-// Improved saveAndPrint function (keep as fallback)
+// Enhanced saveAndPrint function with PDF generation capabilities
 function saveAndPrint() {
+    // Check if PDF generation is available and user preference
+    const shouldGeneratePDF = confirm('Would you like to generate a PDF (recommended) or use regular printing?\n\nClick OK for PDF, Cancel for regular printing.');
+    
+    if (shouldGeneratePDF && typeof window.webPDFGenerator !== 'undefined') {
+        console.log('Using PDF generation for Save and Print');
+        return saveAndPrintPDF();
+    } else {
+        console.log('Using fallback print method');
+        return saveAndPrintFallback();
+    }
+}
+
+// Enhanced PDF-based save and print function
+async function saveAndPrintPDF() {
+    try {
+        console.log('Starting PDF-based save and print...');
+        
+        // Generate and download the bill PDF
+        const pdfGenerated = await window.webPDFGenerator.generateBillPDF();
+        
+        if (pdfGenerated) {
+            console.log('PDF generated and downloaded successfully');
+            
+            // Optional: Also generate measurement PDF if measurements exist
+            const hasMeasurements = checkForMeasurements();
+            if (hasMeasurements && confirm('Would you also like to generate a measurement sheet PDF?')) {
+                await window.webPDFGenerator.generateMeasurementPDF();
+            }
+            
+            return true;
+        } else {
+            console.warn('PDF generation failed, falling back to regular print');
+            return saveAndPrintFallback();
+        }
+        
+    } catch (error) {
+        console.error('Error in PDF generation:', error);
+        alert('PDF generation failed. Using regular printing instead.');
+        return saveAndPrintFallback();
+    }
+}
+
+// Fallback print function (original implementation)
+function saveAndPrintFallback() {
     const customerBill = document.getElementById('customerbill').cloneNode(true);
 
     const printWindow = window.open('', '', 'width=800,height=600');
+
+    if (!printWindow) {
+        alert('Please allow popups for this website to enable printing.');
+        return false;
+    }
 
     printWindow.document.write('<html><head><title>Print Bill</title>');
     // Include your external CSS file
@@ -338,8 +387,27 @@ function saveAndPrint() {
     function printAndClose() {
         printWindow.focus();
         printWindow.print();
-        printWindow.close();
+        printWindow.onafterprint = function() {
+            printWindow.close();
+        };
     }
+    
+    return true;
+}
+
+// Helper function to check if measurements exist
+function checkForMeasurements() {
+    const measurementFields = [
+        'length', 'kamar', 'hips', 'waist', 'Ghutna', 'Bottom', 'seat',
+        'SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP',
+        'shirtlength', 'body', 'Loose', 'Shoulder', 'Astin', 'collor', 'allose',
+        'Callar', 'Cuff', 'Pkt', 'LooseShirt', 'DT_TT', 'extra-input'
+    ];
+    
+    return measurementFields.some(fieldId => {
+        const element = document.getElementById(fieldId);
+        return element && element.value && element.value.trim() !== '';
+    });
 }
 
 // Customer info Form js For fetching Customer info by mobile number

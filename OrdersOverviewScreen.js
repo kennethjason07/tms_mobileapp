@@ -26,126 +26,45 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-// Function to expand orders by garment type and quantity while preserving sort order
-// NOTE: Based on schema analysis, orders table already contains individual garments
-// This function should only sort and prepare orders, not expand them
-const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = null) => {
-  console.log('\n📋 EXPANSION FUNCTION: Processing orders...');
+// Function to split comma-separated garment types into individual rows
+const splitCommaGarmentsIntoRows = (orders, expectedHighestBillNumber = null) => {
+  console.log('\n📋 PROCESSING ORDERS: Splitting comma-separated garments...');
   console.log(`📊 Input orders: ${orders.length}`);
   
-  // Check if orders are already individual garments (they should be based on schema)
-  const sampleOrder = orders[0];
-  if (sampleOrder && sampleOrder.garment_type) {
-    console.log('✅ Orders are already individual garments (garment_type exists)');
-    console.log('🔄 Skipping expansion, just sorting and preparing...');
-    
-    // Just sort the existing orders
-    const sortedOrders = orders.sort((a, b) => {
-      const billNumberA = Number(a.billnumberinput2) || 0;
-      const billNumberB = Number(b.billnumberinput2) || 0;
+  const finalOrders = [];
+  let splitCount = 0;
+  
+  orders.forEach(order => {
+    if (order.garment_type && order.garment_type.includes(',')) {
+      // Split comma-separated garments into individual rows
+      const garmentTypes = order.garment_type.split(',').map(g => g.trim());
+      console.log(`🔄 Splitting order ${order.id} with garments: ${garmentTypes.join(', ')}`);
       
-      if (billNumberB !== billNumberA) {
-        return billNumberB - billNumberA; // Descending: highest first
-      }
-      
-      // Secondary sort by order ID descending if bill numbers are same
-      return (b.id || 0) - (a.id || 0);
-    });
-    
-    console.log('\n📋 FINAL SORT VERIFICATION:');
-    console.log('Total orders (no expansion needed):', sortedOrders.length);
-    if (sortedOrders.length > 0) {
-      const actualHighestBill = Number(sortedOrders[0].billnumberinput2) || 0;
-      console.log('Top 5 orders after sorting:');
-      sortedOrders.slice(0, 5).forEach((order, index) => {
-        console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}, Garment: ${order.garment_type}`);
-      });
-      console.log(`Actual highest bill number in results: ${actualHighestBill}`);
-      if (expectedHighestBillNumber !== null) {
-        console.log(`Expected highest bill number: ${expectedHighestBillNumber}`);
-        console.log(`✅ VERIFICATION: First order matches expected highest?`, 
-          actualHighestBill === expectedHighestBillNumber ? 'YES ✓' : `NO ✗ (Expected: ${expectedHighestBillNumber}, Got: ${actualHighestBill})`);
-      }
-    }
-    
-    return sortedOrders;
-  }
-  
-  // If orders don't have garment_type, proceed with legacy expansion logic
-  console.log('⚠️ Orders do not have garment_type, proceeding with expansion...');
-  
-  // First, ensure orders are sorted by bill number descending
-  const sortedOrders = orders.sort((a, b) => {
-    const billNumberA = Number(a.billnumberinput2) || 0;
-    const billNumberB = Number(b.billnumberinput2) || 0;
-    
-    if (billNumberB !== billNumberA) {
-      return billNumberB - billNumberA; // Descending: highest first
-    }
-    
-    // Secondary sort by order ID descending if bill numbers are same
-    return (b.id || 0) - (a.id || 0);
-  });
-
-  // Group orders by bill_id first (maintaining sort order)
-  const ordersByBill = {};
-  const billOrder = []; // Track the order of bills
-  
-  sortedOrders.forEach(order => {
-    const billId = order.bill_id || 'no-bill';
-    if (!ordersByBill[billId]) {
-      ordersByBill[billId] = [];
-      billOrder.push(billId); // Preserve the order we encounter bills
-    }
-    ordersByBill[billId].push(order);
-  });
-  
-  const finalExpandedOrders = [];
-  
-  // Process each bill group in the order we encountered them (highest bill numbers first)
-  billOrder.forEach(billId => {
-    const billOrders = ordersByBill[billId];
-    
-    // Get the first order to access bill data
-    const firstOrder = billOrders[0];
-    const bill = firstOrder.bills || {};
-    
-    // Define garment types and their quantities from the bill
-    const garmentTypes = [
-      { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
-      { type: 'Safari/Jacket', qty: parseInt(bill.safari_qty) || 0 },
-      { type: 'Pant', qty: parseInt(bill.pant_qty) || 0 },
-      { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
-      { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
-    ];
-    
-    // Create rows for each garment type based on quantities
-    garmentTypes.forEach(({ type, qty }) => {
-      if (qty > 0) {
-        // Create multiple rows if quantity > 1
-        for (let i = 0; i < qty; i++) {
-          const expandedId = firstOrder.id + '_' + type + '_' + i;
-          console.log(`Creating expanded order: ${expandedId} for original order ${firstOrder.id}`);
-          
-          finalExpandedOrders.push({
-            ...firstOrder,
-            // Create unique ID for each expanded row
-            expanded_id: expandedId,
-            original_id: firstOrder.id, // Keep reference to original order
-            garment_type: type,
-            expanded_garment_type: type,
-            garment_quantity: 1, // Each row represents quantity of 1
-            garment_index: i, // This will be 0, 1, 2, etc. for each garment type
-            // Set worker limit based on garment type
-            max_workers: type.toLowerCase().includes('shirt') ? 3 : 2
+      garmentTypes.forEach((garmentType, index) => {
+        if (garmentType) { // Skip empty strings
+          finalOrders.push({
+            ...order,
+            // Create unique ID for split garments
+            expanded_id: `${order.id}_split_${index}`,
+            original_id: order.id,
+            garment_type: garmentType,
+            garment_index: index,
+            // Distribute the total amount equally among garments
+            total_amt: Math.round((order.total_amt / garmentTypes.length) * 100) / 100
           });
+          splitCount++;
         }
-      }
-    });
+      });
+    } else {
+      // Keep orders with single garment as-is
+      finalOrders.push(order);
+    }
   });
   
-  // Final sort to ensure the expanded orders maintain bill number descending order
-  const finalSorted = finalExpandedOrders.sort((a, b) => {
+  console.log(`✅ Split ${splitCount} garment entries from comma-separated records`);
+  
+  // Sort the final orders
+  const sortedOrders = finalOrders.sort((a, b) => {
     const billNumberA = Number(a.billnumberinput2) || 0;
     const billNumberB = Number(b.billnumberinput2) || 0;
     
@@ -153,23 +72,23 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
       return billNumberB - billNumberA; // Descending: highest first
     }
     
-    // Secondary sort by original order ID
+    // Secondary sort by original order ID descending
     const orderIdA = Number(a.original_id || a.id) || 0;
     const orderIdB = Number(b.original_id || b.id) || 0;
     if (orderIdB !== orderIdA) {
       return orderIdB - orderIdA;
     }
     
-    // Tertiary sort by garment index to maintain consistent order within same bill/order
+    // Tertiary sort by garment index to maintain order within split garments
     return (a.garment_index || 0) - (b.garment_index || 0);
   });
   
   console.log('\n📋 FINAL SORT VERIFICATION:');
-  console.log('Total expanded orders:', finalSorted.length);
-  if (finalSorted.length > 0) {
-    const actualHighestBill = Number(finalSorted[0].billnumberinput2) || 0;
-    console.log('Top 5 orders after expansion and final sort:');
-    finalSorted.slice(0, 5).forEach((order, index) => {
+  console.log('Total orders (after splitting):', sortedOrders.length);
+  if (sortedOrders.length > 0) {
+    const actualHighestBill = Number(sortedOrders[0].billnumberinput2) || 0;
+    console.log('Top 5 orders after sorting and splitting:');
+    sortedOrders.slice(0, 5).forEach((order, index) => {
       console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}, Garment: ${order.garment_type}`);
     });
     console.log(`Actual highest bill number in results: ${actualHighestBill}`);
@@ -178,10 +97,9 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
       console.log(`✅ VERIFICATION: First order matches expected highest?`, 
         actualHighestBill === expectedHighestBillNumber ? 'YES ✓' : `NO ✗ (Expected: ${expectedHighestBillNumber}, Got: ${actualHighestBill})`);
     }
-    console.log(`Lowest bill number in top 10: ${Number(finalSorted[Math.min(9, finalSorted.length - 1)].billnumberinput2) || 0}`);
   }
   
-  return finalSorted;
+  return sortedOrders;
 };
 
 export default function OrdersOverviewScreen({ navigation }) {
@@ -337,8 +255,8 @@ export default function OrdersOverviewScreen({ navigation }) {
       }
       }
       
-      // Expand orders by garment type and quantity
-      const expandedOrders = expandOrdersByGarmentAndQuantity(processedOrders, highestBillNumber);
+      // Split comma-separated garments into individual rows
+      const expandedOrders = splitCommaGarmentsIntoRows(processedOrders, highestBillNumber);
       
       console.log('\n📎 Total expanded orders:', expandedOrders.length);
       if (expandedOrders.length > 0) {
@@ -461,8 +379,8 @@ export default function OrdersOverviewScreen({ navigation }) {
       console.log(`🎯 First result bill number: ${Number(sortedData[0].billnumberinput2) || 0}`);
       console.log(`✅ Search results properly sorted? ${searchResultHighestBill === (Number(sortedData[0].billnumberinput2) || 0) ? 'YES' : 'NO'}`);
       
-      // Expand search results by garment type and quantity
-      const expandedSearchResults = expandOrdersByGarmentAndQuantity(sortedData, searchResultHighestBill);
+      // Split comma-separated garments in search results
+      const expandedSearchResults = splitCommaGarmentsIntoRows(sortedData, searchResultHighestBill);
       
       console.log(`\n📦 Expanded search results: ${expandedSearchResults.length} total items`);
       if (expandedSearchResults.length > 0) {

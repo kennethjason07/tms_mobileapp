@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bill</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .bill-container {
+      width: 100%;
+      max-width: 210mm; /* A4 width */
+      margin: auto;
+      padding: 20px;
+      padding-top: 200px; /* space for pre-printed header */
+      box-sizing: border-box;
+    }
+    .section-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .info-box {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .info-box label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .info-row div {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .info-row div:last-child {
+      margin-right: 0;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #000;
+      box-sizing: border-box;
+    }
+    .table-section {
+      display: flex;
+      justify-content: space-between;
+    }
+    .items-box {
+      flex: 1;
+      border: 1px solid #000;
+      margin-right: 15px;
+    }
+    .items-box table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .items-box th, .items-box td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: center;
+    }
+    .items-box input {
+      width: 90%;
+      border: none;
+      text-align: center;
+    }
+    .suit-box {
+      width: 220px;
+      border: 1px solid #000;
+      text-align: center;
+      font-size: 12px;
+    }
+    .suit-box h3 {
+      background: #3a2f2f;
+      color: #fff;
+      margin: 0;
+      padding: 6px;
+      font-size: 13px;
+    }
+    .suit-box img {
+      width: 150px;
+      margin: 10px 0;
+    }
+    .suit-box .terms {
+      text-align: left;
+      padding: 0 8px 10px;
+    }
+    .suit-box .terms strong {
+      color: #d2691e;
+    }
+    .suit-box .terms p {
+      margin: 4px 0;
+    }
+    .suit-box .highlight {
+      color: red;
+    }
+    .footer-box {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer-box span {
+      display: block;
+      margin-top: 5px;
+      color: blue;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="bill-container">
+
+    <div class="section-title">Customer Information</div>
+
+    <div class="info-box">
+      <label>Order Number:</label>
+      <input type="text" value="6901">
+
+      <div class="info-row">
+        <div>
+          <label>Customer Name:</label>
+          <input type="text" value="test">
+        </div>
+        <div>
+          <label>Mobile Number:</label>
+          <input type="text" value="1234567890">
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div>
+          <label>Date:</label>
+          <input type="text" value="17-01-2025">
+        </div>
+        <div>
+          <label>Delivery Date:</label>
+          <input type="text" value="17-01-2025">
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="items-box">
+        <table>
+          <tr>
+            <th>Particulars</th>
+            <th>Qty</th>
+            <th>Amount</th>
+          </tr>
+          <tr>
+            <td>Suit</td>
+            <td><input type="text"></td>
+            <td><input type="text"></td>
+          </tr>
+          <tr>
+            <td>Safari/Jacket</td>
+            <td><input type="text"></td>
+            <td><input type="text"></td>
+          </tr>
+          <tr>
+            <td>Pant</td>
+            <td><input type="text" value="1"></td>
+            <td><input type="text" value="1000"></td>
+          </tr>
+          <tr>
+            <td>Shirt</td>
+            <td><input type="text"></td>
+            <td><input type="text"></td>
+          </tr>
+          <tr>
+            <td>Sadri</td>
+            <td><input type="text"></td>
+            <td><input type="text"></td>
+          </tr>
+          <tr>
+            <td><b>Total</b></td>
+            <td><input type="text" value="1"></td>
+            <td><input type="text" value="1000.00"></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="suit-box">
+        <h3>SUIT SPECIALIST</h3>
+        <img src="suitpic.jpg" alt="Suit Specialist">
+        <div class="terms">
+          <p><strong>Terms & Conditions :</strong></p>
+          <p>1. Delivery will not made without Receipt</p>
+          <p>2. We are not responsible, if the delivery is not taken within 2 months.</p>
+          <p>3. Trail and Complaint after 7pm &</p>
+          <p class="highlight">Delivery after 7pm</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-box">
+      Thank You, Visit Again!
+      <span>Sunday Holiday</span>
+    </div>
+
+  </div>
+</body>
+</html>
