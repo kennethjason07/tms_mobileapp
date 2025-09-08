@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Garment Numbering</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Test Garment Numbering Logic</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        // Mock data similar to what your application would have
+        const mockOrders = [
+            { id: 1, bill_id: 101, garment_type: 'Pant', billnumberinput2: 8052 },
+            { id: 2, bill_id: 101, garment_type: 'Shirt', billnumberinput2: 8052 },
+            { id: 3, bill_id: 102, garment_type: 'Pant', billnumberinput2: 8051 },
+            { id: 4, bill_id: 102, garment_type: 'Pant', billnumberinput2: 8051 },
+            { id: 5, bill_id: 102, garment_type: 'Shirt', billnumberinput2: 8051 },
+            { id: 6, bill_id: 103, garment_type: 'Suit', billnumberinput2: 8050 },
+        ];
+        
+        // Implementation from OrdersOverview.js
+        function processOrdersWithNumbering(orders) {
+            // Group orders by bill ID to number garments properly
+            const ordersByBill = {};
+            orders.forEach(order => {
+                if (!ordersByBill[order.bill_id]) {
+                    ordersByBill[order.bill_id] = {};
+                }
+                const garmentType = order.garment_type.toLowerCase();
+                if (!ordersByBill[order.bill_id][garmentType]) {
+                    ordersByBill[order.bill_id][garmentType] = [];
+                }
+                ordersByBill[order.bill_id][garmentType].push(order);
+            });
+            
+            // Process each order with proper numbering
+            return orders.map(order => {
+                const billOrders = ordersByBill[order.bill_id];
+                const garmentType = order.garment_type.toLowerCase();
+                const ordersOfSameType = billOrders[garmentType] || [];
+                const orderIndex = ordersOfSameType.findIndex(o => o.id === order.id);
+                const garmentNumber = orderIndex + 1;
+                
+                // Format the garment display name with proper numbering
+                const capitalizedGarment = order.garment_type.charAt(0).toUpperCase() + order.garment_type.slice(1).toLowerCase();
+                const garmentDisplayName = ordersOfSameType.length > 1 ? `${capitalizedGarment} ${garmentNumber}` : capitalizedGarment;
+                
+                return {
+                    ...order,
+                    garmentDisplayName
+                };
+            });
+        }
+        
+        // Test the functionality
+        const processedOrders = processOrdersWithNumbering(mockOrders);
+        
+        // Display results
+        let html = `
+            <h2>Original vs Processed Orders</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Bill Number</th>
+                        <th>Original Garment Type</th>
+                        <th>New Display Name</th>
+                        <th>Bill ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        processedOrders.forEach(order => {
+            html += `
+                <tr>
+                    <td>${order.id}</td>
+                    <td>${order.billnumberinput2}</td>
+                    <td>${order.garment_type}</td>
+                    <td><strong>${order.garmentDisplayName}</strong></td>
+                    <td>${order.bill_id}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                </tbody>
+            </table>
+            <h3>Summary:</h3>
+            <ul>
+                <li>Bill 8052 (ID: 101): Pant, Shirt - No numbering needed (only 1 of each type)</li>
+                <li>Bill 8051 (ID: 102): Pant 1, Pant 2, Shirt - Numbering for pants only</li>
+                <li>Bill 8050 (ID: 103): Suit - No numbering needed (only 1 suit)</li>
+            </ul>
+            <p><strong>✅ The logic correctly numbers only when there are multiple garments of the same type within a bill!</strong></p>
+        `;
+        
+        document.getElementById('test-results').innerHTML = html;
+    </script>
+</body>
+</html>

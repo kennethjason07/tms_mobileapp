@@ -916,22 +916,7 @@ export const SupabaseAPI = {
   // Create Order API (new function for NewBillScreen)
   async createOrder(orderData) {
     try {
-      // First, let's check if there's already an order with the same bill number
-      const { data: existingOrders, error: checkError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('billnumberinput2', orderData.billnumberinput2)
-      
-      if (checkError) {
-        console.error('Error checking existing orders:', checkError);
-      }
-      
-      if (existingOrders && existingOrders.length > 0) {
-        console.warn('Order with bill number', orderData.billnumberinput2, 'already exists');
-        // Return the existing order instead of creating a new one
-        return existingOrders;
-      }
-      // No further logic should run after returning for a duplicate
+      // Create the order directly - multiple orders per bill are allowed for individual garments
       const { data, error } = await supabase
         .from('orders')
         .insert(orderData)

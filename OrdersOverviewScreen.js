@@ -43,6 +43,7 @@ export default function OrdersOverviewScreen({ navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingAmounts, setEditingAmounts] = useState({});
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     // Always reset filters when opening the screen
@@ -58,6 +59,219 @@ export default function OrdersOverviewScreen({ navigation }) {
     applyFilters();
   }, [filters, orders]);
 
+  // Function to expand orders based on bill quantities into individual garment rows
+  const expandOrdersByBillQuantities = (orders) => {
+    const expandedOrders = [];
+    const processedBills = new Set();
+    
+    console.log('\n🛠️ === GARMENT EXPANSION STARTING ===');
+    console.log(`📊 Input orders: ${orders.length}`);
+    
+    orders.forEach((order, orderIndex) => {
+      const billId = order.bill_id;
+      const bill = order.bills; // Access joined bill data
+      
+      // Debug specific bills we're interested in
+      const isTargetBill = [8054, 8053, 8052, 8051, 8050].includes(Number(order.billnumberinput2));
+      if (orderIndex < 10 || isTargetBill) {
+        console.log(`\n📝 Processing order ${orderIndex + 1}/${orders.length}: Bill ${order.billnumberinput2}`);
+        console.log(`  - Bill data exists: ${!!bill}, Original garment: ${order.garment_type}`);
+        if (bill) {
+          console.log(`  - Bill quantities:`, {
+            suit: bill.suit_qty,
+            safari: bill.safari_qty, 
+            pant: bill.pant_qty,
+            shirt: bill.shirt_qty,
+            sadri: bill.sadri_qty
+          });
+        }
+      }
+      
+      // Skip if we've already processed this bill
+      if (processedBills.has(billId)) {
+        return;
+      }
+      processedBills.add(billId);
+      
+      if (!bill) {
+        // If no bill data, check if garment_type contains comma-separated values
+        const garmentType = order.garment_type || '';
+        
+        if (garmentType.includes(',')) {
+          // Split comma-separated garments and create individual rows
+          const garments = garmentType.split(',').map(g => g.trim()).filter(g => g);
+          console.log(`    🔄 No bill data - splitting "${garmentType}" into: ${garments.join(', ')}`);
+          
+          garments.forEach((garment, garmentIndex) => {
+            const cleanGarment = garment.trim();
+            const expandedOrder = {
+              ...order,
+              id: order.id, // Keep original ID unchanged
+              expanded_id: `${order.id}_${cleanGarment.toLowerCase().replace(/[^a-z0-9]/g, '')}_${garmentIndex + 1}`,
+              original_id: order.id,
+              garment_type: cleanGarment, // Use clean individual garment name
+              garment_number: garmentIndex + 1, // Number each split garment
+              unique_key: `${order.id}_${cleanGarment.toLowerCase().replace(/[^a-z0-9]/g, '')}_${garmentIndex + 1}`
+            };
+            expandedOrders.push(expandedOrder);
+            console.log(`      ✅ Split garment: ${cleanGarment} 1 (ID: ${expandedOrder.id})`);
+          });
+        } else {
+          // Single garment - clean it up and add number
+          const cleanGarment = garmentType.trim();
+          const expandedOrder = {
+            ...order,
+            id: order.id, // Keep original ID unchanged
+            expanded_id: order.id,
+            original_id: order.id,
+            garment_type: cleanGarment,
+            garment_number: 1,
+            unique_key: `${order.id}_${cleanGarment.toLowerCase().replace(/[^a-z0-9]/g, '')}_1`
+          };
+          expandedOrders.push(expandedOrder);
+          console.log(`    ✅ Single garment: ${cleanGarment} 1`);
+        }
+        return;
+      }
+      
+      // Define garment types and their quantities from the bill
+      const garmentTypes = [
+        { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
+        { type: 'Safari/Jacket', qty: parseInt(bill.safari_qty) || 0 },
+        { type: 'Pant', qty: parseInt(bill.pant_qty) || 0 },
+        { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
+        { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
+      ];
+      
+      console.log(`  👕 Bill quantities: ${garmentTypes.map(g => `${g.type}(${g.qty})`).join(', ')}`);
+      
+      let billRowCount = 0;
+      let totalQuantity = garmentTypes.reduce((sum, g) => sum + g.qty, 0);
+      console.log(`  📊 Total garments to create from quantities: ${totalQuantity}`);
+      
+      // Cross-verify with total_qty column if available
+      const expectedTotal = parseInt(bill.total_qty) || 0;
+      if (expectedTotal > 0) {
+        if (totalQuantity === expectedTotal) {
+          console.log(`  ✅ VERIFICATION PASSED: Calculated total (${totalQuantity}) matches total_qty (${expectedTotal})`);
+        } else {
+          console.log(`  ⚠️ VERIFICATION MISMATCH: Calculated total (${totalQuantity}) vs total_qty (${expectedTotal})`);
+        }
+      }
+      
+      // Create individual rows for each garment type based on quantities
+      garmentTypes.forEach(({ type, qty }) => {
+        if (qty > 0) {
+          console.log(`    🔄 Creating ${qty} individual rows for ${type}:`);
+          for (let i = 1; i <= qty; i++) {
+            const expandedOrder = {
+              ...order,
+              // Keep original ID unchanged in ID column
+              id: order.id, 
+              // Create unique identifier for internal tracking only
+              expanded_id: `${order.id}_${type.toLowerCase().replace(/[^a-z0-9]/g, '')}_${i}`,
+              original_id: order.id, // Keep reference to original order
+              garment_type: type, // Clean garment type (Pant, Shirt, etc.)
+              garment_number: i, // 1, 2, 3, 4... for each garment of this type
+              // Add unique key for React rendering
+              unique_key: `${order.id}_${type.toLowerCase().replace(/[^a-z0-9]/g, '')}_${i}`
+            };
+            expandedOrders.push(expandedOrder);
+            billRowCount++;
+            console.log(`      ✅ Individual Row ${billRowCount}: ${type} ${i} (Original ID: ${order.id}, Display: ${type} ${i})`);
+          }
+          console.log(`    ✓ Completed ${qty} rows for ${type}`);
+        } else {
+          console.log(`    ⚪ Skipping ${type} (quantity: 0)`);
+        }
+      });
+      
+      console.log(`  📈 Total rows created for Bill ${order.billnumberinput2}: ${billRowCount}`);
+      
+      // Final verification for this bill
+      if (expectedTotal > 0) {
+        if (billRowCount === expectedTotal) {
+          console.log(`  ✅ FINAL VERIFICATION: Created ${billRowCount} rows = total_qty (${expectedTotal})`);
+        } else {
+          console.log(`  ❌ FINAL VERIFICATION FAILED: Created ${billRowCount} rows ≠ total_qty (${expectedTotal})`);
+        }
+      }
+    });
+    
+    // Final cleanup: Check for any remaining combined garments and split them
+    const finalCleanedOrders = [];
+    expandedOrders.forEach(order => {
+      if (order.garment_type && order.garment_type.includes(',')) {
+        // Still has combined garments - split them now
+        console.warn(`⚠️ Found remaining combined garment: ${order.garment_type}`);
+        const garments = order.garment_type.split(',').map(g => g.trim()).filter(g => g);
+        garments.forEach((garment, idx) => {
+          finalCleanedOrders.push({
+            ...order,
+            id: order.original_id, // Keep original ID unchanged
+            expanded_id: `${order.original_id}_${garment.toLowerCase().replace(/[^a-z0-9]/g, '')}_final_${idx + 1}`,
+            garment_type: garment.trim(),
+            garment_number: idx + 1,
+            unique_key: `${order.original_id}_${garment.toLowerCase().replace(/[^a-z0-9]/g, '')}_final_${idx + 1}`
+          });
+        });
+      } else {
+        // Clean garment - keep as is
+        finalCleanedOrders.push(order);
+      }
+    });
+    
+    console.log(`\n✅ === EXPANSION COMPLETE ===`);
+    console.log(`📈 Total expanded rows: ${finalCleanedOrders.length}`);
+    console.log(`🎯 First 15 expanded rows (showing individual numbered garments):`);
+    finalCleanedOrders.slice(0, 15).forEach((row, i) => {
+      const display = row.garment_number ? `${row.garment_type} ${row.garment_number}` : row.garment_type;
+      console.log(`  ${i + 1}. Bill ${row.billnumberinput2}: ${display} (ID: ${row.id})`);
+    });
+    
+    // Group by bill and show quantities using cleaned orders
+    const billSummary = {};
+    const billRowCounts = {};
+    finalCleanedOrders.forEach(row => {
+      const bill = row.billnumberinput2;
+      if (!billSummary[bill]) {
+        billSummary[bill] = {};
+        billRowCounts[bill] = 0;
+      }
+      billRowCounts[bill]++;
+      const garmentType = row.garment_type;
+      billSummary[bill][garmentType] = (billSummary[bill][garmentType] || 0) + 1;
+    });
+    
+    console.log(`\n📈 === BILL VERIFICATION SUMMARY (First 10 bills) ===`);
+    Object.entries(billSummary).slice(0, 10).forEach(([bill, garments]) => {
+      const totalRows = billRowCounts[bill];
+      const garmentList = Object.entries(garments)
+        .map(([type, count]) => {
+          if (count === 1) return `${type} 1`;
+          return `${type} 1-${count}`; // Show range like "Shirt 1-3" for multiple
+        })
+        .join(', ');
+      console.log(`  📝 Bill ${bill}: ${totalRows} rows -> [${garmentList}]`);
+    });
+    
+    console.log(`\n🎯 === INDIVIDUAL GARMENT BREAKDOWN ===`);
+    Object.entries(billSummary).slice(0, 5).forEach(([bill, garments]) => {
+      console.log(`\n  📄 Bill ${bill}:`);
+      Object.entries(garments).forEach(([type, count]) => {
+        if (count === 1) {
+          console.log(`    - ${type} 1`);
+        } else {
+          for (let i = 1; i <= count; i++) {
+            console.log(`    - ${type} ${i}`);
+          }
+        }
+      });
+    });
+    
+    return finalCleanedOrders;
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -66,28 +280,56 @@ export default function OrdersOverviewScreen({ navigation }) {
         SupabaseAPI.getWorkers()
       ]);
       
+      console.log('🔍 Raw orders from database:', ordersData.length);
+      
       // Process orders data to match frontend structure
       const processedOrders = ordersData
-        // REMOVE the filter so all orders are shown
         .map(order => ({
           ...order,
           deliveryDate: order.due_date,
           workers: order.order_worker_association?.map(assoc => assoc.workers) || []
-        }))
-        // Sort by order_date descending, then billnumberinput2 descending
-        .sort((a, b) => {
-          const dateA = new Date(normalizeDate(a.order_date));
-          const dateB = new Date(normalizeDate(b.order_date));
-          if (dateA.getTime() === dateB.getTime()) {
-            // If dates are the same, sort by billnumberinput2 descending
-            return (b.billnumberinput2 || 0) - (a.billnumberinput2 || 0);
-          }
-          return dateB - dateA;
-        });
+        }));
       
-      setOrders(processedOrders);
-      setFilteredOrders(processedOrders);
+      // Expand orders by bill quantities into individual garment rows
+      const expandedOrders = expandOrdersByBillQuantities(processedOrders);
+      
+      // Sort expanded orders by bill number descending (highest first)
+      const sortedOrders = expandedOrders.sort((a, b) => {
+        const billA = Number(a.billnumberinput2) || 0;
+        const billB = Number(b.billnumberinput2) || 0;
+        
+        if (billB !== billA) {
+          return billB - billA; // Descending bill order
+        }
+        
+        // Secondary sort by garment type for same bill
+        if (a.garment_type !== b.garment_type) {
+          return a.garment_type.localeCompare(b.garment_type);
+        }
+        
+        // Tertiary sort by garment number
+        return (a.garment_number || 1) - (b.garment_number || 1);
+      });
+      
+      console.log('✅ Processed and expanded orders:', sortedOrders.length, 'individual garment rows');
+      console.log('🎯 Top 5 expanded orders:', sortedOrders.slice(0, 5).map(o => {
+        const display = o.garment_number ? `${o.garment_type} ${o.garment_number}` : o.garment_type;
+        return `Bill ${o.billnumberinput2}: ${display} (ID: ${o.id})`;
+      }));
+      
+      console.log('🔄 Setting orders state with', sortedOrders.length, 'expanded individual garment rows');
+      
+      console.log('\n📋 === FIRST 10 EXPANDED ORDERS FOR DISPLAY ===');
+      sortedOrders.slice(0, 10).forEach((order, i) => {
+        const display = order.garment_number ? `${order.garment_type} ${order.garment_number}` : order.garment_type;
+        console.log(`${i + 1}. ID: ${order.id}, Bill: ${order.billnumberinput2}, Garment: "${display}", Status: ${order.status}`);
+      });
+      console.log('📋 === END EXPANDED ORDERS ===\n');
+      
+      setOrders(sortedOrders);
+      setFilteredOrders(sortedOrders);
       setWorkers(workersData);
+      setRefreshKey(prev => prev + 1); // Force component refresh
     } catch (error) {
       console.error('OrdersOverviewScreen - Error loading data:', error);
       Alert.alert('Error', `Failed to load data: ${error.message}`);
@@ -117,14 +359,22 @@ export default function OrdersOverviewScreen({ navigation }) {
       );
     }
 
-    // Sort by order_date descending, then billnumberinput2 descending
+    // Sort by bill number descending, then by garment type, then by garment number
     filtered = filtered.sort((a, b) => {
-      const dateA = new Date(normalizeDate(a.order_date));
-      const dateB = new Date(normalizeDate(b.order_date));
-      if (dateA.getTime() === dateB.getTime()) {
-        return (b.billnumberinput2 || 0) - (a.billnumberinput2 || 0);
+      const billA = Number(a.billnumberinput2) || 0;
+      const billB = Number(b.billnumberinput2) || 0;
+      
+      if (billB !== billA) {
+        return billB - billA; // Descending bill order (highest first)
       }
-      return dateB - dateA;
+      
+      // Secondary sort by garment type for same bill
+      if (a.garment_type !== b.garment_type) {
+        return a.garment_type.localeCompare(b.garment_type);
+      }
+      
+      // Tertiary sort by garment number
+      return (a.garment_number || 1) - (b.garment_number || 1);
     });
 
     setFilteredOrders(filtered);
@@ -366,15 +616,22 @@ export default function OrdersOverviewScreen({ navigation }) {
   const renderTableRow = (order, index) => {
     const workerNames = order.workers?.map(worker => worker.name).join(", ") || "Not Assigned";
     const pendingAmount = (order.total_amt || 0) - (order.payment_amount || 0);
-    const isWorkerDropdownOpen = workerDropdownVisible[order.id] || false;
-    const uniqueKey = `order-${order.id || 'null'}-${index}`;
+    const orderId = order.id; // Use direct order ID - no expansion  
+    const isWorkerDropdownOpen = workerDropdownVisible[orderId] || false;
+    // Use unique_key if available (for expanded rows), otherwise fall back to old logic
+    const uniqueKey = order.unique_key || `order-${orderId || 'null'}-${index}`;
     const hasValidId = order.id && order.id !== 'null' && order.id !== null;
+    
+    // Format garment display with number - ALWAYS show number for expanded orders
+    const garmentDisplay = order.garment_number && order.garment_type
+      ? `${order.garment_type} ${order.garment_number}`
+      : (order.garment_type || 'N/A');
 
     return (
       <View key={uniqueKey} style={styles.tableRow}>
         <Text style={[styles.cell, { width: 60 }]}>{order.id || 'N/A'}</Text>
         <Text style={[styles.cell, { width: 120 }]}>{order.billnumberinput2 || "N/A"}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{order.garment_type || 'N/A'}</Text>
+        <Text style={[styles.cell, { width: 120 }]}>{garmentDisplay}</Text>
         <Text style={[styles.cell, { width: 100 }]}>{order.status || 'N/A'}</Text>
         
         <View style={[styles.cell, { width: 200 }]}>
@@ -461,19 +718,19 @@ export default function OrdersOverviewScreen({ navigation }) {
           {hasValidId ? (
             <TextInput
               style={styles.amountInput}
-              value={editingAmounts[`total_${order.id}`] !== undefined 
-                ? editingAmounts[`total_${order.id}`] 
+              value={editingAmounts[`total_${orderId}`] !== undefined 
+                ? editingAmounts[`total_${orderId}`] 
                 : (order.total_amt?.toString() || '0')}
               onChangeText={(text) => setEditingAmounts(prev => ({
                 ...prev,
-                [`total_${order.id}`]: text
+                [`total_${orderId}`]: text
               }))}
               onBlur={(e) => {
-                const value = editingAmounts[`total_${order.id}`] || e.nativeEvent.text;
+                const value = editingAmounts[`total_${orderId}`] || e.nativeEvent.text;
                 handleUpdateTotalAmount(order.id, value);
                 setEditingAmounts(prev => {
                   const newState = { ...prev };
-                  delete newState[`total_${order.id}`];
+                  delete newState[`total_${orderId}`];
                   return newState;
                 });
               }}
@@ -488,19 +745,19 @@ export default function OrdersOverviewScreen({ navigation }) {
           {hasValidId ? (
             <TextInput
               style={styles.amountInput}
-              value={editingAmounts[`payment_${order.id}`] !== undefined 
-                ? editingAmounts[`payment_${order.id}`] 
+              value={editingAmounts[`payment_${orderId}`] !== undefined 
+                ? editingAmounts[`payment_${orderId}`] 
                 : (order.payment_amount?.toString() || '0')}
               onChangeText={(text) => setEditingAmounts(prev => ({
                 ...prev,
-                [`payment_${order.id}`]: text
+                [`payment_${orderId}`]: text
               }))}
               onBlur={(e) => {
-                const value = editingAmounts[`payment_${order.id}`] || e.nativeEvent.text;
+                const value = editingAmounts[`payment_${orderId}`] || e.nativeEvent.text;
                 handleUpdatePaymentAmount(order.id, value);
                 setEditingAmounts(prev => {
                   const newState = { ...prev };
-                  delete newState[`payment_${order.id}`];
+                  delete newState[`payment_${orderId}`];
                   return newState;
                 });
               }}
@@ -519,11 +776,11 @@ export default function OrdersOverviewScreen({ navigation }) {
             <>
               <TouchableOpacity
                 style={styles.dropdownButton}
-                onPress={() => toggleWorkerDropdown(order.id)}
+                onPress={() => toggleWorkerDropdown(orderId)}
               >
                 <Text style={styles.dropdownButtonText}>
-                  {selectedWorkers[order.id]?.length > 0 
-                    ? `${selectedWorkers[order.id].length} selected` 
+                  {selectedWorkers[orderId]?.length > 0 
+                    ? `${selectedWorkers[orderId].length} selected` 
                     : 'Select Workers'}
                 </Text>
                 <Text style={styles.dropdownArrow}>{isWorkerDropdownOpen ? '▲' : '▼'}</Text>
@@ -735,6 +992,38 @@ export default function OrdersOverviewScreen({ navigation }) {
     setFilters(prev => ({ ...prev, deliveryDate: '' }));
   };
 
+  const exportOrdersToJSON = () => {
+    try {
+      const jsonData = JSON.stringify({
+        export_timestamp: new Date().toISOString(),
+        total_orders: orders.length,
+        orders: orders
+      }, null, 2);
+      
+      // For web - create download link
+      if (Platform.OS === 'web') {
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `orders-export-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        Alert.alert('Success', 'Orders exported successfully!');
+      } else {
+        // For mobile - copy to clipboard
+        console.log('\n📋 === ORDERS JSON EXPORT ===');
+        console.log(jsonData);
+        console.log('📋 === END EXPORT ===\n');
+        Alert.alert('Export Complete', 'Orders JSON data has been logged to console. Check browser console for full data.');
+      }
+    } catch (error) {
+      Alert.alert('Export Error', `Failed to export: ${error.message}`);
+    }
+  };
+
   if (loading && orders.length === 0) {
     return (
       <View style={styles.loadingContainer}>
@@ -781,6 +1070,12 @@ export default function OrdersOverviewScreen({ navigation }) {
         />
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
           <Text style={styles.searchButtonText}>Search</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.searchButton, { backgroundColor: '#27ae60', marginLeft: 8 }]} 
+          onPress={exportOrdersToJSON}
+        >
+          <Text style={styles.searchButtonText}>Export JSON</Text>
         </TouchableOpacity>
       </View>
 

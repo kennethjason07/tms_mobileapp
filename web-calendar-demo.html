@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Calendar Demo - TMS Orders</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .filter-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        
+        .filter-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .date-input-demo {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            fontSize: 14px;
+            background-color: #fff;
+            color: #333;
+            min-width: 150px;
+            height: 40px;
+            outline: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .date-input-demo:hover {
+            border-color: #2980b9;
+        }
+        
+        .date-input-demo:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .clear-button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .clear-button:hover {
+            background: #c0392b;
+        }
+        
+        .result-display {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 6px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .orders-table th,
+        .orders-table td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        .orders-table th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .orders-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .orders-table tr:hover {
+            background: #f0f8ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>📅 Web Calendar Demo - TMS Orders</h1>
+        <p>This demonstrates the new calendar date picker for filtering delivery dates in the web version.</p>
+        
+        <div class="filter-section">
+            <label class="filter-label">Delivery Date Filter:</label>
+            <input 
+                type="date" 
+                class="date-input-demo" 
+                id="deliveryDateInput"
+                title="Select delivery date"
+            >
+            <button class="clear-button" id="clearDate" title="Clear date">✕</button>
+        </div>
+        
+        <div class="result-display" id="resultDisplay" style="display: none;">
+            <strong>📋 Filter Applied:</strong>
+            <p id="resultText"></p>
+        </div>
+        
+        <h3>Sample Orders Table</h3>
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Bill Number</th>
+                    <th>Garment Item</th>
+                    <th>Delivery Status</th>
+                    <th>Delivery Date</th>
+                    <th>Payment Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>5925</td>
+                    <td>8052</td>
+                    <td>Pant</td>
+                    <td>pending</td>
+                    <td>2025-09-24</td>
+                    <td>paid</td>
+                </tr>
+                <tr>
+                    <td>5924</td>
+                    <td>8051</td>
+                    <td>Pant 1</td>
+                    <td>pending</td>
+                    <td>2025-09-23</td>
+                    <td>pending</td>
+                </tr>
+                <tr>
+                    <td>5923</td>
+                    <td>8051</td>
+                    <td>Pant 2</td>
+                    <td>pending</td>
+                    <td>2025-09-23</td>
+                    <td>pending</td>
+                </tr>
+                <tr>
+                    <td>5922</td>
+                    <td>8050</td>
+                    <td>Shirt</td>
+                    <td>pending</td>
+                    <td>2025-09-24</td>
+                    <td>paid</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 30px; padding: 20px; background: #e3f2fd; border-radius: 6px;">
+            <h4>✅ Benefits of the New Calendar:</h4>
+            <ul>
+                <li><strong>Easy Date Selection:</strong> Click to open calendar picker</li>
+                <li><strong>Visual Interface:</strong> No need to type dates manually</li>
+                <li><strong>Date Validation:</strong> Prevents invalid date formats</li>
+                <li><strong>Quick Clear:</strong> Clear button to remove filter</li>
+                <li><strong>Hover Effects:</strong> Visual feedback on interaction</li>
+                <li><strong>Focus States:</strong> Clear indication when selected</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const dateInput = document.getElementById('deliveryDateInput');
+        const clearButton = document.getElementById('clearDate');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const resultText = document.getElementById('resultText');
+        
+        // Handle date input changes
+        dateInput.addEventListener('change', function() {
+            const selectedDate = this.value;
+            if (selectedDate) {
+                resultDisplay.style.display = 'block';
+                resultText.textContent = `Filtering orders for delivery date: ${selectedDate}`;
+                
+                // Demo: Filter table rows (simple demonstration)
+                const rows = document.querySelectorAll('.orders-table tbody tr');
+                rows.forEach(row => {
+                    const deliveryDateCell = row.cells[4].textContent;
+                    if (deliveryDateCell === selectedDate) {
+                        row.style.display = '';
+                        row.style.backgroundColor = '#d4edda'; // Highlight matching rows
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            } else {
+                resultDisplay.style.display = 'none';
+                // Show all rows when no filter
+                const rows = document.querySelectorAll('.orders-table tbody tr');
+                rows.forEach(row => {
+                    row.style.display = '';
+                    row.style.backgroundColor = '';
+                });
+            }
+        });
+        
+        // Handle clear button
+        clearButton.addEventListener('click', function() {
+            dateInput.value = '';
+            resultDisplay.style.display = 'none';
+            
+            // Show all rows when cleared
+            const rows = document.querySelectorAll('.orders-table tbody tr');
+            rows.forEach(row => {
+                row.style.display = '';
+                row.style.backgroundColor = '';
+            });
+        });
+        
+        // Show/hide clear button based on input value
+        dateInput.addEventListener('input', function() {
+            clearButton.style.display = this.value ? 'inline-flex' : 'none';
+        });
+        
+        // Initially hide clear button
+        clearButton.style.display = 'none';
+    </script>
+</body>
+</html>

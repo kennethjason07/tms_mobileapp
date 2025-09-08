@@ -422,46 +422,46 @@ export default function NewBillScreen({ navigation }) {
         return false;
       }
 
-      let orderData = {
-        bill_id: billId,
-        billnumberinput2: orderNumber ? orderNumber.toString() : null, // Ensure string or null
-        garment_type: getGarmentTypes(),
-        order_date: todayStr, // force today
-        due_date: billData.due_date,
-        total_amt: parseFloat(totals.total_amt),
-        payment_amount: parseFloat(billData.payment_amount) || 0,
-        payment_status: billData.payment_status,
-        payment_mode: billData.payment_mode,
-        status: 'pending',
-        Work_pay: null, // Only set after workers are assigned
-      };
-      // Sanitize orderData
-      Object.keys(orderData).forEach(key => {
-        if (orderData[key] === undefined || orderData[key] === 'undefined') {
-          orderData[key] = null;
-        }
+      // Create individual orders for each garment based on quantities
+      const garmentOrders = createIndividualGarmentOrders(billId, orderNumber, todayStr);
+      
+      if (garmentOrders.length === 0) {
+        Alert.alert('Error', 'No garments to create orders for.');
+        setSaving(false);
+        return false;
+      }
+      
+      console.log(`Creating ${garmentOrders.length} individual garment orders:`);
+      garmentOrders.forEach((order, i) => {
+        console.log(`  ${i + 1}. ${order.garment_type}`);
       });
-      // Log all fields for debugging
-      console.log('Validated orderData fields:', orderData);
-      if (!orderData.bill_id || !orderData.billnumberinput2) {
-        Alert.alert('Error', 'Order number or bill ID is missing. Please try again.');
-        setSaving(false);
-        return false;
+      
+      // Create all individual orders
+      const orderResults = [];
+      for (const orderData of garmentOrders) {
+        try {
+          console.log(`Creating order for: ${orderData.garment_type}`);
+          const orderResult = await SupabaseAPI.createOrder(orderData);
+          
+          if (!orderResult || !orderResult[0] || typeof orderResult[0].id !== 'number') {
+            throw new Error(`Failed to create ${orderData.garment_type} order`);
+          }
+          
+          orderResults.push(orderResult[0]);
+          console.log(`✅ Created ${orderData.garment_type} order with ID: ${orderResult[0].id}`);
+        } catch (error) {
+          console.error(`❌ Failed to create ${orderData.garment_type} order:`, error);
+          Alert.alert('Error', `Failed to create ${orderData.garment_type} order: ${error.message}`);
+          setSaving(false);
+          return false;
+        }
       }
-      console.log('Creating order with data:', orderData);
-      const orderResult = await SupabaseAPI.createOrder(orderData);
-      console.log('Order save result:', orderResult);
-
-      // If orderResult is an array and the billnumberinput2 matches, it's a duplicate
-      if (Array.isArray(orderResult) && orderResult.length > 0 && orderResult[0].billnumberinput2 === orderData.billnumberinput2) {
-        Alert.alert('Error', `Order with bill number ${orderData.billnumberinput2} already exists. Please use a different order number.`);
-        setSaving(false);
-        return false;
-      }
-
-      // Only proceed if a new order was actually created
-      if (!orderResult || !orderResult[0] || typeof orderResult[0].id !== 'number') {
-        Alert.alert('Error', 'Order creation failed. Please try again.');
+      
+      console.log(`✅ Successfully created ${orderResults.length} individual garment orders`);
+      
+      // Check if all orders were created successfully
+      if (orderResults.length !== garmentOrders.length) {
+        Alert.alert('Error', 'Some orders failed to create. Please try again.');
         setSaving(false);
         return false;
       }
@@ -477,9 +477,20 @@ export default function NewBillScreen({ navigation }) {
 
       // Reset form after successful save
       resetForm();
+      
+      // Create success message with garment breakdown
+      const garmentSummary = garmentOrders.reduce((acc, order) => {
+        acc[order.garment_type] = (acc[order.garment_type] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const garmentList = Object.entries(garmentSummary)
+        .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
+        .join(', ');
+      
       Alert.alert(
         'Success', 
-        `Bill created successfully with bill number: ${orderNumber}!`,
+        `Bill ${orderNumber} created successfully!\n\nIndividual orders created:\n${garmentList}\n\nTotal: ${orderResults.length} garment orders`,
         [
           {
             text: 'View Orders',
@@ -503,6 +514,51 @@ export default function NewBillScreen({ navigation }) {
     }
   };
 
+  // Create individual order objects for each garment based on quantities
+  const createIndividualGarmentOrders = (billId, orderNumber, todayStr) => {
+    const orders = [];
+    const totals = calculateTotals();
+    
+    // Define garment types and their quantities
+    const garmentTypes = [
+      { type: 'Suit', qty: parseInt(itemizedBill.suit_qty) || 0 },
+      { type: 'Safari/Jacket', qty: parseInt(itemizedBill.safari_qty) || 0 },
+      { type: 'Pant', qty: parseInt(itemizedBill.pant_qty) || 0 },
+      { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0 },
+      { type: 'Sadri', qty: parseInt(itemizedBill.sadri_qty) || 0 }
+    ];
+    
+    // Create individual order for each garment instance
+    garmentTypes.forEach(({ type, qty }) => {
+      for (let i = 0; i < qty; i++) {
+        const orderData = {
+          bill_id: billId,
+          billnumberinput2: orderNumber ? orderNumber.toString() : null,
+          garment_type: type, // Individual garment type (not combined)
+          order_date: todayStr,
+          due_date: billData.due_date,
+          total_amt: parseFloat(totals.total_amt),
+          payment_amount: parseFloat(billData.payment_amount) || 0,
+          payment_status: billData.payment_status,
+          payment_mode: billData.payment_mode,
+          status: 'pending',
+          Work_pay: null, // Only set after workers are assigned
+        };
+        
+        // Sanitize orderData
+        Object.keys(orderData).forEach(key => {
+          if (orderData[key] === undefined || orderData[key] === 'undefined') {
+            orderData[key] = null;
+          }
+        });
+        
+        orders.push(orderData);
+      }
+    });
+    
+    return orders;
+  };
+  
   const getGarmentTypes = () => {
     const types = [];
     if (parseFloat(itemizedBill.suit_qty) > 0) types.push('Suit');
