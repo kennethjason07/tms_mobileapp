@@ -109,26 +109,39 @@ export const SupabaseAPI = {
       console.log('🔢 HIGHEST BILL NUMBER DETECTED:', highestBillNumber);
       
       // Get all orders first - ordered by billnumberinput2 descending to ensure highest bills come first
+      // Add a reasonable limit to prevent performance issues with massive datasets
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('*')
         .order('billnumberinput2', { ascending: false })
         .order('id', { ascending: false }) // Secondary sort by ID descending
+        .limit(2000) // Limit to recent 2000 orders to prevent performance issues
       
       if (ordersError) {
         console.error('Orders fetch error:', ordersError)
         throw ordersError
       }
 
+      console.log(`📊 ORDERS LOADED: ${orders?.length || 0} orders`);      
+      
       // Verify the highest bill number is first
       if (orders && orders.length > 0) {
         const firstOrderBillNumber = Number(orders[0].billnumberinput2) || 0;
         console.log('🎯 FIRST ORDER BILL NUMBER:', firstOrderBillNumber);
+        console.log(`🎯 FIRST ORDER ID: ${orders[0].id}`);
+        console.log(`🎯 FIRST ORDER GARMENT: ${orders[0].garment_type}`);
         console.log('✅ VERIFICATION: Highest bill number matches first order?', 
           firstOrderBillNumber === highestBillNumber ? 'YES' : 'NO');
         if (firstOrderBillNumber !== highestBillNumber) {
           console.warn('⚠️ WARNING: First order bill number does not match highest bill number!');
+          console.warn(`Expected: ${highestBillNumber}, Got: ${firstOrderBillNumber}`);
         }
+        
+        // Show first few orders for debugging
+        console.log('\n📋 TOP 3 ORDERS FROM SUPABASE:');
+        orders.slice(0, 3).forEach((order, index) => {
+          console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}, Garment: ${order.garment_type}`);
+        });
       }
 
       // Get all bills
