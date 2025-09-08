@@ -104,15 +104,31 @@ export const SupabaseAPI = {
   // Orders API (replaces route3.py) - Fixed to handle relationships properly
   async getOrders() {
     try {
-      // Get all orders first
+      // First, get the highest bill number to verify our sorting will be correct
+      const highestBillNumber = await this.getHighestBillNumber();
+      console.log('🔢 HIGHEST BILL NUMBER DETECTED:', highestBillNumber);
+      
+      // Get all orders first - ordered by billnumberinput2 descending to ensure highest bills come first
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('*')
-        .order('order_date', { ascending: false })
+        .order('billnumberinput2', { ascending: false })
+        .order('id', { ascending: false }) // Secondary sort by ID descending
       
       if (ordersError) {
         console.error('Orders fetch error:', ordersError)
         throw ordersError
+      }
+
+      // Verify the highest bill number is first
+      if (orders && orders.length > 0) {
+        const firstOrderBillNumber = Number(orders[0].billnumberinput2) || 0;
+        console.log('🎯 FIRST ORDER BILL NUMBER:', firstOrderBillNumber);
+        console.log('✅ VERIFICATION: Highest bill number matches first order?', 
+          firstOrderBillNumber === highestBillNumber ? 'YES' : 'NO');
+        if (firstOrderBillNumber !== highestBillNumber) {
+          console.warn('⚠️ WARNING: First order bill number does not match highest bill number!');
+        }
       }
 
       // Get all bills
@@ -188,6 +204,7 @@ export const SupabaseAPI = {
 
   async searchOrders(billNumber) {
     try {
+      console.log(`\n🔍 SUPABASE SEARCH: Looking for bill number "${billNumber}"`);
       let orders = [];
 
       // Try exact numeric match first (since billnumberinput2 is numeric)
@@ -196,11 +213,18 @@ export const SupabaseAPI = {
         .from('orders')
         .select('*')
           .eq('billnumberinput2', billNumber)
-        .order('order_date', { ascending: false })
+        .order('billnumberinput2', { ascending: false })
+        .order('id', { ascending: false })
       
         if (ordersDataError) throw ordersDataError
 
         if (ordersData && ordersData.length > 0) {
+          console.log(`✅ EXACT MATCH: Found ${ordersData.length} orders for bill ${billNumber}`);
+          console.log('First 3 exact match results:');
+          ordersData.slice(0, 3).forEach((order, index) => {
+            console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}`);
+          });
+          
           // Get related bills
           const billIds = [...new Set(ordersData.map(order => order.bill_id))]
           const { data: bills, error: billsError } = await supabase
@@ -221,7 +245,9 @@ export const SupabaseAPI = {
             customer_mobile: billsMap[order.bill_id]?.mobile_number || null,
             customer_name: billsMap[order.bill_id]?.customer_name || null
           }))
-          }
+          } else {
+          console.log('❌ EXACT MATCH: No orders found, trying partial match...');
+        }
         } catch (numericSearchError) {
         // Numeric search failed, continue to cast search
       }
@@ -233,11 +259,18 @@ export const SupabaseAPI = {
             .from('orders')
             .select('*')
             .ilike('billnumberinput2::text', `%${billNumber}%`)
-            .order('order_date', { ascending: false })
+            .order('billnumberinput2', { ascending: false })
+            .order('id', { ascending: false })
           
           if (ordersDataError) throw ordersDataError
 
           if (ordersData && ordersData.length > 0) {
+            console.log(`✅ PARTIAL MATCH: Found ${ordersData.length} orders containing "${billNumber}"`);
+            console.log('First 5 partial match results:');
+            ordersData.slice(0, 5).forEach((order, index) => {
+              console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}`);
+            });
+            
             // Get related bills
             const billIds = [...new Set(ordersData.map(order => order.bill_id))]
             const { data: bills, error: billsError } = await supabase
@@ -258,6 +291,8 @@ export const SupabaseAPI = {
               customer_mobile: billsMap[order.bill_id]?.mobile_number || null,
               customer_name: billsMap[order.bill_id]?.customer_name || null
             }))
+          } else {
+            console.log('❌ PARTIAL MATCH: No orders found');
           }
         } catch (castSearchError) {
           throw castSearchError;
@@ -320,6 +355,15 @@ export const SupabaseAPI = {
           customer_name: order.bills?.customer_name || null     // Also include customer name
         }
       })
+
+      console.log(`🏆 FINAL SEARCH RESULTS: ${ordersWithRelations.length} orders processed`);
+      if (ordersWithRelations.length > 0) {
+        console.log('Final search results (first 5):');
+        ordersWithRelations.slice(0, 5).forEach((order, index) => {
+          console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}`);
+        });
+      }
+      console.log('🔍 SUPABASE SEARCH COMPLETED\n');
 
       return ordersWithRelations
     } catch (error) {
@@ -1197,6 +1241,28 @@ export const SupabaseAPI = {
     } catch (error) {
       console.error('Error fetching measurements by mobile number:', error);
       throw error;
+    }
+  },
+
+  // Get highest bill number from orders table
+  async getHighestBillNumber() {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('billnumberinput2')
+        .not('billnumberinput2', 'is', null)
+        .order('billnumberinput2', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        throw error;
+      }
+      
+      return data ? Number(data.billnumberinput2) : 0;
+    } catch (error) {
+      console.error('Error getting highest bill number:', error);
+      return 0; // Return 0 if no bill numbers found or error occurs
     }
   }
 }

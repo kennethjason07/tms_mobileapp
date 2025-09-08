@@ -26,22 +26,86 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-// Function to expand orders by garment type and quantity
-const expandOrdersByGarmentAndQuantity = (orders) => {
-  // Group orders by bill_id first
+// Function to expand orders by garment type and quantity while preserving sort order
+// NOTE: Based on schema analysis, orders table already contains individual garments
+// This function should only sort and prepare orders, not expand them
+const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = null) => {
+  console.log('\n📋 EXPANSION FUNCTION: Processing orders...');
+  console.log(`📊 Input orders: ${orders.length}`);
+  
+  // Check if orders are already individual garments (they should be based on schema)
+  const sampleOrder = orders[0];
+  if (sampleOrder && sampleOrder.garment_type) {
+    console.log('✅ Orders are already individual garments (garment_type exists)');
+    console.log('🔄 Skipping expansion, just sorting and preparing...');
+    
+    // Just sort the existing orders
+    const sortedOrders = orders.sort((a, b) => {
+      const billNumberA = Number(a.billnumberinput2) || 0;
+      const billNumberB = Number(b.billnumberinput2) || 0;
+      
+      if (billNumberB !== billNumberA) {
+        return billNumberB - billNumberA; // Descending: highest first
+      }
+      
+      // Secondary sort by order ID descending if bill numbers are same
+      return (b.id || 0) - (a.id || 0);
+    });
+    
+    console.log('\n📋 FINAL SORT VERIFICATION:');
+    console.log('Total orders (no expansion needed):', sortedOrders.length);
+    if (sortedOrders.length > 0) {
+      const actualHighestBill = Number(sortedOrders[0].billnumberinput2) || 0;
+      console.log('Top 5 orders after sorting:');
+      sortedOrders.slice(0, 5).forEach((order, index) => {
+        console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}, Garment: ${order.garment_type}`);
+      });
+      console.log(`Actual highest bill number in results: ${actualHighestBill}`);
+      if (expectedHighestBillNumber !== null) {
+        console.log(`Expected highest bill number: ${expectedHighestBillNumber}`);
+        console.log(`✅ VERIFICATION: First order matches expected highest?`, 
+          actualHighestBill === expectedHighestBillNumber ? 'YES ✓' : `NO ✗ (Expected: ${expectedHighestBillNumber}, Got: ${actualHighestBill})`);
+      }
+    }
+    
+    return sortedOrders;
+  }
+  
+  // If orders don't have garment_type, proceed with legacy expansion logic
+  console.log('⚠️ Orders do not have garment_type, proceeding with expansion...');
+  
+  // First, ensure orders are sorted by bill number descending
+  const sortedOrders = orders.sort((a, b) => {
+    const billNumberA = Number(a.billnumberinput2) || 0;
+    const billNumberB = Number(b.billnumberinput2) || 0;
+    
+    if (billNumberB !== billNumberA) {
+      return billNumberB - billNumberA; // Descending: highest first
+    }
+    
+    // Secondary sort by order ID descending if bill numbers are same
+    return (b.id || 0) - (a.id || 0);
+  });
+
+  // Group orders by bill_id first (maintaining sort order)
   const ordersByBill = {};
-  orders.forEach(order => {
+  const billOrder = []; // Track the order of bills
+  
+  sortedOrders.forEach(order => {
     const billId = order.bill_id || 'no-bill';
     if (!ordersByBill[billId]) {
       ordersByBill[billId] = [];
+      billOrder.push(billId); // Preserve the order we encounter bills
     }
     ordersByBill[billId].push(order);
   });
   
   const finalExpandedOrders = [];
   
-  // Process each bill group to create proper garment rows
-  Object.entries(ordersByBill).forEach(([billId, billOrders]) => {
+  // Process each bill group in the order we encountered them (highest bill numbers first)
+  billOrder.forEach(billId => {
+    const billOrders = ordersByBill[billId];
+    
     // Get the first order to access bill data
     const firstOrder = billOrders[0];
     const bill = firstOrder.bills || {};
@@ -80,7 +144,44 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
     });
   });
   
-  return finalExpandedOrders;
+  // Final sort to ensure the expanded orders maintain bill number descending order
+  const finalSorted = finalExpandedOrders.sort((a, b) => {
+    const billNumberA = Number(a.billnumberinput2) || 0;
+    const billNumberB = Number(b.billnumberinput2) || 0;
+    
+    if (billNumberB !== billNumberA) {
+      return billNumberB - billNumberA; // Descending: highest first
+    }
+    
+    // Secondary sort by original order ID
+    const orderIdA = Number(a.original_id || a.id) || 0;
+    const orderIdB = Number(b.original_id || b.id) || 0;
+    if (orderIdB !== orderIdA) {
+      return orderIdB - orderIdA;
+    }
+    
+    // Tertiary sort by garment index to maintain consistent order within same bill/order
+    return (a.garment_index || 0) - (b.garment_index || 0);
+  });
+  
+  console.log('\n📋 FINAL SORT VERIFICATION:');
+  console.log('Total expanded orders:', finalSorted.length);
+  if (finalSorted.length > 0) {
+    const actualHighestBill = Number(finalSorted[0].billnumberinput2) || 0;
+    console.log('Top 5 orders after expansion and final sort:');
+    finalSorted.slice(0, 5).forEach((order, index) => {
+      console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}, Garment: ${order.garment_type}`);
+    });
+    console.log(`Actual highest bill number in results: ${actualHighestBill}`);
+    if (expectedHighestBillNumber !== null) {
+      console.log(`Expected highest bill number: ${expectedHighestBillNumber}`);
+      console.log(`✅ VERIFICATION: First order matches expected highest?`, 
+        actualHighestBill === expectedHighestBillNumber ? 'YES ✓' : `NO ✗ (Expected: ${expectedHighestBillNumber}, Got: ${actualHighestBill})`);
+    }
+    console.log(`Lowest bill number in top 10: ${Number(finalSorted[Math.min(9, finalSorted.length - 1)].billnumberinput2) || 0}`);
+  }
+  
+  return finalSorted;
 };
 
 export default function OrdersOverviewScreen({ navigation }) {
@@ -121,6 +222,14 @@ export default function OrdersOverviewScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
+      
+      // Get the highest bill number first for verification
+      const highestBillNumber = await SupabaseAPI.getHighestBillNumber();
+      console.log('\n🎯 === EXPECTED HIGHEST BILL NUMBER ===');
+      console.log('📊 Highest bill number from query:', highestBillNumber);
+      console.log('✅ This should be the first row in orders overview');
+      console.log('🎯 === END HIGHEST BILL VERIFICATION ===\n');
+      
       const [ordersData, workersData] = await Promise.all([
         SupabaseAPI.getOrders(),
         SupabaseAPI.getWorkers()
@@ -229,7 +338,7 @@ export default function OrdersOverviewScreen({ navigation }) {
       }
       
       // Expand orders by garment type and quantity
-      const expandedOrders = expandOrdersByGarmentAndQuantity(processedOrders);
+      const expandedOrders = expandOrdersByGarmentAndQuantity(processedOrders, highestBillNumber);
       
       console.log('\n📎 Total expanded orders:', expandedOrders.length);
       if (expandedOrders.length > 0) {
@@ -306,7 +415,17 @@ export default function OrdersOverviewScreen({ navigation }) {
 
     try {
       setLoading(true);
+      console.log(`\n🔍 === SEARCH STARTED FOR: "${searchQuery}" ===`);
+      
       const data = await SupabaseAPI.searchOrders(searchQuery);
+      console.log(`📊 Search returned ${data?.length || 0} orders`);
+      
+      if (!data || data.length === 0) {
+        console.log('❌ No search results found');
+        setFilteredOrders([]);
+        return;
+      }
+      
       // Process search results to match frontend structure
       const processedData = data.map(order => ({
         ...order,
@@ -314,22 +433,49 @@ export default function OrdersOverviewScreen({ navigation }) {
         workers: order.order_worker_association?.map(assoc => assoc.workers) || []
       }));
       
-      // Sort by billnumberinput2 descending (8023, 8022, 8021... with latest at top)
+      console.log('\n📋 RAW SEARCH RESULTS (before sorting):');
+      processedData.slice(0, 5).forEach((order, index) => {
+        console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}`);
+      });
+      
+      // Sort by billnumberinput2 descending (search results should show highest bill numbers first)
       const sortedData = processedData.sort((a, b) => {
         const billNumberA = Number(a.billnumberinput2) || 0;
         const billNumberB = Number(b.billnumberinput2) || 0;
         
         if (billNumberB !== billNumberA) {
-          return billNumberB - billNumberA; // Descending: 8023, 8022, 8021...
+          return billNumberB - billNumberA; // Descending: highest first
         }
         
         return (b.id || 0) - (a.id || 0);
       });
       
+      console.log('\n📋 SORTED SEARCH RESULTS (after sorting):');
+      sortedData.slice(0, 5).forEach((order, index) => {
+        console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}`);
+      });
+      
+      // Find the highest bill number in search results for verification
+      const searchResultHighestBill = Math.max(...sortedData.map(order => Number(order.billnumberinput2) || 0));
+      console.log(`\n🎯 Highest bill number in search results: ${searchResultHighestBill}`);
+      console.log(`🎯 First result bill number: ${Number(sortedData[0].billnumberinput2) || 0}`);
+      console.log(`✅ Search results properly sorted? ${searchResultHighestBill === (Number(sortedData[0].billnumberinput2) || 0) ? 'YES' : 'NO'}`);
+      
       // Expand search results by garment type and quantity
-      const expandedSearchResults = expandOrdersByGarmentAndQuantity(sortedData);
+      const expandedSearchResults = expandOrdersByGarmentAndQuantity(sortedData, searchResultHighestBill);
+      
+      console.log(`\n📦 Expanded search results: ${expandedSearchResults.length} total items`);
+      if (expandedSearchResults.length > 0) {
+        console.log('🏆 Top 5 expanded search results:');
+        expandedSearchResults.slice(0, 5).forEach((order, index) => {
+          console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}, Garment: ${order.garment_type}`);
+        });
+      }
+      
+      console.log('🔍 === SEARCH COMPLETED ===\n');
       setFilteredOrders(expandedSearchResults);
     } catch (error) {
+      console.error('Search error:', error);
       Alert.alert('Error', `Search failed: ${error.message}`);
     } finally {
       setLoading(false);
