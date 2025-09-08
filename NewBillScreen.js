@@ -1,4 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+// Test function to verify template system works
+const testTemplateSystem = () => {
+  console.log('🧪 Testing template system...');
+  const testBillData = {
+    customer_name: 'Test Customer',
+    mobile_number: '1234567890',
+    order_date: '2024-01-15',
+    due_date: '2024-01-25',
+    billnumberinput2: '1001'
+  };
+  
+  const testItemizedBill = {
+    suit_qty: '1',
+    suit_amount: '2500',
+    pant_qty: '1', 
+    pant_amount: '800',
+    shirt_qty: '2',
+    shirt_amount: '1000'
+  };
+  
+  try {
+    const html = generateBillHTMLFromTemplate(testBillData, testItemizedBill, '1001');
+    console.log('✅ Template system working! HTML generated:', html.length, 'characters');
+    return true;
+  } catch (error) {
+    console.error('❌ Template system failed:', error);
+    return false;
+  }
+};
 import {
   View,
   Text,
@@ -45,6 +74,419 @@ function generateAllMeasurementsTable(measurements) {
     )
     .join('');
 }
+
+// Template-based bill generation functions
+const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber) => {
+  let htmlTemplate;
+  
+  // Try to read the actual print-format.html file
+  try {
+    if (Platform.OS === 'web' && typeof fetch !== 'undefined') {
+      console.log('📄 Attempting to load print-format.html file...');
+      const response = await fetch('./print-format.html');
+      if (response.ok) {
+        htmlTemplate = await response.text();
+        console.log('✅ Successfully loaded print-format.html file!');
+      } else {
+        throw new Error('Failed to fetch print-format.html');
+      }
+    } else {
+      throw new Error('Not web platform, using inline template');
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not load print-format.html, using inline template:', error.message);
+    // Fallback to inline template (copy of print-format.html content)
+    htmlTemplate = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bill Print Format</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      background: white;
+      color: #333;
+      font-size: 12px;
+      line-height: 1.3;
+    }
+    .bill-container {
+      width: 400px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: #4a4a4a;
+      color: white;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo {
+      background: white;
+      color: #333;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      border-radius: 2px;
+    }
+    .shop-name-left {
+      font-size: 16px;
+      font-weight: bold;
+      color: #ff6600;
+      margin: 0;
+      line-height: 1;
+    }
+    .shop-prop {
+      font-size: 10px;
+      color: white;
+      margin: 0;
+      line-height: 1;
+    }
+    .shop-name-right {
+      color: #ff6600;
+      font-size: 16px;
+      font-weight: bold;
+      margin-left: 4px;
+    }
+    .header-right {
+      text-align: right;
+      font-size: 9px;
+      line-height: 1.2;
+    }
+    .address-bar {
+      background: #f5f5f5;
+      padding: 4px 12px;
+      font-size: 9px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    .customer-section {
+      padding: 12px;
+    }
+    .section-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #333;
+    }
+    .order-number {
+      margin-bottom: 8px;
+    }
+    .order-label {
+      color: #0066cc;
+      font-weight: bold;
+      font-size: 11px;
+    }
+    .order-value {
+      color: #0066cc;
+      font-size: 11px;
+    }
+    .customer-grid {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .field-group {
+      flex: 1;
+    }
+    .field-label {
+      font-weight: bold;
+      color: #333;
+      font-size: 11px;
+      margin-bottom: 3px;
+    }
+    .field-value {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 4px 6px;
+      font-size: 11px;
+      min-height: 16px;
+    }
+    .main-content {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .items-section {
+      flex: 1;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #333;
+      font-size: 11px;
+    }
+    .items-table th {
+      background: #f0f0f0;
+      border: 1px solid #333;
+      padding: 6px 8px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .items-table td {
+      border: 1px solid #333;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    .items-table td:first-child {
+      text-align: left;
+    }
+    .total-row {
+      background: #f8f8f8;
+      font-weight: bold;
+    }
+    .suit-specialist {
+      width: 80px;
+      background: #333;
+      color: white;
+      padding: 8px;
+      text-align: center;
+      border-radius: 4px;
+      font-size: 8px;
+      line-height: 1.2;
+    }
+    .specialist-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      font-size: 9px;
+    }
+    .suit-icon {
+      width: 50px;
+      height: 60px;
+      background: white;
+      margin: 0 auto 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-size: 24px;
+    }
+    .specialist-text {
+      margin-bottom: 2px;
+    }
+    .footer {
+      text-align: center;
+      padding: 8px;
+      border-top: 1px solid #ddd;
+      font-size: 11px;
+    }
+    .footer-main {
+      font-weight: bold;
+      color: #333;
+    }
+    .footer-holiday {
+      color: #ff6600;
+      margin-top: 2px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="bill-container">
+    <div class="header">
+      <div class="header-left">
+        <div class="logo">Y</div>
+        <div>
+          <div class="shop-name-left">Yak's</div>
+          <div class="shop-prop">Prop : Jaganath Sidda</div>
+        </div>
+        <div class="shop-name-right">Men's Wear</div>
+      </div>
+      <div class="header-right">
+        <div>Shop : 8660897168</div>
+        <div>9448678033</div>
+      </div>
+    </div>
+    
+    <div class="address-bar">
+      Sulgunte Complex, Opp. Old Service Stand, Near SBI Bank, BIDAR-585 401 (K.S.)
+    </div>
+    
+    <div class="customer-section">
+      <div class="section-title">
+        Customer Information
+      </div>
+      
+      <div class="order-number">
+        <span class="order-label">Order Number: </span>
+        <span class="order-value">{{ORDER_NUMBER}}</span>
+      </div>
+      
+      <div class="customer-grid">
+        <div class="field-group">
+          <div class="field-label">Customer Name:</div>
+          <div class="field-value">
+            {{CUSTOMER_NAME}}
+          </div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Mobile Number:</div>
+          <div class="field-value">
+            {{MOBILE_NUMBER}}
+          </div>
+        </div>
+      </div>
+      
+      <div class="customer-grid">
+        <div class="field-group">
+          <div class="field-label">Date:</div>
+          <div class="field-value">
+            {{ORDER_DATE}}
+          </div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Delivery Date:</div>
+          <div class="field-value">
+            {{DUE_DATE}}
+          </div>
+        </div>
+      </div>
+      
+      <div class="main-content">
+        <div class="items-section">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Particulars</th>
+                <th style="width: 60px;">Qty</th>
+                <th style="width: 80px;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{BILL_ITEMS_TABLE}}
+              <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td><strong>{{TOTAL_QUANTITY}}</strong></td>
+                <td><strong>₹{{TOTAL_AMOUNT}}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="suit-specialist">
+          <div class="specialist-title">SUIT SPECIALIST</div>
+          <div class="suit-icon">
+            👔
+          </div>
+          <div class="specialist-text">Latest Collection</div>
+          <div class="specialist-text">Always Available</div>
+          <div class="specialist-text">Stitching Delivery</div>
+          <div class="specialist-text">Service Available</div>
+          <div class="specialist-text">Wash & Servicing</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div class="footer-main">Thank You, Visit Again!</div>
+      <div class="footer-holiday">Sunday Holiday</div>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  // Helper functions
+  function generateBillItemsTable() {
+    const items = [
+      { name: 'Suit', qty: itemizedBill.suit_qty || '0', amount: itemizedBill.suit_amount || '0' },
+      { name: 'Safari/Jacket', qty: itemizedBill.safari_qty || '0', amount: itemizedBill.safari_amount || '0' },
+      { name: 'Pant', qty: itemizedBill.pant_qty || '0', amount: itemizedBill.pant_amount || '0' },
+      { name: 'Shirt', qty: itemizedBill.shirt_qty || '0', amount: itemizedBill.shirt_amount || '0' },
+      { name: 'Sadri', qty: itemizedBill.sadri_qty || '0', amount: itemizedBill.sadri_amount || '0' }
+    ];
+    
+    const rows = items
+      .filter(item => parseFloat(item.qty) > 0 || parseFloat(item.amount) > 0)
+      .map(item => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.qty}</td>
+          <td>₹${parseFloat(item.amount).toFixed(2)}</td>
+        </tr>
+      `).join('');
+      
+    if (rows === '') {
+      return '<tr><td colspan="3" style="text-align: center;">No items added</td></tr>';
+    }
+    
+    return rows;
+  }
+  
+  function getTotalQuantity() {
+    const totalQty = parseInt(itemizedBill.suit_qty || 0) + 
+                    parseInt(itemizedBill.safari_qty || 0) + 
+                    parseInt(itemizedBill.pant_qty || 0) + 
+                    parseInt(itemizedBill.shirt_qty || 0) + 
+                    parseInt(itemizedBill.sadri_qty || 0);
+    return totalQty > 0 ? totalQty.toString() : '0';
+  }
+  
+  function getTotalAmount() {
+    const totalAmount = (parseFloat(itemizedBill.suit_amount) || 0) + 
+                       (parseFloat(itemizedBill.safari_amount) || 0) + 
+                       (parseFloat(itemizedBill.pant_amount) || 0) + 
+                       (parseFloat(itemizedBill.shirt_amount) || 0) + 
+                       (parseFloat(itemizedBill.sadri_amount) || 0);
+    return totalAmount.toFixed(2);
+  }
+  
+  console.log('🔄 Processing template with data:', {
+    orderNumber: orderNumber || billData.billnumberinput2 || 'N/A',
+    customerName: billData.customer_name || 'N/A',
+    totalItems: getTotalQuantity()
+  });
+  
+  // Prepare the data for replacement
+  const billItemsTable = generateBillItemsTable();
+  const totalQuantity = getTotalQuantity();
+  const totalAmount = getTotalAmount();
+  
+  console.log('📊 Generated table HTML:', billItemsTable.substring(0, 100) + '...');
+  
+  // Replace placeholders with actual data
+  const replacements = {
+    '{{ORDER_NUMBER}}': orderNumber || billData.billnumberinput2 || 'N/A',
+    '{{CUSTOMER_NAME}}': billData.customer_name || 'N/A',
+    '{{MOBILE_NUMBER}}': billData.mobile_number || 'N/A',
+    '{{ORDER_DATE}}': billData.order_date || 'N/A',
+    '{{DUE_DATE}}': billData.due_date || 'N/A',
+    '{{BILL_ITEMS_TABLE}}': billItemsTable,
+    '{{TOTAL_QUANTITY}}': totalQuantity,
+    '{{TOTAL_AMOUNT}}': totalAmount
+  };
+  
+  // Replace all placeholders
+  let finalHTML = htmlTemplate;
+  Object.keys(replacements).forEach(placeholder => {
+    const value = replacements[placeholder];
+    const before = finalHTML.includes(placeholder);
+    finalHTML = finalHTML.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
+    if (before) {
+      console.log(`✅ Replaced ${placeholder} with:`, value.substring(0, 50) + (value.length > 50 ? '...' : ''));
+    }
+  });
+  
+  console.log('🎯 Final HTML length:', finalHTML.length, 'characters');
+  return finalHTML;
+};
 
 const generateMeasurementHTML = (billData, measurements) => `
   <html>
@@ -292,10 +734,9 @@ export default function NewBillScreen({ navigation }) {
         Alert.alert('Not Found', 'No customer found with this mobile number');
       }
     } catch (error) {
-      console.error('Customer search error:', error);
-      Alert.alert('Error', 'Failed to search customer data');
-    } finally {
-      setSearching(false);
+      console.error('Bill creation error:', error);
+      Alert.alert('Error', 'Bill creation failed: ' + error.message);
+      return false;
     }
   };
 
@@ -358,8 +799,6 @@ export default function NewBillScreen({ navigation }) {
     if (!validateForm()) return false;
 
     try {
-      setSaving(true);
-
       // Upsert measurements for the customer (like legacy backend)
       try {
         const upsertResult = await SupabaseAPI.upsertMeasurements(measurements, billData.mobile_number);
@@ -367,7 +806,6 @@ export default function NewBillScreen({ navigation }) {
       } catch (err) {
         console.error('Error upserting measurements:', err);
         Alert.alert('Error', 'Failed to save measurements.');
-        setSaving(false);
         return false;
       }
 
@@ -408,7 +846,6 @@ export default function NewBillScreen({ navigation }) {
       console.log('Bill save result:', billResult);
       if (!billResult || !billResult[0] || typeof billResult[0].id !== 'number') {
         Alert.alert('Error', 'Failed to create bill. Please try again.');
-        setSaving(false);
         console.log('handleSaveBill failed: bill not created');
         return false;
       }
@@ -418,7 +855,6 @@ export default function NewBillScreen({ navigation }) {
       console.log('orderNumber:', orderNumber, 'billId:', billId);
       if (typeof billId !== 'number' || !orderNumber || orderNumber === 'undefined' || orderNumber === undefined) {
         Alert.alert('Error', 'Order number or bill ID is invalid. Please try again.');
-        setSaving(false);
         return false;
       }
 
@@ -427,7 +863,6 @@ export default function NewBillScreen({ navigation }) {
       
       if (garmentOrders.length === 0) {
         Alert.alert('Error', 'No garments to create orders for.');
-        setSaving(false);
         return false;
       }
       
@@ -452,7 +887,6 @@ export default function NewBillScreen({ navigation }) {
         } catch (error) {
           console.error(`❌ Failed to create ${orderData.garment_type} order:`, error);
           Alert.alert('Error', `Failed to create ${orderData.garment_type} order: ${error.message}`);
-          setSaving(false);
           return false;
         }
       }
@@ -462,7 +896,6 @@ export default function NewBillScreen({ navigation }) {
       // Check if all orders were created successfully
       if (orderResults.length !== garmentOrders.length) {
         Alert.alert('Error', 'Some orders failed to create. Please try again.');
-        setSaving(false);
         return false;
       }
 
@@ -470,7 +903,6 @@ export default function NewBillScreen({ navigation }) {
       console.log('Incrementing bill number with rowId:', rowId, 'orderNumber:', orderNumber);
       if (!rowId || !orderNumber || rowId === 'undefined' || orderNumber === 'undefined') {
         console.error('Cannot increment bill number: rowId or orderNumber is undefined');
-        setSaving(false);
         return false;
       }
       await SupabaseAPI.incrementBillNumber(rowId, orderNumber);
@@ -762,6 +1194,366 @@ export default function NewBillScreen({ navigation }) {
     } catch (error) {
       Alert.alert('Error', 'Failed to generate or share measurement PDF');
       console.error(error);
+    }
+  };
+
+  // Function to get image source for different platforms
+  const getSuitImageSrc = () => {
+    if (Platform.OS === 'web') {
+      // For web, use direct path
+      return 'suitpic.jpg';
+    } else {
+      // For mobile, use direct path
+      return 'suitpic.jpg';
+    }
+  };
+
+  // Professional bill HTML generator using the same format as GenerateBillScreen
+  const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber) => {
+    // Calculate totals and organize data
+    const garmentTotals = {};
+    let totalAmount = 0;
+    let totalQuantity = 0;
+    
+    // Process itemized bill data to create garment totals
+    const garmentTypes = [
+      { type: 'Suit', qty: parseInt(itemizedBill.suit_qty) || 0, amount: parseFloat(itemizedBill.suit_amount) || 0 },
+      { type: 'Safari/Jacket', qty: parseInt(itemizedBill.safari_qty) || 0, amount: parseFloat(itemizedBill.safari_amount) || 0 },
+      { type: 'Pant', qty: parseInt(itemizedBill.pant_qty) || 0, amount: parseFloat(itemizedBill.pant_amount) || 0 },
+      { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0, amount: parseFloat(itemizedBill.shirt_amount) || 0 },
+      { type: 'Sadri', qty: parseInt(itemizedBill.sadri_qty) || 0, amount: parseFloat(itemizedBill.sadri_amount) || 0 }
+    ];
+    
+    garmentTypes.forEach(({ type, qty, amount }) => {
+      if (qty > 0) {
+        garmentTotals[type] = { qty, amount };
+        totalAmount += amount;
+        totalQuantity += qty;
+      }
+    });
+    
+    const advanceAmount = parseFloat(billData.payment_amount) || 0;
+    const remainingAmount = totalAmount - advanceAmount;
+    
+    // Format dates
+    const orderDate = billData.order_date ? 
+      new Date(billData.order_date).toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      }).replace(/\//g, '-') : '';
+      
+    const dueDate = billData.due_date ? 
+      new Date(billData.due_date).toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      }).replace(/\//g, '-') : '';
+    
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bill</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .bill-container {
+      width: 100%;
+      max-width: 210mm;
+      margin: auto;
+      padding: 20px;
+      padding-top: 200px;
+      box-sizing: border-box;
+    }
+    .section-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .info-box {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .info-box label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .info-row div {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .info-row div:last-child {
+      margin-right: 0;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #000;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .table-section {
+      display: flex;
+      justify-content: space-between;
+    }
+    .items-box {
+      flex: 1;
+      border: 1px solid #000;
+      margin-right: 15px;
+    }
+    .items-box table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .items-box th, .items-box td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: center;
+    }
+    .items-box input {
+      width: 90%;
+      border: none;
+      text-align: center;
+      background: transparent;
+    }
+    .suit-box {
+      width: 220px;
+      border: 1px solid #000;
+      text-align: center;
+      font-size: 12px;
+    }
+    .suit-box h3 {
+      background: #3a2f2f;
+      color: #fff;
+      margin: 0;
+      padding: 6px;
+      font-size: 13px;
+    }
+    .suit-box img {
+      width: 150px;
+      height: auto;
+      margin: 10px 0;
+      display: block;
+      max-width: 100%;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      object-fit: contain;
+    }
+    .suit-box img::before {
+      content: "Suit Specialist Logo";
+      display: block;
+      text-align: center;
+      color: #999;
+      font-size: 12px;
+      padding: 20px;
+    }
+    .suit-box .terms {
+      text-align: left;
+      padding: 0 8px 10px;
+    }
+    .suit-box .terms strong {
+      color: #d2691e;
+    }
+    .suit-box .terms p {
+      margin: 4px 0;
+    }
+    .suit-box .highlight {
+      color: red;
+    }
+    .footer-box {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer-box span {
+      display: block;
+      margin-top: 5px;
+      color: blue;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="bill-container">
+
+    <div class="section-title">Customer Information</div>
+
+    <div class="info-box">
+      <label>Order Number:</label>
+      <input type="text" value="${orderNumber || billData.billnumberinput2 || ''}" readonly>
+
+      <div class="info-row">
+        <div>
+          <label>Customer Name:</label>
+          <input type="text" value="${billData.customer_name || ''}" readonly>
+        </div>
+        <div>
+          <label>Mobile Number:</label>
+          <input type="text" value="${billData.mobile_number || ''}" readonly>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div>
+          <label>Date:</label>
+          <input type="text" value="${orderDate}" readonly>
+        </div>
+        <div>
+          <label>Delivery Date:</label>
+          <input type="text" value="${dueDate}" readonly>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="items-box">
+        <table>
+          <tr>
+            <th>Particulars</th>
+            <th>Qty</th>
+            <th>Amount</th>
+          </tr>
+          <tr>
+            <td>Suit</td>
+            <td><input type="text" value="${garmentTotals['Suit']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Suit']?.amount ? garmentTotals['Suit'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Safari/Jacket</td>
+            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.amount ? garmentTotals['Safari/Jacket'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Pant</td>
+            <td><input type="text" value="${garmentTotals['Pant']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Pant']?.amount ? garmentTotals['Pant'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Shirt</td>
+            <td><input type="text" value="${garmentTotals['Shirt']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Shirt']?.amount ? garmentTotals['Shirt'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Sadri</td>
+            <td><input type="text" value="${garmentTotals['Sadri']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Sadri']?.amount ? garmentTotals['Sadri'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td><b>Total</b></td>
+            <td><input type="text" value="${totalQuantity}" readonly></td>
+            <td><input type="text" value="${totalAmount.toFixed(2)}" readonly></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="suit-box">
+        <h3>SUIT SPECIALIST</h3>
+        <div style="width: 150px; height: 120px; margin: 10px auto; background: linear-gradient(135deg, #2c3e50, #34495e); border: 2px solid #fff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-weight: bold;">
+          <div style="font-size: 24px; margin-bottom: 5px;">👔</div>
+          <div style="font-size: 10px; line-height: 1.2;">SUIT<br>SPECIALIST</div>
+        </div>
+        <div class="terms">
+          <p><strong>Terms & Conditions :</strong></p>
+          <p>1. Delivery will not made without Receipt</p>
+          <p>2. We are not responsible, if the delivery is not taken within 2 months.</p>
+          <p>3. Trail and Complaint after 7pm &</p>
+          <p class="highlight">Delivery after 7pm</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-box">
+      Thank You, Visit Again!
+      <span>Sunday Holiday</span>
+    </div>
+
+  </div>
+</body>
+</html>
+    `;
+  };
+
+  const handlePrintBill = async (orderNumber) => {
+    try {
+      // Use provided order number or current bill number or generate fallback
+      let billNumber = orderNumber || billData.billnumberinput2;
+      if (!billNumber) {
+        billNumber = 'TEMP_' + Date.now(); // Fallback order number
+      }
+      
+      console.log('🖨️ Generating professional bill HTML for order:', billNumber);
+      
+      // Generate professional bill HTML using the same format as GenerateBillScreen
+      const html = generateProfessionalBillHTML(billData, itemizedBill, billNumber);
+      
+      if (Platform.OS === 'web') {
+        // For web, create a new window and print
+        console.log('📄 Opening print window for web...');
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.print();
+        
+        // Show success message
+        Alert.alert(
+          'Print Ready', 
+          `Bill #${billNumber} is ready to print. The print dialog should have opened.`,
+          [{ text: 'OK' }]
+        );
+      } else {
+        // For mobile, use Expo Print
+        console.log('📱 Generating PDF for mobile...');
+        const result = await Print.printToFileAsync({ 
+          html,
+          base64: false 
+        });
+        
+        console.log('Print result:', result);
+        
+        if (result && result.uri) {
+          console.log('PDF generated successfully, sharing:', result.uri);
+          
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(result.uri);
+          } else {
+            Alert.alert('Success', `Bill #${billNumber} generated successfully`);
+          }
+          
+          // Show success message
+          Alert.alert(
+            'Bill Generated', 
+            `Bill #${billNumber} has been generated and is ready to print or share.`,
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Error', 'Failed to generate bill PDF file');
+          console.error('Print result is undefined or missing uri:', result);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate or share bill PDF');
+      console.error('Print error:', error);
     }
   };
 
@@ -1496,12 +2288,30 @@ export default function NewBillScreen({ navigation }) {
             style={[styles.actionButton, styles.saveButton]}
             onPress={async () => {
               console.log('Save and Print button pressed');
-              const saved = await handleSaveBill();
-              if (saved) {
-                console.log('Calling handlePrintMeasurement after save');
-                await handlePrintMeasurement();
-              } else {
-                console.log('Not printing because save failed');
+              
+              try {
+                setSaving(true);
+                
+                // Get the order number that will be used for this bill
+                const currentBillNumber = await SupabaseAPI.getCurrentBillNumber();
+                const orderNumber = currentBillNumber.billno;
+                console.log('📋 Order number for printing:', orderNumber);
+                
+                // Save the bill first
+                const saved = await handleSaveBill();
+                
+                if (saved) {
+                  console.log('✅ Bill saved successfully, now printing...');
+                  // Use the orderNumber we got before saving
+                  await handlePrintBill(orderNumber);
+                } else {
+                  console.log('❌ Not printing because save failed');
+                }
+              } catch (error) {
+                console.error('Error in save and print:', error);
+                Alert.alert('Error', 'Failed to save and print bill: ' + error.message);
+              } finally {
+                setSaving(false);
               }
             }}
             disabled={saving}
@@ -2185,13 +2995,31 @@ export default function NewBillScreen({ navigation }) {
           <TouchableOpacity
             style={[styles.actionButton, styles.saveButton]}
             onPress={async () => {
-              console.log('Save and Print button pressed');
-              const saved = await handleSaveBill();
-              if (saved) {
-                console.log('Calling handlePrintMeasurement after save');
-                await handlePrintMeasurement();
-              } else {
-                console.log('Not printing because save failed');
+              console.log('Save and Print button pressed (Mobile)');
+              
+              try {
+                setSaving(true);
+                
+                // Get the order number that will be used for this bill
+                const currentBillNumber = await SupabaseAPI.getCurrentBillNumber();
+                const orderNumber = currentBillNumber.billno;
+                console.log('📋 Order number for printing (Mobile):', orderNumber);
+                
+                // Save the bill first
+                const saved = await handleSaveBill();
+                
+                if (saved) {
+                  console.log('✅ Bill saved successfully, now printing (Mobile)...');
+                  // Use the orderNumber we got before saving
+                  await handlePrintBill(orderNumber);
+                } else {
+                  console.log('❌ Not printing because save failed (Mobile)');
+                }
+              } catch (error) {
+                console.error('Error in save and print (Mobile):', error);
+                Alert.alert('Error', 'Failed to save and print bill: ' + error.message);
+              } finally {
+                setSaving(false);
               }
             }}
             disabled={saving}

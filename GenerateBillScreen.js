@@ -179,180 +179,283 @@ const generateMeasurementHTML = (billData, measurements) => `
   </html>
 `;
 
-// Generate bill HTML for printing
+// Function to read and populate the print-format.html template
 const generateBillHTML = (billData, orders) => {
-  const totalAmount = orders.reduce((sum, order) => sum + (parseFloat(order.total_amt || 0)), 0);
+  // Calculate totals and organize data
+  const garmentTotals = {};
+  let totalAmount = 0;
+  let totalQuantity = 0;
+  
+  // Aggregate quantities and amounts by garment type
+  orders.forEach(order => {
+    const garmentType = order.garment_type || 'Unknown';
+    const amount = parseFloat(order.total_amt || 0);
+    
+    if (!garmentTotals[garmentType]) {
+      garmentTotals[garmentType] = { qty: 0, amount: 0 };
+    }
+    
+    garmentTotals[garmentType].qty += 1;
+    garmentTotals[garmentType].amount += amount;
+    totalAmount += amount;
+    totalQuantity += 1;
+  });
+  
   const advanceAmount = parseFloat(billData.payment_amount || 0);
   const remainingAmount = totalAmount - advanceAmount;
   
+  // Format dates
+  const orderDate = billData.order_date ? 
+    new Date(billData.order_date).toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }).replace(/\//g, '-') : '';
+    
+  const dueDate = billData.due_date ? 
+    new Date(billData.due_date).toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }).replace(/\//g, '-') : '';
+  
   return `
-    <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-          }
-          .bill-container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-          }
-          .header {
-            text-align: center;
-            border-bottom: 2px solid #333;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-          }
-          .shop-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin: 0;
-          }
-          .shop-subtitle {
-            font-size: 16px;
-            color: #ff6600;
-            margin: 5px 0;
-          }
-          .shop-address {
-            font-size: 12px;
-            color: #666;
-            margin: 5px 0;
-          }
-          .shop-contact {
-            font-size: 12px;
-            color: #666;
-            margin: 5px 0;
-          }
-          .bill-info {
-            display: flex;
-            justify-content: space-between;
-            margin: 15px 0;
-            font-size: 14px;
-          }
-          .customer-info {
-            margin: 15px 0;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 5px;
-          }
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            font-size: 14px;
-          }
-          .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-          }
-          .items-table th {
-            background: #333;
-            color: white;
-            padding: 10px 5px;
-            text-align: center;
-            font-size: 14px;
-          }
-          .items-table td {
-            border: 1px solid #ddd;
-            padding: 8px 5px;
-            font-size: 14px;
-          }
-          .total-section {
-            border-top: 2px solid #333;
-            padding-top: 10px;
-            margin-top: 15px;
-          }
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            font-size: 14px;
-          }
-          .total-row.final {
-            font-weight: bold;
-            font-size: 16px;
-            border-top: 1px solid #333;
-            padding-top: 5px;
-            margin-top: 10px;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-            font-size: 12px;
-            color: #666;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="bill-container">
-          <div class="header">
-            <div class="shop-name">YAK'S MEN'S WEAR</div>
-            <div class="shop-subtitle">Tailoring Services</div>
-            <div class="shop-address">Shop Address, City - 123456</div>
-            <div class="shop-contact">Phone: +91 9876543210 | Email: info@yaksmensware.com</div>
-          </div>
-          
-          <div class="bill-info">
-            <div><strong>Bill No:</strong> ${billData.billnumberinput2}</div>
-            <div><strong>Date:</strong> ${billData.created_at ? new Date(billData.created_at).toLocaleDateString() : 'N/A'}</div>
-          </div>
-          
-          <div class="customer-info">
-            <div class="info-row">
-              <span><strong>Customer:</strong></span>
-              <span>${billData.customer_name}</span>
-            </div>
-            <div class="info-row">
-              <span><strong>Mobile:</strong></span>
-              <span>${billData.mobile_number}</span>
-            </div>
-            <div class="info-row">
-              <span><strong>Payment Mode:</strong></span>
-              <span>${billData.payment_mode || 'N/A'}</span>
-            </div>
-          </div>
-          
-          <table class="items-table">
-            <tr>
-              <th style="width: 60%;">Item</th>
-              <th style="width: 20%;">Qty</th>
-              <th style="width: 20%;">Amount</th>
-            </tr>
-            ${generateBillItemsTable(orders)}
-          </table>
-          
-          <div class="total-section">
-            <div class="total-row">
-              <span>Total Amount:</span>
-              <span>₹${totalAmount.toFixed(2)}</span>
-            </div>
-            <div class="total-row">
-              <span>Advance Paid:</span>
-              <span>₹${advanceAmount.toFixed(2)}</span>
-            </div>
-            <div class="total-row final">
-              <span>Balance Due:</span>
-              <span>₹${remainingAmount.toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <div class="footer">
-            <div>Thank you for your business!</div>
-            <div>Visit us again at YAK'S MEN'S WEAR</div>
-          </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bill</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .bill-container {
+      width: 100%;
+      max-width: 210mm;
+      margin: auto;
+      padding: 20px;
+      padding-top: 200px;
+      box-sizing: border-box;
+    }
+    .section-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .info-box {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .info-box label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .info-row div {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .info-row div:last-child {
+      margin-right: 0;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #000;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .table-section {
+      display: flex;
+      justify-content: space-between;
+    }
+    .items-box {
+      flex: 1;
+      border: 1px solid #000;
+      margin-right: 15px;
+    }
+    .items-box table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .items-box th, .items-box td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: center;
+    }
+    .items-box input {
+      width: 90%;
+      border: none;
+      text-align: center;
+      background: transparent;
+    }
+    .suit-box {
+      width: 220px;
+      border: 1px solid #000;
+      text-align: center;
+      font-size: 12px;
+    }
+    .suit-box h3 {
+      background: #3a2f2f;
+      color: #fff;
+      margin: 0;
+      padding: 6px;
+      font-size: 13px;
+    }
+    .suit-box img {
+      width: 150px;
+      height: auto;
+      margin: 10px 0;
+      display: block;
+      max-width: 100%;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      object-fit: contain;
+    }
+    .suit-box .terms {
+      text-align: left;
+      padding: 0 8px 10px;
+    }
+    .suit-box .terms strong {
+      color: #d2691e;
+    }
+    .suit-box .terms p {
+      margin: 4px 0;
+    }
+    .suit-box .highlight {
+      color: red;
+    }
+    .footer-box {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer-box span {
+      display: block;
+      margin-top: 5px;
+      color: blue;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="bill-container">
+
+    <div class="section-title">Customer Information</div>
+
+    <div class="info-box">
+      <label>Order Number:</label>
+      <input type="text" value="${billData.billnumberinput2 || ''}" readonly>
+
+      <div class="info-row">
+        <div>
+          <label>Customer Name:</label>
+          <input type="text" value="${billData.customer_name || ''}" readonly>
         </div>
-      </body>
-    </html>
+        <div>
+          <label>Mobile Number:</label>
+          <input type="text" value="${billData.mobile_number || ''}" readonly>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div>
+          <label>Date:</label>
+          <input type="text" value="${orderDate}" readonly>
+        </div>
+        <div>
+          <label>Delivery Date:</label>
+          <input type="text" value="${dueDate}" readonly>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="items-box">
+        <table>
+          <tr>
+            <th>Particulars</th>
+            <th>Qty</th>
+            <th>Amount</th>
+          </tr>
+          <tr>
+            <td>Suit</td>
+            <td><input type="text" value="${garmentTotals['Suit']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Suit']?.amount ? garmentTotals['Suit'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Safari/Jacket</td>
+            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.qty || garmentTotals['Safari']?.qty || garmentTotals['Jacket']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${(garmentTotals['Safari/Jacket']?.amount || garmentTotals['Safari']?.amount || garmentTotals['Jacket']?.amount || 0) > 0 ? (garmentTotals['Safari/Jacket']?.amount || garmentTotals['Safari']?.amount || garmentTotals['Jacket']?.amount || 0).toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Pant</td>
+            <td><input type="text" value="${garmentTotals['Pant']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Pant']?.amount ? garmentTotals['Pant'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Shirt</td>
+            <td><input type="text" value="${garmentTotals['Shirt']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Shirt']?.amount ? garmentTotals['Shirt'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Sadri</td>
+            <td><input type="text" value="${garmentTotals['Sadri']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Sadri']?.amount ? garmentTotals['Sadri'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td><b>Total</b></td>
+            <td><input type="text" value="${totalQuantity}" readonly></td>
+            <td><input type="text" value="${totalAmount.toFixed(2)}" readonly></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="suit-box">
+        <h3>SUIT SPECIALIST</h3>
+        <div style="width: 150px; height: 120px; margin: 10px auto; background: linear-gradient(135deg, #2c3e50, #34495e); border: 2px solid #fff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-weight: bold;">
+          <div style="margin-bottom: 5px;">
+            <img src="data:image/jpeg;base64,${suitPicBase64}" 
+                 alt="Suit Icon" 
+                 style="width:32px; height:32px;">
+          </div>
+          <div style="font-size: 10px; line-height: 1.2;">SUIT<br>SPECIALIST</div>
+        </div>
+        <div class="terms">
+          <p><strong>Terms & Conditions :</strong></p>
+          <p>1. Delivery will not made without Receipt</p>
+          <p>2. We are not responsible, if the delivery is not taken within 2 months.</p>
+          <p>3. Trail and Complaint after 7pm &</p>
+          <p class="highlight">Delivery after 7pm</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-box">
+      Thank You, Visit Again!
+      <span>Sunday Holiday</span>
+    </div>
+
+  </div>
+</body>
+</html>
   `;
 };
 
