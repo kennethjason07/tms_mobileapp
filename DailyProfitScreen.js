@@ -160,17 +160,50 @@ export default function DailyProfitScreen({ navigation }) {
         return Number.isFinite(num) ? num : 0;
       };
 
-      // Get all orders
+      // Get all orders with payment and updated_at information
       const { data: orders } = await supabase
         .from('orders')
         .select('*')
         .order('order_date', { ascending: false });
+        
+      // Log orders with advance payments for debugging
+      if (orders && orders.length > 0) {
+        const ordersWithPayments = orders.filter(o => o.payment_amount && parseFloat(o.payment_amount) > 0);
+        console.log('💵 ORDERS WITH ADVANCE PAYMENTS:', ordersWithPayments.length, 'out of', orders.length, 'total orders');
+        
+        ordersWithPayments.forEach(order => {
+          console.log(`  Order ${order.id}: Payment ₹${order.payment_amount}, Created: ${order.order_date}, Updated: ${order.updated_at}`);
+        });
+      }
 
-      // Get all daily expenses (match backend logic)
-      const { data: dailyExpenses } = await supabase
-        .from('Daily_Expenses')
-        .select('*')
-        .order('Date', { ascending: false });
+      // Get all daily expenses (match backend logic) - try different expense table names
+      let dailyExpenses = null;
+      let expensesError = null;
+      
+      // First try 'expenses' table (if it exists)
+      try {
+        const { data: expensesData, error: expError } = await supabase
+          .from('expenses')
+          .select('*')
+          .order('date', { ascending: false });
+        
+        if (!expError && expensesData) {
+          console.log('💷 Using expenses table for shop expenses');
+          dailyExpenses = expensesData;
+        } else {
+          throw new Error('expenses table not available');
+        }
+      } catch (error) {
+        // Fallback to Daily_Expenses table
+        console.log('💷 Falling back to Daily_Expenses table');
+        const { data: dailyExpensesData, error: dailyError } = await supabase
+          .from('Daily_Expenses')
+          .select('*')
+          .order('Date', { ascending: false });
+        
+        dailyExpenses = dailyExpensesData;
+        expensesError = dailyError;
+      }
 
       // Get all worker expenses
       const { data: workerExpenses } = await supabase
@@ -356,57 +389,94 @@ export default function DailyProfitScreen({ navigation }) {
         console.warn('No revenue-eligible bills found (no paid orders)');
       }
 
-      // Process orders to calculate work pay and payments received
-      // CRITICAL FIX: Group orders by bill_id to avoid double counting work pay
-      const ordersByBill = {};
+      // MODIFIED LOGIC: For Today's tab, show revenue as total advance amount (profit)
+      // Calculate daily advance payments filtered by updated_at date (when payment was received)
+      console.log('💰 ADVANCE PAYMENT CALCULATION: Filtering by updated_at date to show when payments were received');
+      
+      // Process orders to find advance payments filtered by updated_at date
       orders?.forEach(order => {
-        const billId = order.bill_id || 'no-bill';
-        if (!ordersByBill[billId]) {
-          ordersByBill[billId] = [];
-        }
-        ordersByBill[billId].push(order);
-      });
-
-      // Process each bill's orders to avoid double counting
-      Object.entries(ordersByBill).forEach(([billId, billOrders]) => {
-        const firstOrder = billOrders[0]; // Use first order for date and payment info
-        const todayKey = formatISTDate(new Date());
-        const date = normalizeDate(firstOrder?.updated_at || firstOrder?.order_date) || todayKey;
-        
-        if (!profitByDate[date]) {
-          profitByDate[date] = {
-            date,
-            revenue: 0,
-            workPay: 0,
-            paymentsReceived: 0,
-            shopExpenses: 0,
-            workerExpenses: 0,
-            netProfit: 0,
-            orderCount: 0,
-            orders: [],
-            expenses: [],
-            bills: []
-          };
+        // Only process orders with advance payments and updated_at date
+        if (!order.payment_amount || parseFloat(order.payment_amount) <= 0) {
+          return; // Skip orders without advance payments
         }
         
-        // Sum work pay from all orders in this bill (this represents total work cost for the bill)
-        const totalWorkPay = billOrders.reduce((sum, order) => sum + toNumber(order.Work_pay), 0);
-        profitByDate[date].workPay += totalWorkPay;
+        // Primary logic: Use updated_at date (when advance payment was received/updated)
+        let paymentDate = null;
         
-        // Count this as one order (one bill = one customer transaction)
-        profitByDate[date].orderCount += 1;
+        if (order.updated_at) {
+          // Filter by updated_at date - this is when the advance payment was actually processed
+          paymentDate = normalizeDate(order.updated_at);
+          console.log(`💵 Order ${order.id}: Advance ₹${order.payment_amount} received on ${paymentDate} (updated_at: ${order.updated_at})`);
+        } else {
+          // Fallback: If no updated_at, skip this order as we can't determine when payment was received
+          console.log(`⚠️ Order ${order.id}: Skipping - no updated_at date to determine when advance was received`);
+          return;
+        }
         
-        // Add all orders for this bill to the orders array
-        profitByDate[date].orders.push(...billOrders);
+        // Debug logging for payment processing
+        console.log(`Debug - Order ${order.id} payment_amount:`, order.payment_amount, 'Type:', typeof order.payment_amount, 'Updated at:', order.updated_at);
         
-        // Sum payments received from all orders in this bill
-        const totalPayments = billOrders.reduce((sum, order) => sum + toNumber(order.payment_amount), 0);
-        profitByDate[date].paymentsReceived += totalPayments;
+        if (paymentDate) {
+          if (!profitByDate[paymentDate]) {
+            profitByDate[paymentDate] = {
+              date: paymentDate,
+              revenue: 0, // Will be set to advance payments (acts as profit for Today's tab)
+              workPay: 0,
+              advancePayments: 0, // Track total advance payments
+              shopExpenses: 0,
+              workerExpenses: 0,
+              netProfit: 0,
+              orderCount: 0,
+              orders: [],
+              expenses: [],
+              bills: []
+            };
+          }
+          
+          const advanceAmount = toNumber(order.payment_amount);
+          console.log(`Debug - Processing advance amount: ${advanceAmount} for order ${order.id} on date ${paymentDate}`);
+          console.log(`Debug - Order data:`, {
+            id: order.id,
+            payment_amount: order.payment_amount,
+            total_amt: order.total_amt,
+            updated_at: order.updated_at,
+            order_date: order.order_date
+          });
+          
+          // Ensure we have a valid advance amount
+          if (advanceAmount > 0) {
+            // For Today's tab: Revenue = Total Advance Payments (shows as profit)
+            const currentAdvance = profitByDate[paymentDate].advancePayments || 0;
+            profitByDate[paymentDate].advancePayments = currentAdvance + advanceAmount;
+            profitByDate[paymentDate].revenue = profitByDate[paymentDate].advancePayments; // Revenue equals advance payments
+            
+            // Store order with payment amount for modal display
+            const orderWithPayment = {
+              ...order,
+              displayPaymentAmount: Number(advanceAmount), // Ensure it's a number
+              originalPaymentAmount: order.payment_amount // Keep original for debugging
+            };
+            profitByDate[paymentDate].orders.push(orderWithPayment);
+            profitByDate[paymentDate].orderCount += 1;
+            
+            console.log(`  ✅ Added advance ₹${advanceAmount} to date ${paymentDate}`);
+            console.log(`  📊 Revenue (advance total) for ${paymentDate}: ₹${profitByDate[paymentDate].revenue}`);
+            console.log(`  📋 Stored order with payment amount: ₹${orderWithPayment.displayPaymentAmount}`);
+          } else {
+            console.log(`  ⚠️ Skipped order ${order.id} - invalid advance amount: ${advanceAmount}`);
+          }
+          
+          console.log(`  ✅ Added advance ₹${advanceAmount} to date ${paymentDate}`);
+          console.log(`  📊 Revenue (advance total) for ${paymentDate}: ₹${profitByDate[paymentDate].revenue}`);
+        }
       });
 
-      // Process daily expenses (material + miscellaneous + chai_pani)
+      // Process daily expenses - handle both 'expenses' and 'Daily_Expenses' table structures
       dailyExpenses?.forEach(expense => {
-        const date = normalizeDate(expense.Date);
+        // Handle different date field names
+        const expenseDate = expense.date || expense.Date;
+        const date = normalizeDate(expenseDate);
+        
         if (!profitByDate[date]) {
           profitByDate[date] = {
             date,
@@ -421,9 +491,22 @@ export default function DailyProfitScreen({ navigation }) {
             bills: []
           };
         }
-        const dailyTotal = toNumber(expense.material_cost) + toNumber(expense.miscellaneous_Cost) + toNumber(expense.chai_pani_cost);
-        profitByDate[date].shopExpenses += dailyTotal;
-        profitByDate[date].expenses.push({ ...expense, type: 'daily' });
+        
+        // Handle different expense amount field names and structures
+        let expenseAmount = 0;
+        
+        if (expense.amount !== undefined) {
+          // Simple 'expenses' table with single amount field
+          expenseAmount = toNumber(expense.amount);
+          console.log(`🏢 Expense from 'expenses' table: ₹${expenseAmount} on ${date}`);
+        } else {
+          // Daily_Expenses table with multiple cost fields
+          expenseAmount = toNumber(expense.material_cost) + toNumber(expense.miscellaneous_Cost) + toNumber(expense.chai_pani_cost);
+          console.log(`🏢 Expense from 'Daily_Expenses' table: ₹${expenseAmount} on ${date} (material: ${expense.material_cost}, misc: ${expense.miscellaneous_Cost}, chai: ${expense.chai_pani_cost})`);
+        }
+        
+        profitByDate[date].shopExpenses += expenseAmount;
+        profitByDate[date].expenses.push({ ...expense, type: 'daily', calculatedAmount: expenseAmount });
       });
 
       // Process worker expenses
@@ -450,21 +533,62 @@ export default function DailyProfitScreen({ navigation }) {
       // (No direct bill-based revenue aggregation; revenue comes from paid orders per backend logic)
 
       // Calculate net profit for each date
+      // For Today's tab: Revenue = Advance Payments, so Net Profit = Advance Payments (no expenses deducted)
       Object.values(profitByDate).forEach(dayData => {
-        dayData.netProfit = dayData.revenue - dayData.workPay - dayData.shopExpenses - dayData.workerExpenses;
+        // Initialize all values to avoid NaN
+        dayData.advancePayments = dayData.advancePayments || 0;
+        dayData.revenue = dayData.revenue || 0;
+        dayData.workPay = dayData.workPay || 0;
+        dayData.shopExpenses = dayData.shopExpenses || 0;
+        dayData.workerExpenses = dayData.workerExpenses || 0;
+        
+        if (dateFilter === 'today') {
+          // For Today's tab: Revenue = Advance Payments, Profit = Advance Payments - Shop Expenses
+          dayData.revenue = dayData.advancePayments; // Show advance payments as revenue
+          dayData.netProfit = dayData.advancePayments - dayData.shopExpenses; // Subtract only shop expenses
+          
+          console.log(`📅 Today's calculation:`);
+          console.log(`  Advance Payments (Revenue): ₹${dayData.advancePayments}`);
+          console.log(`  Shop Expenses: ₹${dayData.shopExpenses}`);
+          console.log(`  Net Profit: ₹${dayData.netProfit} (Revenue - Shop Expenses)`);
+        } else {
+          // For other tabs: Calculate normal profit (revenue - all expenses)
+          dayData.netProfit = dayData.revenue - dayData.workPay - dayData.shopExpenses - dayData.workerExpenses;
+        }
       });
       
-      // Debug the final daily revenue data
-      console.log('Final profit data:', Object.keys(profitByDate).length, 'days');
-      console.log('Revenue by date:', Object.entries(profitByDate).map(([date, data]) => ({ 
-        date, 
-        revenue: data.revenue, 
-        billCount: data.bills.length
-      })));
+      // Debug the final advance payment data (filtered by updated_at)
+      console.log('💰 ADVANCE PAYMENT PROFIT SUMMARY (FILTERED BY updated_at):');
+      console.log('Total days with payment data:', Object.keys(profitByDate).length);
       
-      // Calculate total revenue across all dates (for verification)
-      const totalCalculatedRevenue = Object.values(profitByDate).reduce((sum, day) => sum + day.revenue, 0);
-      console.log('💰 FINAL TOTAL REVENUE (all dates):', totalCalculatedRevenue);
+      // Show advance payment breakdown by date (when payments were received)
+      const advancePaymentsByDate = Object.entries(profitByDate)
+        .filter(([date, data]) => data.advancePayments > 0)
+        .map(([date, data]) => ({ 
+          date, 
+          advancePayments: data.advancePayments,
+          orderCount: data.orderCount,
+          netProfit: data.netProfit
+        }));
+        
+      console.log('💵 Advance payments by updated_at date:', advancePaymentsByDate);
+      
+      // Calculate total advance payments across all dates (filtered by updated_at)
+      const totalAdvancePayments = Object.values(profitByDate).reduce((sum, day) => sum + (day.advancePayments || 0), 0);
+      console.log('💰 TOTAL ADVANCE PAYMENTS (filtered by updated_at): ₹', totalAdvancePayments);
+      
+      // Show today's advance payments specifically (filtered by updated_at date)
+      const todayKey = formatISTDate(new Date());
+      const todaysData = profitByDate[todayKey];
+      if (todaysData && todaysData.advancePayments > 0) {
+        console.log('🎆 TODAY\'S REVENUE/PROFIT CALCULATION:');
+        console.log('  💵 Advance Payments (Revenue): ₹' + todaysData.advancePayments + ` from ${todaysData.orderCount} orders`);
+        console.log('  🏢 Shop Expenses: ₹' + (todaysData.shopExpenses || 0));
+        console.log('  💰 Net Profit (Revenue - Shop Expenses): ₹' + todaysData.netProfit);
+        console.log('  🔍 Filtered by updated_at date = ' + todayKey);
+      } else {
+        console.log('📅 No advance payments received today (filtered by updated_at =', todayKey, ')');
+      }
 
       // Convert to array and sort by date
       let result = Object.values(profitByDate).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -605,11 +729,38 @@ export default function DailyProfitScreen({ navigation }) {
       };
     }
 
-    const totalRevenue = data.reduce((sum, day) => sum + day.revenue, 0);
+    // For Today's tab: Revenue = Advance Payments, Profit = Advance Payments
+    let totalRevenue, totalNetProfit;
+    
+    if (dateFilter === 'today') {
+      // Today's tab: Revenue = Advance Payments, Profit = Advance Payments - Shop Expenses
+      totalRevenue = data.reduce((sum, day) => {
+        const advancePayments = day.advancePayments || 0;
+        const revenue = day.revenue || 0;
+        return sum + (advancePayments > 0 ? advancePayments : revenue);
+      }, 0);
+      totalNetProfit = data.reduce((sum, day) => {
+        const advancePayments = day.advancePayments || 0;
+        const shopExpenses = day.shopExpenses || 0;
+        const netProfit = day.netProfit || 0;
+        // For today: Profit = Advance Payments - Shop Expenses
+        return sum + (advancePayments > 0 ? (advancePayments - shopExpenses) : netProfit);
+      }, 0);
+      
+      const totalShopExpenses = data.reduce((sum, day) => sum + (day.shopExpenses || 0), 0);
+      console.log('📅 TODAY SUMMARY:');
+      console.log('  Revenue (Advance Payments): ₹' + totalRevenue);
+      console.log('  Shop Expenses: ₹' + totalShopExpenses);
+      console.log('  Net Profit (Revenue - Shop Expenses): ₹' + totalNetProfit);
+    } else {
+      // Other tabs: Calculate normal revenue and profit
+      totalRevenue = data.reduce((sum, day) => sum + (day.revenue || 0), 0);
+      totalNetProfit = data.reduce((sum, day) => sum + (day.netProfit || 0), 0);
+    }
+    
     const totalWorkPay = data.reduce((sum, day) => sum + day.workPay, 0);
     const totalShopExpenses = data.reduce((sum, day) => sum + day.shopExpenses, 0);
     const totalWorkerExpenses = data.reduce((sum, day) => sum + day.workerExpenses, 0);
-    const totalNetProfit = data.reduce((sum, day) => sum + day.netProfit, 0);
     
     // Documentation compliance logging
     console.log('📊 SUMMARY STATS for', dateFilter, 'period:');
@@ -668,6 +819,24 @@ export default function DailyProfitScreen({ navigation }) {
   };
 
   const showDateDetail = (dayData) => {
+    console.log('🔍 MODAL DEBUG - Day data selected:');
+    console.log('  📊 Revenue:', dayData.revenue);
+    console.log('  💵 Advance Payments:', dayData.advancePayments);
+    console.log('  📋 Orders count:', dayData.orders?.length || 0);
+    
+    if (dayData.orders && dayData.orders.length > 0) {
+      console.log('  📋 Order details:');
+      dayData.orders.forEach((order, index) => {
+        console.log(`    Order ${index + 1}:`, {
+          id: order.id,
+          payment_amount: order.payment_amount,
+          displayPaymentAmount: order.displayPaymentAmount,
+          advance_amount: order.advance_amount,
+          total_amt: order.total_amt
+        });
+      });
+    }
+    
     setSelectedDate(dayData);
     setDetailModalVisible(true);
   };
@@ -855,25 +1024,25 @@ export default function DailyProfitScreen({ navigation }) {
                 <View style={styles.cardStats}>
                   <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Revenue:</Text>
-                    <Text style={styles.statValue}>₹{item.revenue.toFixed(2)}</Text>
+                    <Text style={styles.statValue}>₹{(item.revenue || 0).toFixed(2)}</Text>
                   </View>
                   <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Work Pay:</Text>
-                    <Text style={styles.statValue}>₹{item.workPay.toFixed(2)}</Text>
+                    <Text style={styles.statValue}>₹{(item.workPay || 0).toFixed(2)}</Text>
                   </View>
                   <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Expenses:</Text>
-                    <Text style={styles.statValue}>₹{(item.shopExpenses + item.workerExpenses).toFixed(2)}</Text>
+                    <Text style={styles.statValue}>₹{((item.shopExpenses || 0) + (item.workerExpenses || 0)).toFixed(2)}</Text>
                   </View>
                   <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Orders:</Text>
-                    <Text style={styles.statValue}>{item.orderCount}</Text>
+                    <Text style={styles.statValue}>{item.orderCount || 0}</Text>
                   </View>
                 </View>
 
                 <View style={styles.profitSection}>
                   <Text style={styles.profitLabel}>Net Profit:</Text>
-                  <Text style={[styles.profitAmount, { color: getProfitColor(item.netProfit) }]}>₹{item.netProfit.toFixed(2)}</Text>
+                  <Text style={[styles.profitAmount, { color: getProfitColor(item.netProfit || 0) }]}>₹{(item.netProfit || 0).toFixed(2)}</Text>
                 </View>
 
                 <View style={styles.cardFooter}>
@@ -901,25 +1070,25 @@ export default function DailyProfitScreen({ navigation }) {
                 <View style={styles.cardStats}>
                   <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Revenue:</Text>
-                    <Text style={styles.statValue}>₹{item.revenue.toFixed(2)}</Text>
+                    <Text style={styles.statValue}>₹{(item.revenue || 0).toFixed(2)}</Text>
                   </View>
                   <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Work Pay:</Text>
-                    <Text style={styles.statValue}>₹{item.workPay.toFixed(2)}</Text>
+                    <Text style={styles.statValue}>₹{(item.workPay || 0).toFixed(2)}</Text>
                   </View>
                   <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Expenses:</Text>
-                    <Text style={styles.statValue}>₹{(item.shopExpenses + item.workerExpenses).toFixed(2)}</Text>
+                    <Text style={styles.statValue}>₹{((item.shopExpenses || 0) + (item.workerExpenses || 0)).toFixed(2)}</Text>
                   </View>
                   <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Orders:</Text>
-                    <Text style={styles.statValue}>{item.orderCount}</Text>
+                    <Text style={styles.statValue}>{item.orderCount || 0}</Text>
                   </View>
                 </View>
 
                 <View style={styles.profitSection}>
                   <Text style={styles.profitLabel}>Net Profit:</Text>
-                  <Text style={[styles.profitAmount, { color: getProfitColor(item.netProfit) }]}>₹{item.netProfit.toFixed(2)}</Text>
+                  <Text style={[styles.profitAmount, { color: getProfitColor(item.netProfit || 0) }]}>₹{(item.netProfit || 0).toFixed(2)}</Text>
                 </View>
 
                 <View style={styles.cardFooter}>
@@ -964,86 +1133,162 @@ export default function DailyProfitScreen({ navigation }) {
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Financial Summary</Text>
-                  <View style={styles.financialRow}>
-                    <Text style={styles.financialLabel}>Revenue:</Text>
-                    <Text style={styles.financialValue}>₹{selectedDate.revenue.toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.financialRow}>
-                    <Text style={styles.financialLabel}>Payments Received:</Text>
-                    <Text style={styles.financialValue}>₹{selectedDate.paymentsReceived?.toFixed(2) || '0.00'}</Text>
-                  </View>
-                  <View style={styles.financialRow}>
-                    <Text style={styles.financialLabel}>Work Pay:</Text>
-                    <Text style={styles.financialValue}>₹{selectedDate.workPay.toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.financialRow}>
-                    <Text style={styles.financialLabel}>Shop Expenses:</Text>
-                    <Text style={styles.financialValue}>₹{selectedDate.shopExpenses.toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.financialRow}>
-                    <Text style={styles.financialLabel}>Worker Expenses:</Text>
-                    <Text style={styles.financialValue}>₹{selectedDate.workerExpenses.toFixed(2)}</Text>
-                  </View>
-                  <View style={[styles.financialRow, styles.netProfitRow]}>
-                    <Text style={styles.financialLabel}>Net Profit:</Text>
-                    <Text style={[styles.financialValue, { color: getProfitColor(selectedDate.netProfit) }]}>
-                      ₹{selectedDate.netProfit.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Bills ({selectedDate.bills?.length || 0})</Text>
-                  {selectedDate.bills && selectedDate.bills.length > 0 ? (
-                    selectedDate.bills.map((bill, index) => (
-                      <View key={index} style={styles.orderItem}>
-                        <Text style={styles.orderText}>Bill #{bill.id || bill.billnumberinput2 || index + 1}</Text>
-                        <Text style={styles.orderAmount}>₹{(bill.total_amt ?? bill.total_amount ?? bill.amount ?? 0).toFixed ? (bill.total_amt ?? bill.total_amount ?? bill.amount ?? 0).toFixed(2) : Number(bill.total_amt ?? bill.total_amount ?? bill.amount ?? 0).toFixed(2)}</Text>
-                        <Text style={styles.orderDate}>
-                          {formatDate(bill.today_date || bill.date_issue || bill.due_date)}
+                  <Text style={styles.detailLabel}>
+                    {dateFilter === 'today' ? 'Today\'s Financial Summary (Advance-Based)' : 'Financial Summary'}
+                  </Text>
+                  
+                  {dateFilter === 'today' ? (
+                    // Today's tab: Show advance payments as revenue and simplified calculation
+                    <>
+                      <View style={styles.financialRow}>
+                        <Text style={styles.financialLabel}>Advance Payments (Revenue):</Text>
+                        <Text style={styles.financialValue}>₹{(selectedDate.advancePayments || selectedDate.revenue || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.financialRow}>
+                        <Text style={styles.financialLabel}>Shop Expenses:</Text>
+                        <Text style={styles.financialValue}>₹{(selectedDate.shopExpenses || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={[styles.financialRow, styles.netProfitRow]}>
+                        <Text style={styles.financialLabel}>Net Profit (Revenue - Shop Expenses):</Text>
+                        <Text style={[styles.financialValue, { color: getProfitColor(selectedDate.netProfit) }]}>
+                          ₹{(selectedDate.netProfit || 0).toFixed(2)}
                         </Text>
                       </View>
-                    ))
+                      <View style={styles.todayNote}>
+                        <Text style={styles.todayNoteText}>
+                          💡 Today's calculation: Advance payments received minus shop expenses only
+                        </Text>
+                      </View>
+                    </>
                   ) : (
-                    <Text style={styles.noDataText}>No bills for this date</Text>
+                    // Other tabs: Show full calculation
+                    <>
+                      <View style={styles.financialRow}>
+                        <Text style={styles.financialLabel}>Revenue:</Text>
+                        <Text style={styles.financialValue}>₹{(selectedDate.revenue || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.financialRow}>
+                        <Text style={styles.financialLabel}>Work Pay:</Text>
+                        <Text style={styles.financialValue}>₹{(selectedDate.workPay || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.financialRow}>
+                        <Text style={styles.financialLabel}>Shop Expenses:</Text>
+                        <Text style={styles.financialValue}>₹{(selectedDate.shopExpenses || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.financialRow}>
+                        <Text style={styles.financialLabel}>Worker Expenses:</Text>
+                        <Text style={styles.financialValue}>₹{(selectedDate.workerExpenses || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={[styles.financialRow, styles.netProfitRow]}>
+                        <Text style={styles.financialLabel}>Net Profit:</Text>
+                        <Text style={[styles.financialValue, { color: getProfitColor(selectedDate.netProfit) }]}>
+                          ₹{(selectedDate.netProfit || 0).toFixed(2)}
+                        </Text>
+                      </View>
+                    </>
                   )}
                 </View>
 
+
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Orders ({selectedDate.orders.length})</Text>
+                  <Text style={styles.detailLabel}>
+                    {dateFilter === 'today' ? `Orders with Advance Payments (${selectedDate.orders.length})` : `Orders (${selectedDate.orders.length})`}
+                  </Text>
                   {selectedDate.orders.length > 0 ? (
                     selectedDate.orders.map((order, index) => (
                       <View key={index} style={styles.orderItem}>
                         <Text style={styles.orderText}>Order #{order.id}</Text>
-                        <Text style={styles.orderAmount}>₹{order.Work_pay || 0}</Text>
+                        {dateFilter === 'today' ? (
+                          <Text style={styles.orderAmount}>
+                            ₹{(() => {
+                              const amount = order.displayPaymentAmount || parseFloat(order.payment_amount) || 0;
+                              console.log(`🎯 Order ${order.id} amount display:`, amount, 'from displayPaymentAmount:', order.displayPaymentAmount, 'payment_amount:', order.payment_amount);
+                              return amount.toFixed(2);
+                            })()} (advance)
+                          </Text>
+                        ) : (
+                          <Text style={styles.orderAmount}>₹{order.Work_pay || 0}</Text>
+                        )}
                         <Text style={styles.orderDate}>
-                          {formatDate(order.order_date)}
+                          {dateFilter === 'today' && order.updated_at ? 
+                            formatDate(order.updated_at) + ' (payment date)' : 
+                            formatDate(order.order_date)
+                          }
                         </Text>
                       </View>
                     ))
                   ) : (
-                    <Text style={styles.noDataText}>No orders for this date</Text>
+                    <Text style={styles.noDataText}>
+                      {dateFilter === 'today' ? 'No advance payments received today' : 'No orders for this date'}
+                    </Text>
                   )}
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Expenses ({selectedDate.expenses.length})</Text>
-                  {selectedDate.expenses.length > 0 ? (
-                    selectedDate.expenses.map((expense, index) => (
-                      <View key={index} style={styles.expenseItem}>
-                        <Text style={styles.expenseText}>
-                          {expense.name || expense.expense_name} ({expense.type})
-                        </Text>
-                        <Text style={styles.expenseAmount}>₹{expense.Amt_Paid || 0}</Text>
-                        <Text style={styles.expenseDate}>
-                          {new Date(expense.date).toLocaleDateString()}
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.noDataText}>No expenses for this date</Text>
-                  )}
+                  {(() => {
+                    // Filter to show only shop expenses (daily type)
+                    const shopExpenses = selectedDate.expenses.filter(expense => expense.type === 'daily');
+                    
+                    return (
+                      <>
+                        <Text style={styles.detailLabel}>Shop Expenses ({shopExpenses.length})</Text>
+                        {shopExpenses.length > 0 ? (
+                          shopExpenses.map((expense, index) => {
+                            // Handle shop expense details
+                            let expenseName = 'Shop Expense';
+                            let expenseAmount = 0;
+                            let expenseDate = '';
+                            let expenseDetails = [];
+                            
+                            if (expense.calculatedAmount !== undefined) {
+                              // Use pre-calculated amount
+                              expenseAmount = expense.calculatedAmount;
+                            } else if (expense.amount !== undefined) {
+                              // Simple expenses table
+                              expenseAmount = expense.amount;
+                            } else {
+                              // Daily_Expenses table breakdown
+                              expenseAmount = (expense.material_cost || 0) + (expense.miscellaneous_Cost || 0) + (expense.chai_pani_cost || 0);
+                            }
+                            
+                            // Build expense name and details
+                            if (expense.description) {
+                              expenseName = expense.description;
+                            } else if (expense.material_type) {
+                              expenseName = expense.material_type;
+                            } else {
+                              // Show breakdown if available
+                              if (expense.material_cost > 0) expenseDetails.push(`Materials: ₹${expense.material_cost}`);
+                              if (expense.miscellaneous_Cost > 0) expenseDetails.push(`Misc: ₹${expense.miscellaneous_Cost}`);
+                              if (expense.chai_pani_cost > 0) expenseDetails.push(`Tea/Snacks: ₹${expense.chai_pani_cost}`);
+                              
+                              if (expenseDetails.length > 0) {
+                                expenseName = expenseDetails.join(', ');
+                              } else {
+                                expenseName = 'Shop Expense';
+                              }
+                            }
+                            
+                            expenseDate = expense.date || expense.Date;
+                            
+                            return (
+                              <View key={index} style={styles.expenseItem}>
+                                <Text style={styles.expenseText}>
+                                  {expenseName}
+                                </Text>
+                                <Text style={styles.expenseAmount}>₹{expenseAmount.toFixed ? expenseAmount.toFixed(2) : Number(expenseAmount).toFixed(2)}</Text>
+                                <Text style={styles.expenseDate}>
+                                  {expenseDate ? new Date(expenseDate).toLocaleDateString() : 'Unknown date'}
+                                </Text>
+                              </View>
+                            );
+                          })
+                        ) : (
+                          <Text style={styles.noDataText}>No shop expenses for this date</Text>
+                        )}
+                      </>
+                    );
+                  })()}
                 </View>
               </ScrollView>
             )}
@@ -1419,4 +1664,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-}); 
+  todayNote: {
+    backgroundColor: '#e8f4fd',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    borderLeft: 4,
+    borderLeftColor: '#2980b9',
+  },
+  todayNoteText: {
+    fontSize: 13,
+    color: '#2980b9',
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+});

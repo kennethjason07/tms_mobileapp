@@ -179,7 +179,237 @@ const generateMeasurementHTML = (billData, measurements) => `
   </html>
 `;
 
-// Function to read and populate the print-format.html template
+// Professional bill HTML generator using the same format as NewBillScreen
+const generateProfessionalBillHTML = (billData, orders) => {
+  // Calculate totals and organize data
+  const garmentTotals = {};
+  let totalAmount = 0;
+  let totalQuantity = 0;
+  
+  // Process orders data to create garment totals
+  orders.forEach(order => {
+    const garmentType = order.garment_type || 'Unknown';
+    const amount = parseFloat(order.total_amt || 0);
+    
+    if (!garmentTotals[garmentType]) {
+      garmentTotals[garmentType] = { qty: 0, amount: 0 };
+    }
+    
+    garmentTotals[garmentType].qty += 1;
+    garmentTotals[garmentType].amount += amount;
+    totalAmount += amount;
+    totalQuantity += 1;
+  });
+  
+  const advanceAmount = parseFloat(billData.payment_amount || 0);
+  const remainingAmount = totalAmount - advanceAmount;
+  
+  // Format dates
+  const orderDate = billData.order_date ? 
+    new Date(billData.order_date).toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }).replace(/\//g, '-') : '';
+    
+  const dueDate = billData.due_date ? 
+    new Date(billData.due_date).toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }).replace(/\//g, '-') : '';
+  
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bill</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .bill-container {
+      width: 100%;
+      max-width: 210mm;
+      margin: auto;
+      padding: 20px;
+      padding-top: 200px;
+      box-sizing: border-box;
+    }
+    .section-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .info-box {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .info-box label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .info-row div {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .info-row div:last-child {
+      margin-right: 0;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #000;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .table-section {
+      display: flex;
+      justify-content: space-between;
+    }
+    .items-box {
+      flex: 1;
+      border: 1px solid #000;
+      margin-right: 15px;
+    }
+    .items-box table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .items-box th, .items-box td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: center;
+    }
+    .items-box input {
+      width: 90%;
+      border: none;
+      text-align: center;
+      background: transparent;
+    }
+    .footer-box {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer-box span {
+      display: block;
+      margin-top: 5px;
+      color: blue;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="bill-container">
+
+    <div class="section-title">Customer Information</div>
+
+    <div class="info-box">
+      <label>Order Number:</label>
+      <input type="text" value="${billData.billnumberinput2 || ''}" readonly>
+
+      <div class="info-row">
+        <div>
+          <label>Customer Name:</label>
+          <input type="text" value="${billData.customer_name || ''}" readonly>
+        </div>
+        <div>
+          <label>Mobile Number:</label>
+          <input type="text" value="${billData.mobile_number || ''}" readonly>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div>
+          <label>Date:</label>
+          <input type="text" value="${orderDate}" readonly>
+        </div>
+        <div>
+          <label>Delivery Date:</label>
+          <input type="text" value="${dueDate}" readonly>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="items-box">
+        <table>
+          <tr>
+            <th>Particulars</th>
+            <th>Qty</th>
+            <th>Amount</th>
+          </tr>
+          <tr>
+            <td>Suit</td>
+            <td><input type="text" value="${garmentTotals['Suit']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Suit']?.amount ? garmentTotals['Suit'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Safari/Jacket</td>
+            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.qty || garmentTotals['Safari']?.qty || garmentTotals['Jacket']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${(garmentTotals['Safari/Jacket']?.amount || garmentTotals['Safari']?.amount || garmentTotals['Jacket']?.amount || 0) > 0 ? (garmentTotals['Safari/Jacket']?.amount || garmentTotals['Safari']?.amount || garmentTotals['Jacket']?.amount || 0).toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Pant</td>
+            <td><input type="text" value="${garmentTotals['Pant']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Pant']?.amount ? garmentTotals['Pant'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Shirt</td>
+            <td><input type="text" value="${garmentTotals['Shirt']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Shirt']?.amount ? garmentTotals['Shirt'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Sadri</td>
+            <td><input type="text" value="${garmentTotals['Sadri']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Sadri']?.amount ? garmentTotals['Sadri'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td><b>Total</b></td>
+            <td><input type="text" value="${totalQuantity}" readonly></td>
+            <td><input type="text" value="${totalAmount.toFixed(2)}" readonly></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="image-box">
+        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
+             alt="Terms and Conditions" 
+             style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background: white;"
+             onerror="this.style.display='none';">
+      </div>
+    </div>
+
+    <div class="footer-box">
+      Thank You, Visit Again!
+      <span>Sunday Holiday</span>
+    </div>
+
+  </div>
+</body>
+</html>
+    `;
+};
+
+// Legacy function - keeping for backward compatibility
 const generateBillHTML = (billData, orders) => {
   // Supabase public URL for the suit icon
   const suitImageUrl = "https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg";
@@ -456,54 +686,6 @@ const generateBillHTML = (billData, orders) => {
 
   </div>
   
-  <script>
-    // Preload the Supabase image
-    const preloadImage = new Image();
-    preloadImage.crossOrigin = 'anonymous';
-    preloadImage.src = '${suitImageUrl}';
-    
-    // Wait for images to load before printing
-    let imagesLoaded = false;
-    let printAttempted = false;
-    
-    function checkImagesAndPrint() {
-      if (printAttempted) return;
-      
-      const suitIcon = document.querySelector('.suit-icon');
-      if (suitIcon) {
-        if (suitIcon.complete || suitIcon.naturalWidth > 0) {
-          console.log('Image loaded, printing...');
-          printAttempted = true;
-          setTimeout(() => window.print(), 100);
-        } else {
-          console.log('Image still loading, waiting...');
-          setTimeout(checkImagesAndPrint, 200);
-        }
-      } else {
-        // No image found, print anyway
-        printAttempted = true;
-        setTimeout(() => window.print(), 100);
-      }
-    }
-    
-    // Start checking after DOM is loaded
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(checkImagesAndPrint, 1000);
-      });
-    } else {
-      setTimeout(checkImagesAndPrint, 1000);
-    }
-    
-    // Fallback - print after 5 seconds regardless
-    setTimeout(() => {
-      if (!printAttempted) {
-        console.log('Fallback print after timeout');
-        printAttempted = true;
-        window.print();
-      }
-    }, 5000);
-  </script>
 </body>
 </html>
   `;
@@ -734,15 +916,34 @@ export default function GenerateBillScreen({ navigation }) {
           const { orders: billOrders, bill } = await SupabaseAPI.getOrdersByBillId(firstOrder.bill_id);
           
           if (bill && billOrders) {
-            // Populate bill data
+            // Debug: Log the actual data structure
+            console.log('🔍 DEBUG: Bill data:', JSON.stringify(bill, null, 2));
+            console.log('🔍 DEBUG: First order data:', JSON.stringify(billOrders[0], null, 2));
+            console.log('🔍 DEBUG: Available bill fields:', Object.keys(bill));
+            console.log('🔍 DEBUG: Available order fields:', billOrders[0] ? Object.keys(billOrders[0]) : 'No orders');
+            
+            // Populate bill data with multiple possible field names
+            const orderDate = bill.order_date || bill.date_issue || bill.created_at || bill.today_date || 
+                             billOrders[0]?.order_date || billOrders[0]?.date_issue || billOrders[0]?.created_at;
+            
+            console.log('📅 DEBUG: Trying order date fields:');
+            console.log('  bill.order_date:', bill.order_date);
+            console.log('  bill.date_issue:', bill.date_issue);
+            console.log('  bill.created_at:', bill.created_at);
+            console.log('  bill.today_date:', bill.today_date);
+            console.log('  billOrders[0]?.order_date:', billOrders[0]?.order_date);
+            console.log('  billOrders[0]?.date_issue:', billOrders[0]?.date_issue);
+            console.log('  billOrders[0]?.created_at:', billOrders[0]?.created_at);
+            console.log('  Final orderDate selected:', orderDate);
+            
             setBillData({
               customer_name: bill.customer_name || '',
               mobile_number: bill.mobile_number || '',
-              order_date: bill.created_at ? new Date(bill.created_at).toISOString().split('T')[0] : '',
-              due_date: billOrders[0]?.due_date || '',
-              payment_status: bill.payment_status || '',
-              payment_mode: bill.payment_mode || '',
-              payment_amount: bill.payment_amount || '0',
+              order_date: orderDate ? new Date(orderDate).toISOString().split('T')[0] : '',
+              due_date: bill.due_date || bill.delivery_date || billOrders[0]?.due_date || '',
+              payment_status: bill.payment_status || billOrders[0]?.payment_status || 'pending',
+              payment_mode: bill.payment_mode || billOrders[0]?.payment_mode || '',
+              payment_amount: bill.payment_amount || billOrders[0]?.payment_amount || '0',
               billnumberinput2: bill.billnumberinput2 || searchQuery,
             });
             
@@ -896,31 +1097,103 @@ export default function GenerateBillScreen({ navigation }) {
   };
 
   const handlePrintBill = async () => {
+    console.log('🖨️ handlePrintBill called');
+    console.log('📱 Platform.OS:', Platform.OS);
+    
     if (!billData) {
+      console.log('❌ No bill data');
       Alert.alert('Error', 'No bill data to print');
       return;
     }
 
     try {
-      const html = generateBillHTML(billData, orders);
+      console.log('📄 Generating professional bill HTML...');
+      const html = generateProfessionalBillHTML(billData, orders);
+      console.log('✅ HTML generated, length:', html.length);
       
       if (Platform.OS === 'web') {
+        console.log('🌐 Web platform - opening print window');
         // For web, create a new window and print
         const printWindow = window.open('', '_blank');
         printWindow.document.write(html);
         printWindow.document.close();
-        printWindow.print();
+        
+        // Wait for images to load before printing
+        printWindow.onload = () => {
+          const images = printWindow.document.querySelectorAll('img');
+          let loadedImages = 0;
+          
+          if (images.length === 0) {
+            // No images, print immediately
+            console.log('🖨️ No images found, printing immediately');
+            printWindow.print();
+            return;
+          }
+          
+          console.log(`📸 Found ${images.length} images, waiting for them to load...`);
+          images.forEach((img) => {
+            if (img.complete) {
+              loadedImages++;
+            } else {
+              img.onload = () => {
+                loadedImages++;
+                console.log(`✅ Image loaded (${loadedImages}/${images.length})`);
+                if (loadedImages === images.length) {
+                  console.log('🖨️ All images loaded, printing now');
+                  printWindow.print();
+                }
+              };
+              img.onerror = () => {
+                loadedImages++;
+                console.log(`❌ Image failed to load (${loadedImages}/${images.length})`);
+                if (loadedImages === images.length) {
+                  console.log('🖨️ All images processed (some failed), printing now');
+                  printWindow.print();
+                }
+              };
+            }
+          });
+          
+          if (loadedImages === images.length) {
+            console.log('🖨️ All images already loaded, printing now');
+            printWindow.print();
+          }
+        };
+        
+        // Show success message
+        Alert.alert(
+          'Print Ready', 
+          `Bill #${billData.billnumberinput2 || 'N/A'} is ready to print. The print dialog will open once images load.`,
+          [{ text: 'OK' }]
+        );
       } else {
+        console.log('📱 Mobile platform - using Expo Print');
         // For mobile, use Expo Print
-        const { uri } = await Print.printToFileAsync({
+        const result = await Print.printToFileAsync({
           html,
           base64: false,
         });
         
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(uri);
+        console.log('Print result:', result);
+        
+        if (result && result.uri) {
+          console.log('PDF generated successfully, sharing:', result.uri);
+          
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(result.uri);
+          } else {
+            Alert.alert('Success', `Bill #${billData.billnumberinput2 || 'N/A'} generated successfully`);
+          }
+          
+          // Show success message
+          Alert.alert(
+            'Bill Generated', 
+            `Bill #${billData.billnumberinput2 || 'N/A'} has been generated and is ready to print or share.`,
+            [{ text: 'OK' }]
+          );
         } else {
-          Alert.alert('Success', 'Bill generated successfully');
+          Alert.alert('Error', 'Failed to generate bill PDF file');
+          console.error('Print result is undefined or missing uri:', result);
         }
       }
     } catch (error) {

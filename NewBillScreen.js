@@ -1,3 +1,281 @@
+  // Professional bill HTML generator using the same format as GenerateBillScreen
+  const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber) => {
+    // Calculate totals and organize data
+    const garmentTotals = {};
+    let totalAmount = 0;
+    let totalQuantity = 0;
+    
+    // Process itemized bill data to create garment totals
+    const garmentTypes = [
+      { type: 'Suit', qty: parseInt(itemizedBill.suit_qty) || 0, amount: parseFloat(itemizedBill.suit_amount) || 0 },
+      { type: 'Safari/Jacket', qty: parseInt(itemizedBill.safari_qty) || 0, amount: parseFloat(itemizedBill.safari_amount) || 0 },
+      { type: 'Pant', qty: parseInt(itemizedBill.pant_qty) || 0, amount: parseFloat(itemizedBill.pant_amount) || 0 },
+      { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0, amount: parseFloat(itemizedBill.shirt_amount) || 0 },
+      { type: 'Sadri', qty: parseInt(itemizedBill.sadri_qty) || 0, amount: parseFloat(itemizedBill.sadri_amount) || 0 }
+    ];
+    
+    garmentTypes.forEach(({ type, qty, amount }) => {
+      if (qty > 0) {
+        garmentTotals[type] = { qty, amount };
+        totalAmount += amount;
+        totalQuantity += qty;
+      }
+    });
+    
+    const advanceAmount = parseFloat(billData.payment_amount) || 0;
+    const remainingAmount = totalAmount - advanceAmount;
+    
+    // Format dates
+    const orderDate = billData.order_date ? 
+      new Date(billData.order_date).toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      }).replace(/\//g, '-') : '';
+      
+    const dueDate = billData.due_date ? 
+      new Date(billData.due_date).toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      }).replace(/\//g, '-') : '';
+    
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bill</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .bill-container {
+      width: 100%;
+      max-width: 210mm;
+      margin: auto;
+      padding: 20px;
+      padding-top: 200px;
+      box-sizing: border-box;
+    }
+    .section-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .info-box {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .info-box label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .info-row div {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .info-row div:last-child {
+      margin-right: 0;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #000;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .table-section {
+      display: flex;
+      justify-content: space-between;
+    }
+    .items-box {
+      flex: 1;
+      border: 1px solid #000;
+      margin-right: 15px;
+    }
+    .items-box table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .items-box th, .items-box td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: center;
+    }
+    .items-box input {
+      width: 90%;
+      border: none;
+      text-align: center;
+      background: transparent;
+    }
+    .suit-box {
+      width: 220px;
+      border: 1px solid #000;
+      text-align: center;
+      font-size: 12px;
+    }
+    .suit-box h3 {
+      background: #3a2f2f;
+      color: #fff;
+      margin: 0;
+      padding: 6px;
+      font-size: 13px;
+    }
+    .suit-box img {
+      width: 150px;
+      height: auto;
+      margin: 10px 0;
+      display: block;
+      max-width: 100%;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      object-fit: contain;
+    }
+    .suit-box img::before {
+      content: "Suit Specialist Logo";
+      display: block;
+      text-align: center;
+      color: #999;
+      font-size: 12px;
+      padding: 20px;
+    }
+    .suit-box .terms {
+      text-align: left;
+      padding: 0 8px 10px;
+    }
+    .suit-box .terms strong {
+      color: #d2691e;
+    }
+    .suit-box .terms p {
+      margin: 4px 0;
+    }
+    .suit-box .highlight {
+      color: red;
+    }
+    .footer-box {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer-box span {
+      display: block;
+      margin-top: 5px;
+      color: blue;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="bill-container">
+
+    <div class="section-title">Customer Information</div>
+
+    <div class="info-box">
+      <label>Order Number:</label>
+      <input type="text" value="${orderNumber || billData.billnumberinput2 || ''}" readonly>
+
+      <div class="info-row">
+        <div>
+          <label>Customer Name:</label>
+          <input type="text" value="${billData.customer_name || ''}" readonly>
+        </div>
+        <div>
+          <label>Mobile Number:</label>
+          <input type="text" value="${billData.mobile_number || ''}" readonly>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div>
+          <label>Date:</label>
+          <input type="text" value="${orderDate}" readonly>
+        </div>
+        <div>
+          <label>Delivery Date:</label>
+          <input type="text" value="${dueDate}" readonly>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="items-box">
+        <table>
+          <tr>
+            <th>Particulars</th>
+            <th>Qty</th>
+            <th>Amount</th>
+          </tr>
+          <tr>
+            <td>Suit</td>
+            <td><input type="text" value="${garmentTotals['Suit']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Suit']?.amount ? garmentTotals['Suit'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Safari/Jacket</td>
+            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.amount ? garmentTotals['Safari/Jacket'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Pant</td>
+            <td><input type="text" value="${garmentTotals['Pant']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Pant']?.amount ? garmentTotals['Pant'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Shirt</td>
+            <td><input type="text" value="${garmentTotals['Shirt']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Shirt']?.amount ? garmentTotals['Shirt'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td>Sadri</td>
+            <td><input type="text" value="${garmentTotals['Sadri']?.qty || ''}" readonly></td>
+            <td><input type="text" value="${garmentTotals['Sadri']?.amount ? garmentTotals['Sadri'].amount.toFixed(2) : ''}" readonly></td>
+          </tr>
+          <tr>
+            <td><b>Total</b></td>
+            <td><input type="text" value="${totalQuantity}" readonly></td>
+            <td><input type="text" value="${totalAmount.toFixed(2)}" readonly></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="image-box">
+        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
+             alt="Terms and Conditions" 
+             style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background: white;"
+             onerror="this.style.display='none';">
+      </div>
+    </div>
+
+    <div class="footer-box">
+      Thank You, Visit Again!
+      <span>Sunday Holiday</span>
+    </div>
+
+  </div>
+</body>
+</html>
+    `;
+  };
+
 import React, { useState, useEffect, useRef } from 'react';
 // Test function to verify template system works
 const testTemplateSystem = () => {
@@ -56,6 +334,54 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
+
+// Helper function to parse fractional and decimal measurements
+// Supports formats like: "4 2/5", "4.5", "4", "2/5", "0.5"
+function parseMeasurementInput(input) {
+  if (!input || input.trim() === '') return 0;
+  
+  const text = input.trim();
+  
+  // Handle pure decimal numbers (e.g., "4.5", "4", "0.5")
+  if (/^\d+\.?\d*$/.test(text)) {
+    const value = parseFloat(text);
+    return isNaN(value) ? 0 : value;
+  }
+  
+  // Handle pure fractions (e.g., "2/5", "3/4")
+  if (/^\d+\/\d+$/.test(text)) {
+    const [numerator, denominator] = text.split('/').map(Number);
+    if (denominator === 0) return 0;
+    return numerator / denominator;
+  }
+  
+  // Handle mixed fractions (e.g., "4 2/5", "3 1/4")
+  if (/^\d+\s+\d+\/\d+$/.test(text)) {
+    const parts = text.split(' ');
+    const wholeNumber = parseInt(parts[0]);
+    const [numerator, denominator] = parts[1].split('/').map(Number);
+    if (denominator === 0) return wholeNumber;
+    return wholeNumber + (numerator / denominator);
+  }
+  
+  // If format doesn't match any pattern, try parseFloat as fallback
+  const fallbackValue = parseFloat(text);
+  return isNaN(fallbackValue) ? 0 : fallbackValue;
+}
+
+// Helper function to format measurement value for display
+// Converts decimal back to fractional display if needed
+function formatMeasurementDisplay(value) {
+  if (!value || value === 0) return '0';
+  
+  // If it's a whole number, display as is
+  if (value % 1 === 0) {
+    return value.toString();
+  }
+  
+  // For decimal values, show up to 3 decimal places (removes trailing zeros)
+  return parseFloat(value.toFixed(3)).toString();
+}
 
 function generateAllMeasurementsTable(measurements) {
   const labelize = (key) =>
@@ -812,6 +1138,9 @@ export default function NewBillScreen({ navigation }) {
       // 2. Use orderNumber for the new bill
       const totals = calculateTotals();
       const todayStr = new Date().toISOString().split('T')[0]; // Always use today
+      const currentTimestamp = new Date().toISOString(); // Full timestamp for updated_at
+      const advanceAmount = parseFloat(billData.payment_amount) || 0;
+      
       let billToSave = {
         customer_name: billData.customer_name,
         mobile_number: billData.mobile_number,
@@ -821,7 +1150,7 @@ export default function NewBillScreen({ navigation }) {
         due_date: billData.due_date,
         payment_status: billData.payment_status,
         payment_mode: billData.payment_mode,
-        payment_amount: parseFloat(billData.payment_amount) || 0,
+        payment_amount: advanceAmount,
         total_amt: parseFloat(totals.total_amt),
         total_qty: parseInt(totals.total_qty),
         suit_qty: parseInt(itemizedBill.suit_qty) || 0,
@@ -830,6 +1159,12 @@ export default function NewBillScreen({ navigation }) {
         shirt_qty: parseInt(itemizedBill.shirt_qty) || 0,
         sadri_qty: parseInt(itemizedBill.sadri_qty) || 0,
       };
+      
+      // Note: bills table doesn't have updated_at column per schema
+      // The updated_at will be added to individual orders instead
+      if (advanceAmount > 0) {
+        console.log(`\u{1F4B0} Advance payment detected: ₹${advanceAmount}, will add updated_at to individual orders`);
+      }
       // Sanitize billToSave
       Object.keys(billToSave).forEach(key => {
         if (billToSave[key] === undefined || billToSave[key] === 'undefined') {
@@ -837,9 +1172,13 @@ export default function NewBillScreen({ navigation }) {
         }
       });
 
+      console.log('📋 About to create bill with data:', JSON.stringify(billToSave, null, 2));
+      
       const billResult = await SupabaseAPI.createNewBill(billToSave);
-      console.log('Bill save result:', billResult);
+      console.log('✅ Bill save result:', billResult);
+      
       if (!billResult || !billResult[0] || typeof billResult[0].id !== 'number') {
+        console.error('❌ Bill creation failed - Invalid result:', billResult);
         Alert.alert('Error', 'Failed to create bill. Please try again.');
         console.log('handleSaveBill failed: bill not created');
         return false;
@@ -945,6 +1284,7 @@ export default function NewBillScreen({ navigation }) {
   const createIndividualGarmentOrders = (billId, orderNumber, todayStr) => {
     const orders = [];
     const totals = calculateTotals();
+    const advanceAmount = parseFloat(billData.payment_amount) || 0;
     
     // Define garment types and their quantities
     const garmentTypes = [
@@ -965,12 +1305,18 @@ export default function NewBillScreen({ navigation }) {
           order_date: todayStr,
           due_date: billData.due_date,
           total_amt: parseFloat(totals.total_amt),
-          payment_amount: parseFloat(billData.payment_amount) || 0,
+          payment_amount: advanceAmount,
           payment_status: billData.payment_status,
           payment_mode: billData.payment_mode,
           status: 'pending',
           Work_pay: null, // Only set after workers are assigned
         };
+        
+        // Add updated_at date if there's an advance payment (orders.updated_at is date type per schema)
+        if (advanceAmount > 0) {
+          orderData.updated_at = todayStr; // Use date format (YYYY-MM-DD) not timestamp
+          console.log(`  ✅ Adding updated_at date to ${type} order: ${todayStr}`);
+        }
         
         // Sanitize orderData
         Object.keys(orderData).forEach(key => {
@@ -1203,283 +1549,6 @@ export default function NewBillScreen({ navigation }) {
     }
   };
 
-  // Professional bill HTML generator using the same format as GenerateBillScreen
-  const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber) => {
-    // Calculate totals and organize data
-    const garmentTotals = {};
-    let totalAmount = 0;
-    let totalQuantity = 0;
-    
-    // Process itemized bill data to create garment totals
-    const garmentTypes = [
-      { type: 'Suit', qty: parseInt(itemizedBill.suit_qty) || 0, amount: parseFloat(itemizedBill.suit_amount) || 0 },
-      { type: 'Safari/Jacket', qty: parseInt(itemizedBill.safari_qty) || 0, amount: parseFloat(itemizedBill.safari_amount) || 0 },
-      { type: 'Pant', qty: parseInt(itemizedBill.pant_qty) || 0, amount: parseFloat(itemizedBill.pant_amount) || 0 },
-      { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0, amount: parseFloat(itemizedBill.shirt_amount) || 0 },
-      { type: 'Sadri', qty: parseInt(itemizedBill.sadri_qty) || 0, amount: parseFloat(itemizedBill.sadri_amount) || 0 }
-    ];
-    
-    garmentTypes.forEach(({ type, qty, amount }) => {
-      if (qty > 0) {
-        garmentTotals[type] = { qty, amount };
-        totalAmount += amount;
-        totalQuantity += qty;
-      }
-    });
-    
-    const advanceAmount = parseFloat(billData.payment_amount) || 0;
-    const remainingAmount = totalAmount - advanceAmount;
-    
-    // Format dates
-    const orderDate = billData.order_date ? 
-      new Date(billData.order_date).toLocaleDateString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      }).replace(/\//g, '-') : '';
-      
-    const dueDate = billData.due_date ? 
-      new Date(billData.due_date).toLocaleDateString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      }).replace(/\//g, '-') : '';
-    
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Bill</title>
-  <style>
-    @page {
-      size: A4;
-      margin: 20mm;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    .bill-container {
-      width: 100%;
-      max-width: 210mm;
-      margin: auto;
-      padding: 20px;
-      padding-top: 200px;
-      box-sizing: border-box;
-    }
-    .section-title {
-      text-align: center;
-      font-weight: bold;
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-    .info-box {
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    .info-box label {
-      display: block;
-      font-size: 14px;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-    .info-row div {
-      flex: 1;
-      margin-right: 10px;
-    }
-    .info-row div:last-child {
-      margin-right: 0;
-    }
-    input {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #000;
-      box-sizing: border-box;
-      font-family: inherit;
-      font-size: 14px;
-    }
-    .table-section {
-      display: flex;
-      justify-content: space-between;
-    }
-    .items-box {
-      flex: 1;
-      border: 1px solid #000;
-      margin-right: 15px;
-    }
-    .items-box table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .items-box th, .items-box td {
-      border: 1px solid #000;
-      padding: 8px;
-      text-align: center;
-    }
-    .items-box input {
-      width: 90%;
-      border: none;
-      text-align: center;
-      background: transparent;
-    }
-    .suit-box {
-      width: 220px;
-      border: 1px solid #000;
-      text-align: center;
-      font-size: 12px;
-    }
-    .suit-box h3 {
-      background: #3a2f2f;
-      color: #fff;
-      margin: 0;
-      padding: 6px;
-      font-size: 13px;
-    }
-    .suit-box img {
-      width: 150px;
-      height: auto;
-      margin: 10px 0;
-      display: block;
-      max-width: 100%;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      object-fit: contain;
-    }
-    .suit-box img::before {
-      content: "Suit Specialist Logo";
-      display: block;
-      text-align: center;
-      color: #999;
-      font-size: 12px;
-      padding: 20px;
-    }
-    .suit-box .terms {
-      text-align: left;
-      padding: 0 8px 10px;
-    }
-    .suit-box .terms strong {
-      color: #d2691e;
-    }
-    .suit-box .terms p {
-      margin: 4px 0;
-    }
-    .suit-box .highlight {
-      color: red;
-    }
-    .footer-box {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 13px;
-    }
-    .footer-box span {
-      display: block;
-      margin-top: 5px;
-      color: blue;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body onload="window.print()">
-  <div class="bill-container">
-
-    <div class="section-title">Customer Information</div>
-
-    <div class="info-box">
-      <label>Order Number:</label>
-      <input type="text" value="${orderNumber || billData.billnumberinput2 || ''}" readonly>
-
-      <div class="info-row">
-        <div>
-          <label>Customer Name:</label>
-          <input type="text" value="${billData.customer_name || ''}" readonly>
-        </div>
-        <div>
-          <label>Mobile Number:</label>
-          <input type="text" value="${billData.mobile_number || ''}" readonly>
-        </div>
-      </div>
-
-      <div class="info-row">
-        <div>
-          <label>Date:</label>
-          <input type="text" value="${orderDate}" readonly>
-        </div>
-        <div>
-          <label>Delivery Date:</label>
-          <input type="text" value="${dueDate}" readonly>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-section">
-      <div class="items-box">
-        <table>
-          <tr>
-            <th>Particulars</th>
-            <th>Qty</th>
-            <th>Amount</th>
-          </tr>
-          <tr>
-            <td>Suit</td>
-            <td><input type="text" value="${garmentTotals['Suit']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Suit']?.amount ? garmentTotals['Suit'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Safari/Jacket</td>
-            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.amount ? garmentTotals['Safari/Jacket'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Pant</td>
-            <td><input type="text" value="${garmentTotals['Pant']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Pant']?.amount ? garmentTotals['Pant'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Shirt</td>
-            <td><input type="text" value="${garmentTotals['Shirt']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Shirt']?.amount ? garmentTotals['Shirt'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Sadri</td>
-            <td><input type="text" value="${garmentTotals['Sadri']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Sadri']?.amount ? garmentTotals['Sadri'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td><b>Total</b></td>
-            <td><input type="text" value="${totalQuantity}" readonly></td>
-            <td><input type="text" value="${totalAmount.toFixed(2)}" readonly></td>
-          </tr>
-        </table>
-      </div>
-
-      <div class="image-box">
-        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
-             alt="Terms and Conditions" 
-             style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background: white;"
-             onerror="this.style.display='none';">
-      </div>
-    </div>
-
-    <div class="footer-box">
-      Thank You, Visit Again!
-      <span>Sunday Holiday</span>
-    </div>
-
-  </div>
-</body>
-</html>
-    `;
-  };
 
   const handlePrintBill = async (orderNumber) => {
     try {
@@ -1500,12 +1569,46 @@ export default function NewBillScreen({ navigation }) {
         const printWindow = window.open('', '_blank');
         printWindow.document.write(html);
         printWindow.document.close();
-        printWindow.print();
+        
+        // Wait for images to load before printing
+        printWindow.onload = () => {
+          const images = printWindow.document.querySelectorAll('img');
+          let loadedImages = 0;
+          
+          if (images.length === 0) {
+            // No images, print immediately
+            printWindow.print();
+            return;
+          }
+          
+          images.forEach((img) => {
+            if (img.complete) {
+              loadedImages++;
+            } else {
+              img.onload = () => {
+                loadedImages++;
+                if (loadedImages === images.length) {
+                  printWindow.print();
+                }
+              };
+              img.onerror = () => {
+                loadedImages++;
+                if (loadedImages === images.length) {
+                  printWindow.print();
+                }
+              };
+            }
+          });
+          
+          if (loadedImages === images.length) {
+            printWindow.print();
+          }
+        };
         
         // Show success message
         Alert.alert(
           'Print Ready', 
-          `Bill #${billNumber} is ready to print. The print dialog should have opened.`,
+          `Bill #${billNumber} is ready to print. The print dialog will open once images load.`,
           [{ text: 'OK' }]
         );
       } else {
@@ -1719,72 +1822,65 @@ export default function NewBillScreen({ navigation }) {
               <View style={styles.measurementGrid}>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
-            <TextInput
+                  <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_length.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_length: parseFloat(text) || 0 })}
-                    placeholder="Length"
-              keyboardType="numeric"
-            />
+                    value={formatMeasurementDisplay(measurements.pant_length)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_length: parseMeasurementInput(text) })}
+                    placeholder="e.g. 4 2/5 or 4.4"
+                  />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Kamar:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_kamar.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_kamar: parseFloat(text) || 0 })}
-                    placeholder="Kamar"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.pant_kamar)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_kamar: parseMeasurementInput(text) })}
+                    placeholder="e.g. 3 1/2 or 3.5"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Hips:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_hips.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_hips: parseFloat(text) || 0 })}
-                    placeholder="Hips"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.pant_hips)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_hips: parseMeasurementInput(text) })}
+                    placeholder="e.g. 2/3 or 0.67"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ran:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_waist.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_waist: parseFloat(text) || 0 })}
-                    placeholder="Ran"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.pant_waist)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_waist: parseMeasurementInput(text) })}
+                    placeholder="e.g. 5 1/4 or 5.25"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ghutna:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_ghutna.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_ghutna: parseFloat(text) || 0 })}
-                    placeholder="Ghutna"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.pant_ghutna)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_ghutna: parseMeasurementInput(text) })}
+                    placeholder="e.g. 1 3/4 or 1.75"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Bottom:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_bottom.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_bottom: parseFloat(text) || 0 })}
-                    placeholder="Bottom"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.pant_bottom)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_bottom: parseMeasurementInput(text) })}
+                    placeholder="e.g. 2 1/5 or 2.2"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Seat:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_seat.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_seat: parseFloat(text) || 0 })}
-                    placeholder="Seat"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.pant_seat)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, pant_seat: parseMeasurementInput(text) })}
+                    placeholder="e.g. 6 2/7 or 6.29"
                   />
                 </View>
           </View>
@@ -1852,11 +1948,10 @@ export default function NewBillScreen({ navigation }) {
                   <Text style={styles.measurementLabel}>Length:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_length.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_length: parseFloat(text) || 0 })}
-                    placeholder="Length"
-              keyboardType="numeric"
-            />
+                    value={formatMeasurementDisplay(measurements.shirt_length)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_length: parseMeasurementInput(text) })}
+                    placeholder="e.g. 3 1/4 or 3.25"
+                  />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Body:</Text>
@@ -1880,40 +1975,36 @@ export default function NewBillScreen({ navigation }) {
                   <Text style={styles.measurementLabel}>Shoulder:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_shoulder.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_shoulder: parseFloat(text) || 0 })}
-                    placeholder="Shoulder"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.shirt_shoulder)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_shoulder: parseMeasurementInput(text) })}
+                    placeholder="e.g. 2 3/8 or 2.375"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Astin:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_astin.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: parseFloat(text) || 0 })}
-                    placeholder="Astin"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.shirt_astin)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: parseMeasurementInput(text) })}
+                    placeholder="e.g. 1 1/2 or 1.5"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Collar:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_collar.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: parseFloat(text) || 0 })}
-                    placeholder="Collar"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.shirt_collar)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: parseMeasurementInput(text) })}
+                    placeholder="e.g. 5/8 or 0.625"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Aloose:</Text>
                   <TextInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_aloose.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: parseFloat(text) || 0 })}
-                    placeholder="Aloose"
-                    keyboardType="numeric"
+                    value={formatMeasurementDisplay(measurements.shirt_aloose)}
+                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: parseMeasurementInput(text) })}
+                    placeholder="e.g. 7/16 or 0.44"
                   />
                 </View>
           </View>
