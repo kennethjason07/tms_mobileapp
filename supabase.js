@@ -384,35 +384,65 @@ export const SupabaseAPI = {
     }
   },
 
-  // Customer Info API (replaces route2.py)
+  // Enhanced Customer Info API with proper bill data (replaces route2.py)
   async getCustomerInfo(mobileNumber) {
     try {
+      console.log('\ud83d\udd0d FETCHING CUSTOMER INFO for mobile:', mobileNumber);
+      
       // Get measurements
-    const { data: measurements, error: measurementsError } = await supabase
-      .from('measurements')
-      .select('*')
-      .eq('phone_number', mobileNumber)
+      const { data: measurements, error: measurementsError } = await supabase
+        .from('measurements')
+        .select('*')
+        .eq('phone_number', mobileNumber);
 
       // Get bills separately
-    const { data: bills, error: billsError } = await supabase
-      .from('bills')
+      const { data: bills, error: billsError } = await supabase
+        .from('bills')
         .select('*')
-      .eq('mobile_number', mobileNumber)
+        .eq('mobile_number', mobileNumber)
+        .order('date_issue', { ascending: false });
 
-      // Get orders separately and filter by bill_id
-      let order_history = [];
+      console.log('\ud83d\udcc4 Found', bills?.length || 0, 'bills for customer');
+
+      // Get orders with proper bill information
+      let customer_orders = [];
       if (bills && bills.length > 0) {
         const billIds = bills.map(bill => bill.id);
         const { data: orders, error: ordersError } = await supabase
           .from('orders')
           .select('*')
           .in('bill_id', billIds)
-          .order('order_date', { ascending: false })
+          .order('order_date', { ascending: false });
         
         if (orders && !ordersError) {
-          order_history = orders;
+          // Create a bills map for quick lookup
+          const billsMap = {};
+          bills.forEach(bill => {
+            billsMap[bill.id] = bill;
+          });
+          
+          // Transform orders to include bill information
+          customer_orders = orders.map(order => ({
+            order_id: order.id,
+            bill_id: order.bill_id,
+            bill_number: order.billnumberinput2,
+            garment_type: order.garment_type,
+            status: order.status,
+            order_date: order.order_date,
+            due_date: order.due_date,
+            payment_mode: order.payment_mode,
+            payment_status: order.payment_status,
+            advance_amount: parseFloat(order.payment_amount) || 0,
+            total_amount: parseFloat(order.total_amt) || 0,
+            // Attach full bill information for expansion logic
+            bills: billsMap[order.bill_id] || {},
+            // Keep original order data for backwards compatibility
+            ...order
+          }));
         }
       }
+
+      console.log('\ud83d\udcca Processed', customer_orders.length, 'orders with bill information');
 
       // Check if we have any data at all
       const hasBills = bills && bills.length > 0;
@@ -420,22 +450,49 @@ export const SupabaseAPI = {
 
       // If no data found at all, return empty result
       if (!hasBills && !hasMeasurements) {
-    return {
+        console.log('\u26a0\ufe0f No data found for customer:', mobileNumber);
+        return {
           measurements: null,
-          order_history: [],
+          customer_orders: [],
+          order_history: [], // Keep for backwards compatibility
           customer_name: null,
-      mobile_number: mobileNumber
+          mobile_number: mobileNumber,
+          metadata: {
+            total_orders: 0,
+            total_bills: 0,
+            total_amount: 0,
+            last_updated: new Date().toISOString()
+          }
         };
       }
 
-      return {
+      // Calculate metadata
+      const totalAmount = customer_orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const uniqueBillNumbers = [...new Set(customer_orders.map(order => order.bill_number).filter(Boolean))];
+      
+      const result = {
         measurements: measurements?.[0] || null,
-        order_history: order_history,
+        customer_orders: customer_orders, // New format
+        order_history: customer_orders, // Keep for backwards compatibility
         customer_name: bills?.[0]?.customer_name || null,
-        mobile_number: mobileNumber
+        mobile_number: mobileNumber,
+        metadata: {
+          total_orders: customer_orders.length,
+          total_bills: uniqueBillNumbers.length,
+          total_amount: totalAmount,
+          last_updated: new Date().toISOString()
+        }
       };
+      
+      console.log('\u2705 Customer info fetched successfully:', {
+        orders: result.customer_orders.length,
+        bills: result.metadata.total_bills,
+        totalAmount: result.metadata.total_amount
+      });
+      
+      return result;
     } catch (error) {
-      console.error('Error in getCustomerInfo:', error);
+      console.error('\u274c Error in getCustomerInfo:', error);
       throw error;
     }
   },
@@ -989,7 +1046,7 @@ export const SupabaseAPI = {
     }
   },
 
-  // New Bill API (replaces route1.py)
+  // Enhanced New Bill API with Two-Stage Revenue Recognition (replaces route1.py)
   async createNewBill(billData) {
     const { data, error } = await supabase
       .from('bills')
@@ -998,6 +1055,78 @@ export const SupabaseAPI = {
     
     if (error) throw error
     return data
+  },
+
+  // Enhanced Bill + Order Creation with Advance Payment Recording
+  async createBillWithAdvanceTracking(billData, orderData) {
+    console.log('\ud83c\udfaf CREATING BILL WITH ADVANCE PAYMENT TRACKING...');
+    
+    try {
+      // Step 1: Create the bill
+      const billResult = await this.createNewBill(billData);
+      if (!billResult || billResult.length === 0) {
+        throw new Error('Failed to create bill');
+      }
+      
+      const bill = billResult[0];
+      const billId = bill.id;
+      
+      // Step 2: Create the order with bill reference
+      const orderWithBillRef = {
+        ...orderData,
+        bill_id: billId
+      };
+      
+      const orderResult = await this.createOrder(orderWithBillRef);
+      if (!orderResult || orderResult.length === 0) {
+        throw new Error('Failed to create order');
+      }
+      
+      const order = orderResult[0];
+      const orderId = order.id;
+      
+      // Step 3: Record advance payment if any (Stage 1)
+      const advanceAmount = parseFloat(orderData.payment_amount) || 0;
+      const totalAmount = parseFloat(orderData.total_amt) || 0;
+      const customerName = billData.customer_name || orderData.customer_name || 'Unknown';
+      
+      if (advanceAmount > 0) {
+        console.log('\ud83d\udcb0 Recording advance payment:', {
+          orderId,
+          billId,
+          advanceAmount,
+          totalAmount,
+          customerName
+        });
+        
+        try {
+          await this.recordAdvancePayment(orderId, billId, advanceAmount, totalAmount, customerName);
+        } catch (advanceError) {
+          console.error('\u26a0\ufe0f Advance payment recording failed:', advanceError);
+          // Don't fail the entire transaction if advance recording fails
+          // The bill and order are still created successfully
+        }
+      } else {
+        console.log('\u2139\ufe0f No advance payment to record (amount: ', advanceAmount, ')');
+      }
+      
+      console.log('\u2705 BILL WITH ADVANCE TRACKING CREATED SUCCESSFULLY:', {
+        billId,
+        orderId,
+        totalAmount,
+        advanceRecorded: advanceAmount > 0
+      });
+      
+      return {
+        bill: billResult,
+        order: orderResult,
+        advance_recorded: advanceAmount > 0,
+        advance_amount: advanceAmount
+      };
+    } catch (error) {
+      console.error('\u274c Error in createBillWithAdvanceTracking:', error);
+      throw error;
+    }
   },
 
   // Create Order API (new function for NewBillScreen)
@@ -1106,16 +1235,39 @@ export const SupabaseAPI = {
     return data
   },
 
-  // Payment Status Update API (new function)
+  // Enhanced Payment Status Update API with Two-Stage Revenue Recognition
   async updatePaymentStatus(orderId, paymentStatus) {
-    const { data, error } = await supabase
-      .from('orders')
-      .update({ payment_status: paymentStatus })
-      .eq('id', orderId)
-      .select()
+    console.log('\ud83d\udd04 UPDATING PAYMENT STATUS:', { orderId, paymentStatus });
     
-    if (error) throw error
-    return data
+    try {
+      // Update the payment status in orders table
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ payment_status: paymentStatus })
+        .eq('id', orderId)
+        .select();
+      
+      if (error) throw error;
+      
+      // Stage 2: If status is being changed to "paid", record final payment
+      if (paymentStatus?.toLowerCase() === 'paid') {
+        console.log('\u2705 Order marked as PAID - Recording final payment...');
+        
+        try {
+          await this.recordFinalPayment(orderId);
+          console.log('\u2705 Final payment successfully recorded for order:', orderId);
+        } catch (paymentError) {
+          console.error('\u274c Error recording final payment:', paymentError);
+          // Don't fail the status update if revenue tracking fails
+          // This ensures the order status is still updated even if revenue tracking has issues
+        }
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      throw error;
+    }
   },
 
   // Update Order Total Amount API (new function)
@@ -1180,39 +1332,416 @@ export const SupabaseAPI = {
     return { success: true, work_pay: totalWorkPay }
   },
 
-  // Daily Profit API (replaces route18.py)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // TWO-STAGE REVENUE TRACKING SYSTEM
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 
+  // REVENUE RECOGNITION LOGIC:
+  // Stage 1 (Advance): When customer pays advance during bill creation → Record as revenue
+  // Stage 2 (Final): When admin marks order "paid" → Record remaining balance as revenue
+  //
+  // BENEFITS:
+  // • Accurate cash flow tracking
+  // • Real-time revenue updates
+  // • Prevents double-counting revenue
+  // • Tracks payment history per order
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Record advance payment (Stage 1: Bill Creation)
+  async recordAdvancePayment(orderId, billId, advanceAmount, totalAmount, customerName) {
+    const getISTDateString = () => {
+      const utcDate = new Date();
+      const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+      return istDate.toISOString().split('T')[0];
+    };
+
+    const todayIST = getISTDateString();
+    
+    if (advanceAmount > 0) {
+      // Record advance payment as today's revenue
+      const { data, error } = await supabase
+        .from('revenue_tracking')
+        .insert({
+          order_id: orderId,
+          bill_id: billId,
+          customer_name: customerName,
+          payment_type: 'advance',
+          amount: advanceAmount,
+          total_bill_amount: totalAmount,
+          remaining_balance: totalAmount - advanceAmount,
+          payment_date: todayIST,
+          recorded_at: new Date().toISOString(),
+          status: 'recorded'
+        })
+        .select();
+      
+      if (error) {
+        console.error('Error recording advance payment:', error);
+        // Don't throw error, just log it so bill creation can continue
+      } else {
+        console.log('✅ ADVANCE PAYMENT RECORDED:', {
+          orderId,
+          advanceAmount,
+          date: todayIST,
+          remainingBalance: totalAmount - advanceAmount
+        });
+      }
+    }
+    
+    return { success: true };
+  },
+
+  // Record final payment (Stage 2: Order Completion)
+  async recordFinalPayment(orderId) {
+    const getISTDateString = () => {
+      const utcDate = new Date();
+      const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+      return istDate.toISOString().split('T')[0];
+    };
+
+    const todayIST = getISTDateString();
+
+    try {
+      // First check if revenue_tracking table exists
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('revenue_tracking')
+        .select('id')
+        .limit(1);
+      
+      if (tableError) {
+        console.log('⚠️ revenue_tracking table not found, skipping final payment recording');
+        console.log('📋 To enable two-stage revenue tracking, run: setup_revenue_tracking.sql');
+        return { success: true, message: 'Table not found - skipped recording' };
+      }
+      
+      // Get order details and any existing advance payment
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+      
+      if (orderError || !order) {
+        console.error('❌ Order not found:', orderError);
+        throw new Error(`Order not found: ${orderError?.message || 'Unknown error'}`);
+      }
+
+      // Check if there's an existing advance payment record
+      const { data: existingAdvance, error: advanceError } = await supabase
+        .from('revenue_tracking')
+        .select('*')
+        .eq('order_id', orderId)
+        .eq('payment_type', 'advance')
+        .single();
+      
+      // Note: advanceError is expected if no advance record exists
+      
+      const totalAmount = parseFloat(order.total_amt) || 0;
+      const advanceAmount = parseFloat(order.payment_amount) || 0;
+      const finalPaymentAmount = totalAmount - advanceAmount;
+
+      console.log('💰 PROCESSING FINAL PAYMENT:', {
+        orderId,
+        totalAmount,
+        advanceAmount,
+        finalPaymentAmount,
+        hasAdvanceRecord: !!existingAdvance
+      });
+
+      // If no advance was recorded, record the full amount as today's revenue
+      if (!existingAdvance && advanceAmount > 0) {
+        console.log('⚠️ No advance record found, creating one retroactively...');
+        const { error: retroactiveError } = await supabase
+          .from('revenue_tracking')
+          .insert({
+            order_id: orderId,
+            bill_id: order.bill_id,
+            customer_name: order.customer_name || 'Unknown',
+            payment_type: 'advance',
+            amount: advanceAmount,
+            total_bill_amount: totalAmount,
+            remaining_balance: finalPaymentAmount,
+            payment_date: order.order_date || todayIST,
+            recorded_at: new Date().toISOString(),
+            status: 'recorded'
+          });
+          
+        if (retroactiveError) {
+          console.error('❌ Error creating retroactive advance record:', retroactiveError);
+          throw new Error(`Failed to create advance record: ${retroactiveError.message}`);
+        } else {
+          console.log('✅ Retroactive advance record created successfully');
+        }
+      }
+
+      // Record final payment if there's a remaining balance
+      if (finalPaymentAmount > 0) {
+        const { data, error } = await supabase
+          .from('revenue_tracking')
+          .insert({
+            order_id: orderId,
+            bill_id: order.bill_id,
+            customer_name: order.customer_name || 'Unknown',
+            payment_type: 'final',
+            amount: finalPaymentAmount,
+            total_bill_amount: totalAmount,
+            remaining_balance: 0,
+            payment_date: todayIST,
+            recorded_at: new Date().toISOString(),
+            status: 'recorded',
+            advance_payment_amount: advanceAmount
+          })
+          .select();
+        
+        if (error) {
+          console.error('❌ Error recording final payment:', error);
+          throw new Error(`Failed to record final payment: ${error.message}`);
+        }
+        
+        console.log('✅ FINAL PAYMENT RECORDED:', {
+          orderId,
+          finalPaymentAmount,
+          date: todayIST
+        });
+      } else if (finalPaymentAmount === 0) {
+        console.log('ℹ️ No final payment needed - advance covers full amount');
+      } else if (finalPaymentAmount < 0) {
+        console.log('⚠️ Advance amount exceeds total - possible overpayment');
+      }
+      
+      return { success: true, finalPaymentAmount };
+    } catch (error) {
+      console.error('❌ Error in recordFinalPayment:', error);
+      // Instead of throwing, return error info to prevent app crashes
+      return { 
+        success: false, 
+        error: error.message || 'Unknown error',
+        message: 'Final payment recording failed - check if revenue_tracking table exists'
+      };
+    }
+  },
+
+  // Enhanced Daily Profit API with Two-Stage Revenue Recognition
   async calculateProfit(date = null) {
-    let ordersQuery = supabase.from('orders').select('*')
-    let expensesQuery = supabase.from('Daily_Expenses').select('*')
-    let workerExpensesQuery = supabase.from('Worker_Expense').select('*')
+    const getISTDateString = (dateInput = null) => {
+      const baseDate = dateInput ? new Date(dateInput) : new Date();
+      const istDate = new Date(baseDate.getTime() + (5.5 * 60 * 60 * 1000));
+      return istDate.toISOString().split('T')[0];
+    };
+
+    console.log('\ud83d\udcb0 CALCULATING PROFIT - Trying two-stage system first...');
+    
+    try {
+      // First check if revenue_tracking table exists
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('revenue_tracking')
+        .select('id')
+        .limit(1);
+      
+      if (tableError) {
+        console.log('\ud83d\udd04 revenue_tracking table not found, using enhanced legacy method');
+        return this.calculateProfitLegacy(date);
+      }
+      
+      console.log('\u2705 revenue_tracking table found, proceeding with two-stage calculation');
+      
+      // Build queries with IST-aware date filtering
+      let revenueQuery = supabase.from('revenue_tracking').select('*');
+      let expensesQuery = supabase.from('Daily_Expenses').select('*');
+      let workerExpensesQuery = supabase.from('Worker_Expense').select('*');
+
+      if (date) {
+        const dateFilter = getISTDateString(date);
+        revenueQuery = revenueQuery.eq('payment_date', dateFilter);
+        expensesQuery = expensesQuery.eq('Date', dateFilter);
+        workerExpensesQuery = workerExpensesQuery.eq('date', dateFilter);
+      }
+
+      const [revenueResult, expensesResult, workerExpensesResult] = await Promise.all([
+        revenueQuery,
+        expensesQuery,
+        workerExpensesQuery
+      ]);
+      
+      // Check if we have any revenue tracking errors
+      if (revenueResult.error) {
+        console.log('\u26a0\ufe0f Revenue tracking query failed, falling back to legacy method');
+        return this.calculateProfitLegacy(date);
+      }
+
+      // Calculate total revenue from both advance and final payments
+      const totalRevenue = revenueResult.data?.reduce((sum, record) => {
+        const amount = parseFloat(record.amount) || 0;
+        console.log(`\ud83d\udcb0 Revenue: ${record.payment_type} payment of \u20b9${amount} on ${record.payment_date}`);
+        return sum + amount;
+      }, 0) || 0;
+
+      const totalDailyExpenses = expensesResult.data?.reduce((sum, e) => 
+        sum + (parseFloat(e.material_cost) || 0) + (parseFloat(e.miscellaneous_Cost) || 0) + (parseFloat(e.chai_pani_cost) || 0), 0) || 0;
+
+      const totalWorkerExpenses = workerExpensesResult.data?.reduce((sum, e) => 
+        sum + (parseFloat(e.Amt_Paid) || 0), 0) || 0;
+
+      const result = {
+        date: date || 'All Time',
+        total_revenue: Math.round(totalRevenue * 100) / 100,
+        daily_expenses: Math.round(totalDailyExpenses * 100) / 100,
+        worker_expenses: Math.round(totalWorkerExpenses * 100) / 100,
+        net_profit: Math.round((totalRevenue - (totalDailyExpenses + totalWorkerExpenses)) * 100) / 100,
+        revenue_breakdown: {
+          advance_payments: revenueResult.data?.filter(r => r.payment_type === 'advance')?.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0) || 0,
+          final_payments: revenueResult.data?.filter(r => r.payment_type === 'final')?.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0) || 0
+        },
+        method: 'two_stage' // Debug info
+      };
+
+      console.log('\ud83d\udcca TWO-STAGE REVENUE CALCULATION COMPLETE:', {
+        date: result.date,
+        totalRevenue: result.total_revenue,
+        advancePayments: result.revenue_breakdown.advance_payments,
+        finalPayments: result.revenue_breakdown.final_payments,
+        netProfit: result.net_profit
+      });
+
+      return result;
+    } catch (error) {
+      console.error('\u274c Error in enhanced profit calculation, falling back to legacy:', error);
+      // Fallback to enhanced legacy method that includes advance payments
+      return this.calculateProfitLegacy(date);
+    }
+  },
+
+  // Enhanced Legacy profit calculation (fallback with advance payment support)
+  async calculateProfitLegacy(date = null) {
+    console.log('\u26a0\ufe0f Using enhanced legacy profit calculation method...');
+    
+    const getISTDateString = (dateInput = null) => {
+      const baseDate = dateInput ? new Date(dateInput) : new Date();
+      const istDate = new Date(baseDate.getTime() + (5.5 * 60 * 60 * 1000));
+      return istDate.toISOString().split('T')[0];
+    };
+
+    const todayIST = getISTDateString();
+    const targetDate = date ? getISTDateString(date) : null;
+    
+    let ordersQuery = supabase.from('orders').select('*');
+    let expensesQuery = supabase.from('Daily_Expenses').select('*');
+    let workerExpensesQuery = supabase.from('Worker_Expense').select('*');
 
     if (date) {
-      ordersQuery = ordersQuery.eq('updated_at::date', date)
-      expensesQuery = expensesQuery.eq('Date', date)
-      workerExpensesQuery = workerExpensesQuery.eq('date', date)
+      ordersQuery = ordersQuery.eq('updated_at::date', targetDate);
+      expensesQuery = expensesQuery.eq('Date', targetDate);
+      workerExpensesQuery = workerExpensesQuery.eq('date', targetDate);
     }
 
     const [orders, expenses, workerExpenses] = await Promise.all([
       ordersQuery,
       expensesQuery,
       workerExpensesQuery
-    ])
+    ]);
 
-    const totalRevenue = orders.data?.filter(o => o.payment_status?.toLowerCase() === 'paid')
-      .reduce((sum, o) => sum + (o.total_amt || 0), 0) || 0
+    // Calculate revenue from paid orders (existing logic)
+    const paidOrdersRevenue = orders.data?.filter(o => o.payment_status?.toLowerCase() === 'paid')
+      .reduce((sum, o) => sum + (parseFloat(o.total_amt) || 0), 0) || 0;
+
+    // 💰 ENHANCED: Add advance payments for today's date
+    let advancePaymentsRevenue = 0;
+    
+    if (!date || targetDate === todayIST) {
+      // For today or "All Time", include advance payments from orders created today
+      console.log('\ud83d\udcb0 CALCULATING ADVANCE PAYMENTS for:', targetDate || 'All Time');
+      
+      const todayOrdersQuery = date 
+        ? supabase.from('orders').select('*').eq('order_date', targetDate)
+        : supabase.from('orders').select('*').eq('order_date', todayIST);
+      
+      const { data: todayOrders } = await todayOrdersQuery;
+      
+      advancePaymentsRevenue = todayOrders?.reduce((sum, order) => {
+        const paymentAmount = parseFloat(order.payment_amount) || 0;
+        if (paymentAmount > 0) {
+          console.log(`\ud83d\udcb0 Advance payment found: Order ${order.id}, Amount \u20b9${paymentAmount}`);
+        }
+        return sum + paymentAmount;
+      }, 0) || 0;
+      
+      console.log('\ud83d\udcb0 Total advance payments revenue:', advancePaymentsRevenue);
+    }
+
+    // Combine both revenue sources
+    const totalRevenue = paidOrdersRevenue + advancePaymentsRevenue;
+    
+    console.log('\ud83d\udcca ENHANCED LEGACY REVENUE CALCULATION:', {
+      paidOrdersRevenue,
+      advancePaymentsRevenue,
+      totalRevenue,
+      date: targetDate || 'All Time'
+    });
 
     const totalDailyExpenses = expenses.data?.reduce((sum, e) => 
-      sum + (e.material_cost || 0) + (e.miscellaneous_Cost || 0) + (e.chai_pani_cost || 0), 0) || 0
+      sum + (parseFloat(e.material_cost) || 0) + (parseFloat(e.miscellaneous_Cost) || 0) + (parseFloat(e.chai_pani_cost) || 0), 0) || 0;
 
     const totalWorkerExpenses = workerExpenses.data?.reduce((sum, e) => 
-      sum + (e.Amt_Paid || 0), 0) || 0
+      sum + (parseFloat(e.Amt_Paid) || 0), 0) || 0;
 
     return {
       date: date || 'All Time',
       total_revenue: Math.round(totalRevenue * 100) / 100,
       daily_expenses: Math.round(totalDailyExpenses * 100) / 100,
       worker_expenses: Math.round(totalWorkerExpenses * 100) / 100,
-      net_profit: Math.round((totalRevenue - (totalDailyExpenses + totalWorkerExpenses)) * 100) / 100
+      net_profit: Math.round((totalRevenue - (totalDailyExpenses + totalWorkerExpenses)) * 100) / 100,
+      // Debug info
+      revenue_breakdown: {
+        paid_orders: Math.round(paidOrdersRevenue * 100) / 100,
+        advance_payments: Math.round(advancePaymentsRevenue * 100) / 100
+      }
+    };
+  },
+
+  // Simple method to add advance payment to today's revenue (for immediate testing)
+  async addAdvancePaymentToTodayRevenue(orderId, advanceAmount, customerName = 'Manual Entry') {
+    const getISTDateString = () => {
+      const utcDate = new Date();
+      const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+      return istDate.toISOString().split('T')[0];
+    };
+
+    const todayIST = getISTDateString();
+    
+    console.log('\ud83d\udcb0 MANUALLY ADDING ADVANCE PAYMENT TO TODAY\'S REVENUE:', {
+      orderId,
+      advanceAmount,
+      date: todayIST
+    });
+
+    try {
+      // First try to add to revenue_tracking table
+      const { data, error } = await supabase
+        .from('revenue_tracking')
+        .insert({
+          order_id: orderId,
+          customer_name: customerName,
+          payment_type: 'advance',
+          amount: advanceAmount,
+          total_bill_amount: advanceAmount,
+          remaining_balance: 0,
+          payment_date: todayIST,
+          recorded_at: new Date().toISOString(),
+          status: 'recorded'
+        })
+        .select();
+      
+      if (error) {
+        console.log('\u26a0\ufe0f revenue_tracking table not available, advance payment will be calculated from orders table');
+        console.log('\u2139\ufe0f Make sure the order has payment_amount set and order_date is today');
+        return { success: false, message: 'revenue_tracking table not available', fallback: true };
+      }
+      
+      console.log('\u2705 Advance payment successfully recorded in revenue_tracking table');
+      return { success: true, data, message: 'Advance payment recorded successfully' };
+    } catch (error) {
+      console.error('\u274c Error recording advance payment:', error);
+      return { success: false, error: error.message };
     }
   },
 

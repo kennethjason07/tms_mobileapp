@@ -621,11 +621,55 @@ export default function OrdersOverviewScreen({ navigation }) {
                   
                   // Check if mobile number is valid (should be 10 digits starting with 6-9 for India)
                   if (cleanMobile.length === 10 && /^[6-9]/.test(cleanMobile)) {
-                    // Use redirect service to open WhatsApp with pre-filled message
+                    // Use redirect service to open WhatsApp with pre-filled message AND CONFIRMATION
                     try {
-                      const result = WhatsAppRedirectService.openWhatsAppWithMessage(customerInfo.mobile, message);
+                      const result = WhatsAppRedirectService.openWhatsAppWithMessage(customerInfo.mobile, message, true);
                       
-                      if (result.success) {
+                      if (result.success === 'confirmation_needed') {
+                        // Show Yes/No confirmation popup
+                        Alert.alert(
+                          '📱 Send WhatsApp Message?', 
+                          `Order completed! Would you like to send a WhatsApp notification to customer ${customerInfo.name}?\n\nNumber: ${customerInfo.mobile}\n\nMessage preview:\n${message.substring(0, 100)}...`,
+                          [
+                            {
+                              text: 'No',
+                              onPress: () => {
+                                Alert.alert(
+                                  'Success', 
+                                  `Order status updated to "${newStatus}" for bill ${expandedOrder.billnumberinput2}. WhatsApp message not sent.`
+                                );
+                              },
+                              style: 'cancel'
+                            },
+                            {
+                              text: 'Yes, Open WhatsApp',
+                              onPress: () => {
+                                try {
+                                  const openResult = result.openWhatsApp();
+                                  if (openResult.success) {
+                                    Alert.alert(
+                                      'Success', 
+                                      'Order status updated successfully! WhatsApp opened with your completion message ready to send.'
+                                    );
+                                  } else {
+                                    Alert.alert(
+                                      'Success', 
+                                      `Order status updated successfully. ${openResult.message}`
+                                    );
+                                  }
+                                } catch (openError) {
+                                  console.error('WhatsApp opening failed:', openError);
+                                  Alert.alert(
+                                    'Error', 
+                                    'Failed to open WhatsApp. Please make sure WhatsApp is installed on your device.'
+                                  );
+                                }
+                              }
+                            }
+                          ],
+                          { cancelable: false }
+                        );
+                      } else if (result.success === true) {
                         Alert.alert(
                           'Success', 
                           'Order status updated successfully! WhatsApp opened with your completion message ready to send.'
@@ -640,7 +684,7 @@ export default function OrdersOverviewScreen({ navigation }) {
                       console.error('WhatsApp redirect failed:', redirectError);
                       Alert.alert(
                         'Success', 
-                        'Order status updated successfully. No WhatsApp exists for this number.'
+                        'Order status updated successfully. WhatsApp is not available for this number.'
                       );
                     }
                   } else {
@@ -921,11 +965,34 @@ export default function OrdersOverviewScreen({ navigation }) {
     const isSelected = currentSelected.includes(workerId);
     
     if (isSelected) {
+      // Remove worker if already selected
       setSelectedWorkers(prev => ({
         ...prev,
         [orderId]: currentSelected.filter(id => id !== workerId)
       }));
     } else {
+      // Find the order to get worker limit
+      const order = orders.find(o => (o.expanded_id || o.id) === orderId) || 
+                    filteredOrders.find(o => (o.expanded_id || o.id) === orderId);
+      
+      let maxWorkers = 2; // Default for pant
+      if (order) {
+        // Check if it's a shirt order (3 workers) or pant/other (2 workers)
+        const garmentType = order.garment_type || order.expanded_garment_type || '';
+        maxWorkers = garmentType.toLowerCase().includes('shirt') ? 3 : 2;
+      }
+      
+      // Check if we've reached the worker limit
+      if (currentSelected.length >= maxWorkers) {
+        const garmentName = order?.garment_type || 'this garment';
+        Alert.alert(
+          'Worker Limit Reached',
+          `Maximum ${maxWorkers} workers allowed for ${garmentName} orders.\n\nPlease unselect a worker first if you want to assign a different worker.`
+        );
+        return;
+      }
+      
+      // Add worker if limit not reached
       setSelectedWorkers(prev => ({
         ...prev,
         [orderId]: [...currentSelected, workerId]
@@ -1051,10 +1118,36 @@ export default function OrdersOverviewScreen({ navigation }) {
                 
                 console.log(`Sending WhatsApp to worker ${worker.name} at ${worker.number}`);
                 
-                // Use WhatsApp redirect service to open WhatsApp with pre-filled message
-                const whatsappResult = WhatsAppRedirectService.openWhatsAppWithMessage(worker.number, message);
+                // Use WhatsApp redirect service with confirmation (for worker assignment)
+                const whatsappResult = WhatsAppRedirectService.openWhatsAppWithMessage(worker.number, message, true);
                 
-                if (!whatsappResult.success) {
+                if (whatsappResult.success === 'confirmation_needed') {
+                  // Show Yes/No confirmation popup for worker assignment
+                  Alert.alert(
+                    '📱 Send Work Assignment?',
+                    `Send measurement details to worker ${worker.name}?\n\nNumber: ${worker.number}\n\nThis will open WhatsApp with work assignment and measurement details.`,
+                    [
+                      {
+                        text: 'Skip',
+                        style: 'cancel'
+                      },
+                      {
+                        text: 'Yes, Open WhatsApp',
+                        onPress: () => {
+                          try {
+                            const openResult = whatsappResult.openWhatsApp();
+                            if (!openResult.success) {
+                              console.warn(`Failed to open WhatsApp for worker ${worker.name}: ${openResult.message}`);
+                            }
+                          } catch (openError) {
+                            console.error('WhatsApp opening failed for worker:', openError);
+                          }
+                        }
+                      }
+                    ],
+                    { cancelable: false }
+                  );
+                } else if (!whatsappResult.success) {
                   console.warn(`Failed to open WhatsApp for worker ${worker.name}: ${whatsappResult.message}`);
                 }
               } catch (workerMessageError) {
@@ -1085,10 +1178,36 @@ export default function OrdersOverviewScreen({ navigation }) {
                 
                 console.log(`Sending WhatsApp (without measurements) to worker ${worker.name} at ${worker.number}`);
                 
-                // Use WhatsApp redirect service to open WhatsApp with pre-filled message
-                const whatsappResult = WhatsAppRedirectService.openWhatsAppWithMessage(worker.number, message);
+                // Use WhatsApp redirect service with confirmation (no measurements)
+                const whatsappResult = WhatsAppRedirectService.openWhatsAppWithMessage(worker.number, message, true);
                 
-                if (!whatsappResult.success) {
+                if (whatsappResult.success === 'confirmation_needed') {
+                  // Show Yes/No confirmation popup for worker assignment (no measurements)
+                  Alert.alert(
+                    '📱 Send Work Assignment?',
+                    `Send work assignment to worker ${worker.name}?\n\nNumber: ${worker.number}\n\nNote: Customer measurements not available.`,
+                    [
+                      {
+                        text: 'Skip',
+                        style: 'cancel'
+                      },
+                      {
+                        text: 'Yes, Open WhatsApp',
+                        onPress: () => {
+                          try {
+                            const openResult = whatsappResult.openWhatsApp();
+                            if (!openResult.success) {
+                              console.warn(`Failed to open WhatsApp for worker ${worker.name}: ${openResult.message}`);
+                            }
+                          } catch (openError) {
+                            console.error('WhatsApp opening failed for worker:', openError);
+                          }
+                        }
+                      }
+                    ],
+                    { cancelable: false }
+                  );
+                } else if (!whatsappResult.success) {
                   console.warn(`Failed to open WhatsApp for worker ${worker.name}: ${whatsappResult.message}`);
                 }
               } catch (workerMessageError) {
@@ -1422,7 +1541,12 @@ export default function OrdersOverviewScreen({ navigation }) {
                     >
                       <View style={styles.dropdownModal} onStartShouldSetResponder={() => true}>
                         <View style={styles.modalHeader}>
-                          <Text style={styles.dropdownTitle}>Select Workers</Text>
+                          <View>
+                            <Text style={styles.dropdownTitle}>Select Workers</Text>
+                            <Text style={styles.dropdownSubtitle}>
+                              {order.garment_type} - Max {order.max_workers || 2} workers ({(selectedWorkers[order.expanded_id || order.id]?.length || 0)} selected)
+                            </Text>
+                          </View>
                           <TouchableOpacity
                             style={styles.modalCloseButton}
                             onPress={() => closeWorkerDropdown(expandedOrderId)}
@@ -1571,29 +1695,42 @@ export default function OrdersOverviewScreen({ navigation }) {
       </View>
 
       <View style={styles.filterRow}>
-        <Text style={styles.filterLabel}>Delivery Date:</Text>
+        <Text style={styles.filterLabel}>📅 Delivery Date:</Text>
         <View style={styles.dateFilterContainer}>
           {Platform.OS === 'web' ? (
-            // Web calendar input
+            // Web HTML5 date picker with calendar
             <View style={styles.webDateInputContainer}>
-              <TextInput
-                style={{
-                  padding: 10,
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: '#ddd',
-                  fontSize: 14,
-                  backgroundColor: '#fff',
-                  color: '#333',
-                  minWidth: 150,
-                  height: 40,
-                }}
+              <input
+                type="date"
                 value={filters.deliveryDate || ''}
-                onChangeText={(selectedDate) => {
+                onChange={(e) => {
+                  const selectedDate = e.target.value;
                   setFilters(prev => ({ ...prev, deliveryDate: selectedDate }));
                 }}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#999"
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '14px',
+                  backgroundColor: 'transparent',
+                  color: '#2c3e50',
+                  minWidth: '160px',
+                  height: '36px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'textfield'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#f8f9fa';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                }}
+                placeholder="Select delivery date"
               />
               {filters.deliveryDate && (
                 <TouchableOpacity
@@ -1758,27 +1895,6 @@ export default function OrdersOverviewScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Status Indicator */}
-      {filteredOrders.length > 0 && (
-        <View style={{
-          backgroundColor: '#f8f9fa',
-          paddingVertical: 8,
-          paddingHorizontal: 16,
-          borderLeftWidth: 4,
-          borderLeftColor: '#2980b9',
-          marginHorizontal: 16,
-          marginBottom: 8,
-          borderRadius: 4
-        }}>
-          <Text style={{
-            fontSize: 14,
-            color: '#2c3e50',
-            fontWeight: '600'
-          }}>
-            📋 Showing {filteredOrders.length} orders • Latest Bill: {filteredOrders[0]?.billnumberinput2 || 'N/A'} • Orders sorted by bill number (latest first)
-          </Text>
-        </View>
-      )}
 
       {Platform.OS === 'web' ? (
         <View style={{ flex: 1, overflow: 'hidden' }}>
@@ -2015,6 +2131,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#e1e5e9',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   tableContainer: {
     backgroundColor: '#f8f9fa',
@@ -2183,6 +2308,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2c3e50',
+  },
+  dropdownSubtitle: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    marginTop: 2,
   },
   modalCloseButton: {
     padding: 12,
