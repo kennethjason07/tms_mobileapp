@@ -181,6 +181,12 @@ const generateMeasurementHTML = (billData, measurements) => `
 
 // Function to read and populate the print-format.html template
 const generateBillHTML = (billData, orders) => {
+  // Supabase public URL for the suit icon
+  const suitImageUrl = "https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg";
+  
+  // Fallback base64 image (simple suit icon)
+  const fallbackSuitIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMyYzNlNTAiLz4KICA8IS0tIFN1aXQgamFja2V0IC0tPgogIDxyZWN0IHg9IjEwIiB5PSIxNSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjI1IiBmaWxsPSIjMzQ0OTVlIi8+CiAgPCEtLSBTdWl0IGNvbGxhciAtLT4KICA8cGF0aCBkPSJNMjAgMTVMMjUgMTBMMzAgMTVaIiBmaWxsPSIjZmZmIi8+CiAgPCEtLSBTdWl0IGJ1dHRvbnMgLS0+CiAgPGNpcmNsZSBjeD0iMjUiIGN5PSIyMiIgcj0iMSIgZmlsbD0iI2ZmZiIvPgogIDxjaXJjbGUgY3g9IjI1IiBjeT0iMjciIHI9IjEiIGZpbGw9IiNmZmYiLz4KICA8Y2lyY2xlIGN4PSIyNSIgY3k9IjMyIiByPSIxIiBmaWxsPSIjZmZmIi8+CiAgPCEtLSBTdWl0IHBvY2tldCAtLT4KICA8cmVjdCB4PSIxMyIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KICA8IS0tIFRleHQgLS0+CiAgPHRleHQgeD0iMjUiIHk9IjQ2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNiIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U1VJVDwvdGV4dD4KPC9zdmc+";
+
   // Calculate totals and organize data
   const garmentTotals = {};
   let totalAmount = 0;
@@ -304,43 +310,49 @@ const generateBillHTML = (billData, orders) => {
       text-align: center;
       background: transparent;
     }
-    .suit-box {
+    .image-box {
       width: 220px;
-      border: 1px solid #000;
       text-align: center;
-      font-size: 12px;
     }
-    .suit-box h3 {
-      background: #3a2f2f;
-      color: #fff;
-      margin: 0;
-      padding: 6px;
-      font-size: 13px;
-    }
-    .suit-box img {
-      width: 150px;
+    .image-box img {
+      width: 100%;
+      max-width: 220px;
       height: auto;
-      margin: 10px 0;
+      max-height: 280px;
+      object-fit: contain;
       display: block;
-      max-width: 100%;
+      margin: 0 auto;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      object-fit: contain;
     }
-    .suit-box .terms {
-      text-align: left;
-      padding: 0 8px 10px;
+    .suit-icon {
+      width: 50px !important;
+      height: 50px !important;
+      object-fit: contain !important;
+      border-radius: 6px !important;
+      background: rgba(255,255,255,0.9) !important;
+      padding: 4px !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+      margin: 5px auto !important;
+      display: block !important;
+      border: 1px solid #ddd !important;
     }
-    .suit-box .terms strong {
-      color: #d2691e;
+    .suit-box .suit-icon {
+      width: 50px !important;
+      height: 50px !important;
+      margin: 5px auto !important;
     }
-    .suit-box .terms p {
-      margin: 4px 0;
-    }
-    .suit-box .highlight {
-      color: red;
+    .suit-icon-fallback {
+      width: 50px;
+      height: 50px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 6px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin: 5px auto;
     }
     .footer-box {
       margin-top: 20px;
@@ -355,7 +367,7 @@ const generateBillHTML = (billData, orders) => {
     }
   </style>
 </head>
-<body onload="window.print()">
+<body>
   <div class="bill-container">
 
     <div class="section-title">Customer Information</div>
@@ -371,7 +383,7 @@ const generateBillHTML = (billData, orders) => {
         </div>
         <div>
           <label>Mobile Number:</label>
-          <input type="text" value="${billData.mobile_number || ''}" readonly>
+          <input type="text" value="${billData.mobile_.number || ''}" readonly>
         </div>
       </div>
 
@@ -428,23 +440,12 @@ const generateBillHTML = (billData, orders) => {
         </table>
       </div>
 
-      <div class="suit-box">
-        <h3>SUIT SPECIALIST</h3>
-        <div style="width: 150px; height: 120px; margin: 10px auto; background: linear-gradient(135deg, #2c3e50, #34495e); border: 2px solid #fff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-weight: bold;">
-          <div style="margin-bottom: 5px;">
-            <img src="data:image/jpeg;base64,${suitPicBase64}" 
-                 alt="Suit Icon" 
-                 style="width:32px; height:32px;">
-          </div>
-          <div style="font-size: 10px; line-height: 1.2;">SUIT<br>SPECIALIST</div>
-        </div>
-        <div class="terms">
-          <p><strong>Terms & Conditions :</strong></p>
-          <p>1. Delivery will not made without Receipt</p>
-          <p>2. We are not responsible, if the delivery is not taken within 2 months.</p>
-          <p>3. Trail and Complaint after 7pm &</p>
-          <p class="highlight">Delivery after 7pm</p>
-        </div>
+      <div class="image-box">
+        <img src="${suitImageUrl}" 
+             alt="Terms and Conditions" 
+             style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background: white;"
+             onload="console.log('✅ Full Supabase image loaded!');"
+             onerror="console.log('❌ Full Supabase image failed'); this.style.display='none';"
       </div>
     </div>
 
@@ -454,6 +455,55 @@ const generateBillHTML = (billData, orders) => {
     </div>
 
   </div>
+  
+  <script>
+    // Preload the Supabase image
+    const preloadImage = new Image();
+    preloadImage.crossOrigin = 'anonymous';
+    preloadImage.src = '${suitImageUrl}';
+    
+    // Wait for images to load before printing
+    let imagesLoaded = false;
+    let printAttempted = false;
+    
+    function checkImagesAndPrint() {
+      if (printAttempted) return;
+      
+      const suitIcon = document.querySelector('.suit-icon');
+      if (suitIcon) {
+        if (suitIcon.complete || suitIcon.naturalWidth > 0) {
+          console.log('Image loaded, printing...');
+          printAttempted = true;
+          setTimeout(() => window.print(), 100);
+        } else {
+          console.log('Image still loading, waiting...');
+          setTimeout(checkImagesAndPrint, 200);
+        }
+      } else {
+        // No image found, print anyway
+        printAttempted = true;
+        setTimeout(() => window.print(), 100);
+      }
+    }
+    
+    // Start checking after DOM is loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(checkImagesAndPrint, 1000);
+      });
+    } else {
+      setTimeout(checkImagesAndPrint, 1000);
+    }
+    
+    // Fallback - print after 5 seconds regardless
+    setTimeout(() => {
+      if (!printAttempted) {
+        console.log('Fallback print after timeout');
+        printAttempted = true;
+        window.print();
+      }
+    }, 5000);
+  </script>
 </body>
 </html>
   `;

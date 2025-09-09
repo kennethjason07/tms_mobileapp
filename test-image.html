@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Image</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .test-container {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            max-width: 400px;
+        }
+        .image-test {
+            margin: 20px 0;
+        }
+        .image-test img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.9);
+            padding: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .fallback {
+            display: none;
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 6px;
+            font-size: 24px;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0 auto;
+        }
+        .debug {
+            background: #f4f4f4;
+            color: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Supabase Image Loading Test</h1>
+    
+    <div class="test-container">
+        <h3>SUIT SPECIALIST</h3>
+        <div class="image-test">
+            <img id="testImage" 
+                 src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
+                 alt="Suit Icon" 
+                 crossorigin="anonymous"
+                 onerror="handleImageError(this)"
+                 onload="handleImageLoad(this)">
+            <div id="fallback" class="fallback">👔</div>
+        </div>
+        <div style="font-size: 10px; line-height: 1.2;">SUIT<br>SPECIALIST</div>
+    </div>
+
+    <div class="debug" id="debugInfo">
+        <strong>Debug Info:</strong><br>
+        Image URL: https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg<br>
+        Status: Loading...
+    </div>
+
+    <script>
+        function handleImageLoad(img) {
+            document.getElementById('debugInfo').innerHTML = `
+                <strong>Debug Info:</strong><br>
+                Image URL: ${img.src}<br>
+                Status: ✅ Loaded successfully!<br>
+                Natural Size: ${img.naturalWidth} x ${img.naturalHeight}px<br>
+                Displayed Size: ${img.width} x ${img.height}px
+            `;
+        }
+
+        function handleImageError(img) {
+            document.getElementById('debugInfo').innerHTML = `
+                <strong>Debug Info:</strong><br>
+                Image URL: ${img.src}<br>
+                Status: ❌ Failed to load<br>
+                Error: Image could not be loaded from Supabase
+            `;
+            img.style.display = 'none';
+            document.getElementById('fallback').style.display = 'flex';
+        }
+
+        // Also test direct access
+        fetch('https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg', {
+            method: 'HEAD'
+        }).then(response => {
+            console.log('Direct fetch test:', response.status, response.statusText);
+            const debugDiv = document.getElementById('debugInfo');
+            debugDiv.innerHTML += `<br>Direct fetch: ${response.status} ${response.statusText}`;
+        }).catch(error => {
+            console.log('Direct fetch error:', error);
+            const debugDiv = document.getElementById('debugInfo');
+            debugDiv.innerHTML += `<br>Direct fetch error: ${error.message}`;
+        });
+    </script>
+</body>
+</html>

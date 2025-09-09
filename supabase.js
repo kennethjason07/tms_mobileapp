@@ -1262,5 +1262,114 @@ export const SupabaseAPI = {
       console.error('Error getting highest bill number:', error);
       return 0; // Return 0 if no bill numbers found or error occurs
     }
+  },
+
+  // Storage functions for file uploads
+  async uploadImage(file, bucketName = 'suit-images', fileName = null) {
+    try {
+      const fileExt = file.name?.split('.').pop() || 'jpg'
+      const uploadFileName = fileName || `suit-icon-${Date.now()}.${fileExt}`
+      
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(uploadFileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        })
+      
+      if (error) throw error
+      
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(uploadFileName)
+      
+      return {
+        path: data.path,
+        publicUrl: publicUrlData.publicUrl
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      throw error
+    }
+  },
+
+  async uploadImageFromPath(imagePath, bucketName = 'suit-images', fileName = null) {
+    try {
+      // For React Native/Node.js environments
+      const fs = require('fs')
+      const path = require('path')
+      
+      const imageBuffer = fs.readFileSync(imagePath)
+      const fileExt = path.extname(imagePath).slice(1) || 'jpg'
+      const uploadFileName = fileName || `suit-icon-${Date.now()}.${fileExt}`
+      
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(uploadFileName, imageBuffer, {
+          contentType: `image/${fileExt}`,
+          cacheControl: '3600',
+          upsert: true
+        })
+      
+      if (error) throw error
+      
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(uploadFileName)
+      
+      return {
+        path: data.path,
+        publicUrl: publicUrlData.publicUrl
+      }
+    } catch (error) {
+      console.error('Error uploading image from path:', error)
+      throw error
+    }
+  },
+
+  async getSuitIconUrl(bucketName = 'suit-images', fileName = 'suit-icon.jpg') {
+    try {
+      const { data } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(fileName)
+      
+      return data.publicUrl
+    } catch (error) {
+      console.error('Error getting suit icon URL:', error)
+      return null
+    }
+  },
+
+  async checkBucketExists(bucketName = 'suit-images') {
+    try {
+      const { data, error } = await supabase.storage
+        .listBuckets()
+      
+      if (error) throw error
+      
+      return data.some(bucket => bucket.name === bucketName)
+    } catch (error) {
+      console.error('Error checking bucket existence:', error)
+      return false
+    }
+  },
+
+  async createBucket(bucketName = 'suit-images') {
+    try {
+      const { data, error } = await supabase.storage
+        .createBucket(bucketName, {
+          public: true,
+          allowedMimeTypes: ['image/*'],
+          fileSizeLimit: 5242880 // 5MB
+        })
+      
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error creating bucket:', error)
+      throw error
+    }
   }
 }

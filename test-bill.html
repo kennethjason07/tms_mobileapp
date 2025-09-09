@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Bill</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .suit-box {
+      width: 220px;
+      border: 1px solid #000;
+      text-align: center;
+      font-size: 12px;
+      margin: 20px;
+    }
+    .suit-box h3 {
+      background: #3a2f2f;
+      color: #fff;
+      margin: 0;
+      padding: 6px;
+      font-size: 13px;
+    }
+    .suit-box img {
+      width: 150px;
+      height: auto;
+      margin: 10px 0;
+      display: block;
+      max-width: 100%;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      object-fit: contain;
+    }
+    .suit-icon {
+      width: 50px !important;
+      height: 50px !important;
+      object-fit: contain !important;
+      border-radius: 6px !important;
+      background: rgba(255,255,255,0.9) !important;
+      padding: 4px !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+      margin: 5px auto !important;
+      display: block !important;
+      border: 1px solid #ddd !important;
+    }
+    .suit-box .suit-icon {
+      width: 50px !important;
+      height: 50px !important;
+      margin: 5px auto !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Bill Images</h1>
+  
+  <div class="suit-box">
+    <h3>SUIT SPECIALIST</h3>
+    <div style="width: 150px; height: 120px; margin: 10px auto; background: linear-gradient(135deg, #2c3e50, #34495e); border: 2px solid #fff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-weight: bold;">
+      <div style="margin-bottom: 5px;">
+        <h4>1. Supabase Image Test:</h4>
+        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
+             alt="Suit Icon" 
+             class="suit-icon"
+             crossorigin="anonymous"
+             onerror="console.log('Supabase image failed'); this.style.border='2px solid red';"
+             onload="console.log('Supabase image loaded'); this.style.border='2px solid green';">
+      </div>
+    </div>
+  </div>
+
+  <div class="suit-box">
+    <h3>SUIT SPECIALIST</h3>
+    <div style="width: 150px; height: 120px; margin: 10px auto; background: linear-gradient(135deg, #2c3e50, #34495e); border: 2px solid #fff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-weight: bold;">
+      <div style="margin-bottom: 5px;">
+        <h4>2. Fallback SVG Test:</h4>
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMmM0MjU0Ii8+CjxwYXRoIGQ9Im0yNSA4Yy0zIDAtNSAyLTUgNXYyaDEwdi0yYzAtMy0yLTUtNS01eiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJtMTAgMThoMzB2MjBoLTMweiIgZmlsbD0iIzM0NDk1ZSIvPgo8cGF0aCBkPSJtMTUgMjBoMjB2MTVoLTIweiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJtMjAgMjVoMTB2NWgtMTB6IiBmaWxsPSIjMmM0MjU0Ii8+Cjx0ZXh0IHg9IjI1IiB5PSI0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjZweCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U1VJVDwvdGV4dD4KPC9zdmc+" 
+             alt="Suit Icon" 
+             class="suit-icon"
+             onload="console.log('SVG fallback loaded'); this.style.border='2px solid blue';">
+      </div>
+    </div>
+  </div>
+
+  <div class="suit-box">
+    <h3>SUIT SPECIALIST</h3>
+    <div style="width: 150px; height: 120px; margin: 10px auto; background: linear-gradient(135deg, #2c3e50, #34495e); border: 2px solid #fff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-weight: bold;">
+      <div style="margin-bottom: 5px;">
+        <h4>3. Smart Fallback Test:</h4>
+        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
+             alt="Suit Icon" 
+             class="suit-icon"
+             crossorigin="anonymous"
+             onerror="console.log('Primary failed, switching to fallback'); this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMmM0MjU0Ii8+CjxwYXRoIGQ9Im0yNSA4Yy0zIDAtNSAyLTUgNXYyaDEwdi0yYzAtMy0yLTUtNS01eiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJtMTAgMThoMzB2MjBoLTMweiIgZmlsbD0iIzM0NDk1ZSIvPgo8cGF0aCBkPSJtMTUgMjBoMjB2MTVoLTIweiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJtMjAgMjVoMTB2NWgtMTB6IiBmaWxsPSIjMmM0MjU0Ci8+Cjx0ZXh0IHg9IjI1IiB5PSI0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjZweCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U1VJVDwvdGV4dD4KPC9zdmc+'; this.onload=null; this.onerror=null;"
+             onload="console.log('Image loaded successfully:', this.src.substring(0, 50));">
+      </div>
+    </div>
+  </div>
+
+  <button onclick="window.print()" style="margin: 20px; padding: 10px;">Print Test</button>
+  
+  <div style="margin: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+    <strong>Check Console for Image Loading Messages</strong><br>
+    Open browser developer tools (F12) and check the Console tab to see which images load successfully.
+  </div>
+</body>
+</html>

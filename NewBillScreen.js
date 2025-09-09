@@ -380,16 +380,11 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
           </table>
         </div>
         
-        <div class="suit-specialist">
-          <div class="specialist-title">SUIT SPECIALIST</div>
-          <div class="suit-icon">
-            👔
-          </div>
-          <div class="specialist-text">Latest Collection</div>
-          <div class="specialist-text">Always Available</div>
-          <div class="specialist-text">Stitching Delivery</div>
-          <div class="specialist-text">Service Available</div>
-          <div class="specialist-text">Wash & Servicing</div>
+        <div class="image-box">
+          <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
+               alt="Terms and Conditions" 
+               style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background: white;"
+               onerror="this.style.display='none';">
         </div>
       </div>
     </div>
@@ -1467,19 +1462,11 @@ export default function NewBillScreen({ navigation }) {
         </table>
       </div>
 
-      <div class="suit-box">
-        <h3>SUIT SPECIALIST</h3>
-        <div style="width: 150px; height: 120px; margin: 10px auto; background: linear-gradient(135deg, #2c3e50, #34495e); border: 2px solid #fff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-weight: bold;">
-          <div style="font-size: 24px; margin-bottom: 5px;">👔</div>
-          <div style="font-size: 10px; line-height: 1.2;">SUIT<br>SPECIALIST</div>
-        </div>
-        <div class="terms">
-          <p><strong>Terms & Conditions :</strong></p>
-          <p>1. Delivery will not made without Receipt</p>
-          <p>2. We are not responsible, if the delivery is not taken within 2 months.</p>
-          <p>3. Trail and Complaint after 7pm &</p>
-          <p class="highlight">Delivery after 7pm</p>
-        </div>
+      <div class="image-box">
+        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
+             alt="Terms and Conditions" 
+             style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background: white;"
+             onerror="this.style.display='none';">
       </div>
     </div>
 

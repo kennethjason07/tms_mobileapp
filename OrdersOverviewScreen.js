@@ -1920,12 +1920,6 @@ export default function OrdersOverviewScreen({ navigation }) {
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
           <Text style={styles.searchButtonText}>Search</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.searchButton, { backgroundColor: '#27ae60', marginLeft: 8 }]} 
-          onPress={exportOrdersToJSON}
-        >
-          <Text style={styles.searchButtonText}>Export JSON</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Status Indicator */}
