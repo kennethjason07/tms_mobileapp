@@ -49,7 +49,7 @@
   <style>
     @page {
       size: A4;
-      margin: 20mm;
+      margin: 10mm;
     }
     body {
       font-family: Arial, sans-serif;
@@ -58,9 +58,9 @@
     }
     .bill-container {
       width: 100%;
-      max-width: 210mm;
+      max-width: 190mm;
       margin: auto;
-      padding: 20px;
+      padding: 10mm;
       padding-top: 200px;
       box-sizing: border-box;
     }
@@ -172,7 +172,7 @@
       color: red;
     }
     .footer-box {
-      margin-top: 8px;
+      margin-top: 6px;
       text-align: center;
       font-size: 13px;
     }
@@ -182,45 +182,52 @@
       color: blue;
       font-weight: bold;
     }
-    /* Measurements section styles - Pure text format */
+    /* Measurements section styles - Pure text format with improved visibility */
     .measurements-section {
-      margin-top: 8px;
+      margin-top: 6px;
       padding: 0 20px;
-      font-size: 8px;
-      line-height: 1.1;
+      font-size: 9px;
+      line-height: 1.2;
       border-top: 1px dashed #ccc;
-      padding-top: 5px;
+      padding-top: 4px;
     }
     .measurements-title {
       font-weight: bold;
-      font-size: 11px;
-      margin-bottom: 2px;
+      font-size: 13px;
+      margin-bottom: 3px;
       text-align: center;
+      color: #333;
     }
     .measurements-header {
-      font-size: 8px;
+      font-size: 14px;
       color: #666;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
       text-align: center;
+      font-weight: 500;
     }
     .measurements-content {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      justify-content: space-between;
+      display: block;
+      line-height: 1.3;
+    }
+    .measurement-line {
+      margin-bottom: 1px;
+      font-size: 14px;
+      line-height: 1.1;
     }
     .measurement-item {
-      font-size: 8px;
-      margin-bottom: 0;
-      flex: 0 1 48%;
+      font-size: 14px;
+      display: inline;
       line-height: 1.1;
     }
     .measurement-label {
       font-weight: bold;
       color: #333;
+      font-size: 14px;
     }
     .measurement-value {
       color: #555;
+      font-weight: 500;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -472,7 +479,7 @@ function generateMeasurementsTextForBill(billData) {
   
   // Check if we have measurements in billData
   if (billData.measurements) {
-    const entries = Object.entries(billData.measurements).filter(
+    const allEntries = Object.entries(billData.measurements).filter(
       ([key, value]) => {
         // Filter out empty values
         const hasValue = value !== '' && value !== null && value !== undefined && value !== 0;
@@ -484,18 +491,65 @@ function generateMeasurementsTextForBill(billData) {
       }
     );
     
-    if (entries.length === 0) {
-      return '<div class="measurement-item">No measurements available</div>';
+    if (allEntries.length === 0) {
+      return '<div class="measurement-line">No measurements available</div>';
     }
     
-    return entries
-      .map(([key, value]) => 
-        `<div class="measurement-item"><span class="measurement-label">${labelize(key)}:</span> <span class="measurement-value">${value}</span></div>`
-      )
-      .join('');
+    // Group measurements by category
+    const pantMeasurements = allEntries.filter(([key]) => 
+      key.toLowerCase().includes('pant') || 
+      ['length', 'kamar', 'hips', 'waist', 'ghutna', 'bottom', 'seat', 'sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(key.toLowerCase())
+    );
+    
+    const shirtMeasurements = allEntries.filter(([key]) => 
+      key.toLowerCase().includes('shirt') || 
+      ['shirtlength', 'body', 'loose', 'shoulder', 'astin', 'collar', 'collor', 'aloose', 'allose', 'callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(key.toLowerCase())
+    );
+    
+    const extraMeasurements = allEntries.filter(([key]) => 
+      !pantMeasurements.some(([pantKey]) => pantKey === key) &&
+      !shirtMeasurements.some(([shirtKey]) => shirtKey === key)
+    );
+    
+    let result = [];
+    
+    // Add Pant measurements line
+    if (pantMeasurements.length > 0) {
+      const pantLine = '<div class="measurement-line"><strong>Pant:</strong> ' +
+        pantMeasurements
+          .map(([key, value]) => 
+            `<span class="measurement-item"><span class="measurement-label">${labelize(key)}:</span> <span class="measurement-value">${value}</span></span>`
+          )
+          .join(', ') + '</div>';
+      result.push(pantLine);
+    }
+    
+    // Add Shirt measurements line
+    if (shirtMeasurements.length > 0) {
+      const shirtLine = '<div class="measurement-line"><strong>Shirt:</strong> ' +
+        shirtMeasurements
+          .map(([key, value]) => 
+            `<span class="measurement-item"><span class="measurement-label">${labelize(key)}:</span> <span class="measurement-value">${value}</span></span>`
+          )
+          .join(', ') + '</div>';
+      result.push(shirtLine);
+    }
+    
+    // Add Extra measurements line
+    if (extraMeasurements.length > 0) {
+      const extraLine = '<div class="measurement-line"><strong>Extra:</strong> ' +
+        extraMeasurements
+          .map(([key, value]) => 
+            `<span class="measurement-item"><span class="measurement-label">${labelize(key)}:</span> <span class="measurement-value">${value}</span></span>`
+          )
+          .join(', ') + '</div>';
+      result.push(extraLine);
+    }
+    
+    return result.join('');
   }
   
-  return '<div class="measurement-item">No measurements available</div>';
+  return '<div class="measurement-line">No measurements available</div>';
 }
 
 // Template-based bill generation functions
@@ -536,7 +590,7 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
       line-height: 1.3;
     }
     .bill-container {
-      width: 400px;
+      width: 600px;
       margin: 0 auto;
       background: white;
       border: 1px solid #ddd;

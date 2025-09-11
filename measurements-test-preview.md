@@ -10,12 +10,16 @@
 - Bill number now appears in the measurements header
 - Format: "Bill No: [ORDER_NUMBER]"
 
-### 3. **Compact Styling**
-- Reduced font sizes (8px for measurements, 11px for title)
-- Minimized margins and spacing
-- Two-column layout (48% width each item)
+### 3. **Improved Visibility & Compact Styling**
+- **Enhanced font sizes** for better readability:
+  - Title: 13px (was 11px) - more prominent
+  - Bill number: 14px (was 8px) - large and prominent
+  - Measurements: 14px (was 8px) - very large and prominent
+- Optimized margins and spacing for single-page fit
+- **Categorized layout**: Separate lines for Pant, Shirt, and Extra measurements
+- Comma-separated format within each category for compact display
 
-### 4. **New Layout Example**
+### 4. **New Categorized Measurements Layout Example**
 ```
 [BILL HEADER]
 [CUSTOMER INFO]
@@ -29,11 +33,9 @@ Sunday Holiday
 Customer Measurements
 Bill No: 1001
 
-Pant Length: 42        Pant Kamar: 34
-Pant Hips: 36         Shirt Length: 30
-Shirt Shoulder: 18    Shirt Collar: 15
-Shirt Body: M         Pant Waist: 32
-...
+Pant: Length: 42, Kamar: 34, Hips: 36, Waist: 32, Bottom: 14
+Shirt: Length: 30, Shoulder: 18, Collar: 15, Body: M, Astin: 24
+Extra: Special Notes: Custom fit, Additional: As per discussion
 ```
 
 ### 5. **Excluded Fields**
@@ -42,18 +44,21 @@ Shirt Body: M         Pant Waist: 32
 - Personal info (customer_name, name, email, address)
 - Date fields (order_date, due_date, created_at, updated_at)
 
-### 5. **Space Optimization**
-- Top margin reduced from 20px to 5px
-- Footer margin reduced from 20px to 8px
-- Line height reduced to 1.1
-- Gap between items reduced to 4px
+### 6. **Space Optimization & Readability Balance**
+- Measurements top margin: 6px (optimized)
+- Footer margin: 6px (reduced from 8px)
+- Line height: 1.2 (improved readability)
+- Gap between measurement items: 6px (better spacing)
+- Font weights enhanced for better contrast
 
 ## Key Features:
 - **Fits on single page**: Compact design ensures everything fits
 - **Professional appearance**: Clean text layout without cluttered boxes
 - **Bill number included**: Easy reference in measurements section
-- **Readable format**: Bold labels with clear values
-- **Responsive layout**: Two-column flex layout adapts to content
+- **Organized by category**: Pant, Shirt, and Extra measurements on separate lines
+- **Easy to locate**: Measurements grouped by garment type
+- **Comma-separated**: Clean separation within each category
+- **Space efficient**: Compact 3-line format saves vertical space
 
 ## CSS Classes Added:
 - `.measurements-section`: Main container
