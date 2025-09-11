@@ -1,5 +1,5 @@
   // Professional bill HTML generator using the same format as GenerateBillScreen
-  const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber) => {
+  const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber, includeMeasurements = true) => {
     // Calculate totals and organize data
     const garmentTotals = {};
     let totalAmount = 0;
@@ -172,7 +172,7 @@
       color: red;
     }
     .footer-box {
-      margin-top: 20px;
+      margin-top: 8px;
       text-align: center;
       font-size: 13px;
     }
@@ -181,6 +181,46 @@
       margin-top: 5px;
       color: blue;
       font-weight: bold;
+    }
+    /* Measurements section styles - Pure text format */
+    .measurements-section {
+      margin-top: 8px;
+      padding: 0 20px;
+      font-size: 8px;
+      line-height: 1.1;
+      border-top: 1px dashed #ccc;
+      padding-top: 5px;
+    }
+    .measurements-title {
+      font-weight: bold;
+      font-size: 11px;
+      margin-bottom: 2px;
+      text-align: center;
+    }
+    .measurements-header {
+      font-size: 8px;
+      color: #666;
+      margin-bottom: 2px;
+      text-align: center;
+    }
+    .measurements-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: space-between;
+    }
+    .measurement-item {
+      font-size: 8px;
+      margin-bottom: 0;
+      flex: 0 1 48%;
+      line-height: 1.1;
+    }
+    .measurement-label {
+      font-weight: bold;
+      color: #333;
+    }
+    .measurement-value {
+      color: #555;
     }
   </style>
 </head>
@@ -269,6 +309,17 @@
       Thank You, Visit Again!
       <span>Sunday Holiday</span>
     </div>
+
+    <!-- Measurements Section -->
+    ${includeMeasurements ? `
+    <div class="measurements-section">
+      <div class="measurements-title">Customer Measurements</div>
+      <div class="measurements-header">Bill No: ${orderNumber || billData.billnumberinput2 || 'N/A'}</div>
+      <div class="measurements-content">
+        ${generateMeasurementsTextForBill(billData)}
+      </div>
+    </div>
+    ` : ''}
 
   </div>
 </body>
@@ -392,7 +443,7 @@ function generateAllMeasurementsTable(measurements) {
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .replace(/\b\w/g, (l) => l.toUpperCase());
   const entries = Object.entries(measurements).filter(
-    ([, value]) => value !== '' && value !== null && value !== undefined
+    ([, value]) => value !== '' && value !== null && value !== undefined && value !== 0
   );
   if (entries.length === 0) return '<tr><td colspan="2">No measurements entered.</td></tr>';
   return entries
@@ -401,6 +452,50 @@ function generateAllMeasurementsTable(measurements) {
         `<tr><td>${labelize(key)}</td><td>${value}</td></tr>`
     )
     .join('');
+}
+
+// Generate measurements in pure text format for inclusion in the bill
+function generateMeasurementsTextForBill(billData) {
+  const labelize = (key) =>
+    key
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  
+  // Fields to exclude from measurements display
+  const excludedFields = [
+    'id', 'customer_id', 'bill_id', 'order_id',
+    'phone', 'mobile', 'mobile_number', 'phone_number',
+    'customer_name', 'name', 'email', 'address',
+    'order_date', 'due_date', 'created_at', 'updated_at'
+  ];
+  
+  // Check if we have measurements in billData
+  if (billData.measurements) {
+    const entries = Object.entries(billData.measurements).filter(
+      ([key, value]) => {
+        // Filter out empty values
+        const hasValue = value !== '' && value !== null && value !== undefined && value !== 0;
+        // Filter out excluded fields (case insensitive)
+        const isNotExcluded = !excludedFields.some(excludedField => 
+          key.toLowerCase().includes(excludedField.toLowerCase())
+        );
+        return hasValue && isNotExcluded;
+      }
+    );
+    
+    if (entries.length === 0) {
+      return '<div class="measurement-item">No measurements available</div>';
+    }
+    
+    return entries
+      .map(([key, value]) => 
+        `<div class="measurement-item"><span class="measurement-label">${labelize(key)}:</span> <span class="measurement-value">${value}</span></div>`
+      )
+      .join('');
+  }
+  
+  return '<div class="measurement-item">No measurements available</div>';
 }
 
 // Template-based bill generation functions
@@ -726,14 +821,14 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
 </html>`;
   }
 
-  // Helper functions
-  function generateBillItemsTable() {
+  // Helper functions - now properly parameterized
+  function generateBillItemsTable(itemizedBillData) {
     const items = [
-      { name: 'Suit', qty: itemizedBill.suit_qty || '0', amount: itemizedBill.suit_amount || '0' },
-      { name: 'Safari/Jacket', qty: itemizedBill.safari_qty || '0', amount: itemizedBill.safari_amount || '0' },
-      { name: 'Pant', qty: itemizedBill.pant_qty || '0', amount: itemizedBill.pant_amount || '0' },
-      { name: 'Shirt', qty: itemizedBill.shirt_qty || '0', amount: itemizedBill.shirt_amount || '0' },
-      { name: 'Sadri', qty: itemizedBill.sadri_qty || '0', amount: itemizedBill.sadri_amount || '0' }
+      { name: 'Suit', qty: itemizedBillData.suit_qty || '0', amount: itemizedBillData.suit_amount || '0' },
+      { name: 'Safari/Jacket', qty: itemizedBillData.safari_qty || '0', amount: itemizedBillData.safari_amount || '0' },
+      { name: 'Pant', qty: itemizedBillData.pant_qty || '0', amount: itemizedBillData.pant_amount || '0' },
+      { name: 'Shirt', qty: itemizedBillData.shirt_qty || '0', amount: itemizedBillData.shirt_amount || '0' },
+      { name: 'Sadri', qty: itemizedBillData.sadri_qty || '0', amount: itemizedBillData.sadri_amount || '0' }
     ];
     
     const rows = items
@@ -753,34 +848,34 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
     return rows;
   }
   
-  function getTotalQuantity() {
-    const totalQty = parseInt(itemizedBill.suit_qty || 0) + 
-                    parseInt(itemizedBill.safari_qty || 0) + 
-                    parseInt(itemizedBill.pant_qty || 0) + 
-                    parseInt(itemizedBill.shirt_qty || 0) + 
-                    parseInt(itemizedBill.sadri_qty || 0);
+  function getTotalQuantity(itemizedBillData) {
+    const totalQty = parseInt(itemizedBillData.suit_qty || 0) + 
+                    parseInt(itemizedBillData.safari_qty || 0) + 
+                    parseInt(itemizedBillData.pant_qty || 0) + 
+                    parseInt(itemizedBillData.shirt_qty || 0) + 
+                    parseInt(itemizedBillData.sadri_qty || 0);
     return totalQty > 0 ? totalQty.toString() : '0';
   }
   
-  function getTotalAmount() {
-    const totalAmount = (parseFloat(itemizedBill.suit_amount) || 0) + 
-                       (parseFloat(itemizedBill.safari_amount) || 0) + 
-                       (parseFloat(itemizedBill.pant_amount) || 0) + 
-                       (parseFloat(itemizedBill.shirt_amount) || 0) + 
-                       (parseFloat(itemizedBill.sadri_amount) || 0);
+  function getTotalAmount(itemizedBillData) {
+    const totalAmount = (parseFloat(itemizedBillData.suit_amount) || 0) + 
+                       (parseFloat(itemizedBillData.safari_amount) || 0) + 
+                       (parseFloat(itemizedBillData.pant_amount) || 0) + 
+                       (parseFloat(itemizedBillData.shirt_amount) || 0) + 
+                       (parseFloat(itemizedBillData.sadri_amount) || 0);
     return totalAmount.toFixed(2);
   }
   
   console.log('🔄 Processing template with data:', {
     orderNumber: orderNumber || billData.billnumberinput2 || 'N/A',
     customerName: billData.customer_name || 'N/A',
-    totalItems: getTotalQuantity()
+    totalItems: getTotalQuantity(itemizedBill)
   });
   
   // Prepare the data for replacement
-  const billItemsTable = generateBillItemsTable();
-  const totalQuantity = getTotalQuantity();
-  const totalAmount = getTotalAmount();
+  const billItemsTable = generateBillItemsTable(itemizedBill);
+  const totalQuantity = getTotalQuantity(itemizedBill);
+  const totalAmount = getTotalAmount(itemizedBill);
   
   console.log('📊 Generated table HTML:', billItemsTable.substring(0, 100) + '...');
   
@@ -1237,8 +1332,7 @@ export default function NewBillScreen({ navigation }) {
       
       console.log('\u2705 BILL CREATED WITH TWO-STAGE REVENUE TRACKING:', {
         billId: billResult[0].id,
-        orderId: orderResult[0].id,
-        advanceRecorded,
+        ordersCreated: orderResults.length,
         advanceAmount
       });
 
@@ -1570,7 +1664,9 @@ export default function NewBillScreen({ navigation }) {
       console.log('🖨️ Generating professional bill HTML for order:', billNumber);
       
       // Generate professional bill HTML using the same format as GenerateBillScreen
-      const html = generateProfessionalBillHTML(billData, itemizedBill, billNumber);
+      // Pass measurements from the component state
+      const billDataWithMeasurements = { ...billData, measurements };
+      const html = generateProfessionalBillHTML(billDataWithMeasurements, itemizedBill, billNumber, true);
       
       if (Platform.OS === 'web') {
         // For web, create a new window and print
