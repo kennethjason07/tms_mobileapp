@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Two-Stage Revenue System Status Check</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f6fa;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+        }
+        .success {
+            border-left-color: #27ae60;
+            background: #d5f4e6;
+        }
+        .warning {
+            border-left-color: #f39c12;
+            background: #fef9e7;
+        }
+        .error {
+            border-left-color: #e74c3c;
+            background: #fadbd8;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .test-button {
+            background: #27ae60;
+        }
+        .test-button:hover {
+            background: #229954;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Two-Stage Revenue System Status Check</h1>
+        
+        <div class="status-card">
+            <h3>📊 System Overview</h3>
+            <p>This tool checks if your two-stage revenue tracking system is properly configured and working.</p>
+            <p><strong>Expected Result:</strong> When you mark orders as "paid", the pending amount should be added to today's revenue.</p>
+        </div>
+
+        <div class="status-card">
+            <h3>🧪 Quick Tests</h3>
+            <button onclick="checkSystemStatus()" class="test-button">Check System Status</button>
+            <button onclick="testCalculateProfit()">Test Calculate Profit</button>
+            <button onclick="findTestOrder()">Find Test Order</button>
+            <button onclick="showInstructions()">Show Instructions</button>
+        </div>
+
+        <div id="results"></div>
+
+        <div class="status-card">
+            <h3>💡 Instructions</h3>
+            <ol>
+                <li><strong>Open your app</strong> in another browser tab</li>
+                <li><strong>Open Developer Console</strong> (F12)</li>
+                <li><strong>Run the tests above</strong> to check system status</li>
+                <li><strong>If "Two-Stage" is active:</strong> Go mark an order as "paid" and refresh to see revenue increase</li>
+                <li><strong>If "Legacy" mode:</strong> Check table permissions in Supabase dashboard</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function checkSystemStatus() {
+            clearResults();
+            log('<h3>🔍 Checking System Status...</h3>');
+            
+            try {
+                // Check if SupabaseAPI is available
+                if (typeof SupabaseAPI === 'undefined') {
+                    log('❌ SupabaseAPI not found. Please run this test in your app\'s browser tab.', 'error');
+                    return;
+                }
+
+                // Test the profit calculation
+                const result = await SupabaseAPI.calculateProfit();
+                
+                if (result) {
+                    log(`<strong>📊 System Status Check Results:</strong><br>
+                        💰 Method: <strong>${result.method || 'unknown'}</strong><br>
+                        💵 Total Revenue: <strong>₹${result.total_revenue || 0}</strong><br>
+                        📈 Net Profit: <strong>₹${result.net_profit || 0}</strong>`, 'info');
+                    
+                    if (result.method === 'two_stage') {
+                        log(`<h4>🎉 SUCCESS: Two-Stage Revenue System is ACTIVE!</h4>
+                            <p>✅ Revenue tracking table is accessible<br>
+                            ✅ Payment completion tracking is enabled<br>
+                            ✅ Final payments will be recorded as today's revenue</p>`, 'success');
+                        
+                        if (result.revenue_breakdown) {
+                            log(`<strong>💳 Revenue Breakdown:</strong><br>
+                                🔸 Advance Payments: ₹${result.revenue_breakdown.advance_payments || 0}<br>
+                                🔸 Final Payments: ₹${result.revenue_breakdown.final_payments || 0}`, 'info');
+                        }
+                    } else if (result.method === 'legacy') {
+                        log(`<h4>⚠️ WARNING: System is using Legacy Mode</h4>
+                            <p>❌ Revenue tracking table is not accessible<br>
+                            ❌ Payment completion amounts will NOT be tracked<br>
+                            🔧 Check table permissions in Supabase dashboard</p>`, 'warning');
+                    } else {
+                        log(`<h4>❓ Unknown System Status</h4>
+                            <p>Method: ${result.method || 'undefined'}<br>
+                            This might indicate a configuration issue.</p>`, 'warning');
+                    }
+                } else {
+                    log('❌ No result received from calculateProfit()', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error checking system status: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCalculateProfit() {
+            clearResults();
+            log('<h3>🧮 Testing Calculate Profit Function...</h3>');
+            
+            try {
+                if (typeof SupabaseAPI === 'undefined') {
+                    log('❌ SupabaseAPI not found. Please run this in your app.', 'error');
+                    return;
+                }
+
+                // Test All Time
+                log('📅 Testing All Time calculation...');
+                const allTimeResult = await SupabaseAPI.calculateProfit();
+                log(`All Time Result: Revenue ₹${allTimeResult.total_revenue || 0}, Method: ${allTimeResult.method || 'unknown'}`, 'info');
+
+                // Test Today
+                const today = new Date().toISOString().split('T')[0];
+                log(`📅 Testing Today (${today}) calculation...`);
+                const todayResult = await SupabaseAPI.calculateProfit(today);
+                log(`Today Result: Revenue ₹${todayResult.total_revenue || 0}, Method: ${todayResult.method || 'unknown'}`, 'info');
+
+                log('✅ Calculate Profit tests completed successfully!', 'success');
+                
+            } catch (error) {
+                log(`❌ Error testing calculate profit: ${error.message}`, 'error');
+            }
+        }
+
+        async function findTestOrder() {
+            clearResults();
+            log('<h3>🔍 Finding Test Order for Payment Completion...</h3>');
+            
+            try {
+                if (typeof SupabaseAPI === 'undefined') {
+                    log('❌ SupabaseAPI not found. Please run this in your app.', 'error');
+                    return;
+                }
+
+                const orders = await SupabaseAPI.getOrders();
+                let testOrder = null;
+                
+                for (const order of orders) {
+                    const paymentStatus = order.payment_status?.toLowerCase();
+                    if (paymentStatus !== 'paid' && paymentStatus !== 'full') {
+                        const totalAmount = parseFloat(order.total_amt) || 0;
+                        const advanceAmount = parseFloat(order.payment_amount) || 0;
+                        const remainingBalance = totalAmount - advanceAmount;
+                        
+                        if (remainingBalance > 0) {
+                            testOrder = order;
+                            break;
+                        }
+                    }
+                }
+
+                if (testOrder) {
+                    const remainingBalance = testOrder.total_amt - testOrder.payment_amount;
+                    log(`<h4>✅ Found Test Order:</h4>
+                        <p><strong>Bill Number:</strong> ${testOrder.billnumberinput2}<br>
+                        <strong>Payment Status:</strong> ${testOrder.payment_status}<br>
+                        <strong>Total Amount:</strong> ₹${testOrder.total_amt}<br>
+                        <strong>Advance Paid:</strong> ₹${testOrder.payment_amount}<br>
+                        <strong>Remaining Balance:</strong> ₹${remainingBalance.toFixed(2)}</p>`, 'success');
+                    
+                    log(`<h4>🧪 To Test Payment Completion:</h4>
+                        <ol>
+                        <li>Go to Orders Overview screen</li>
+                        <li>Find bill number: <strong>${testOrder.billnumberinput2}</strong></li>
+                        <li>Change payment status to "Paid"</li>
+                        <li>Check Daily Profit screen</li>
+                        <li>You should see ₹${remainingBalance.toFixed(2)} added to today's revenue!</li>
+                        </ol>`, 'info');
+                } else {
+                    log('⚠️ No unpaid orders with remaining balance found', 'warning');
+                    log('💡 Create a new order with partial payment to test the functionality', 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ Error finding test order: ${error.message}`, 'error');
+            }
+        }
+
+        function showInstructions() {
+            clearResults();
+            log(`<h3>📖 Two-Stage Revenue System Instructions</h3>
+                <h4>🎯 What This System Does:</h4>
+                <p>✅ Records <strong>advance payments</strong> when bills are created<br>
+                ✅ Records <strong>final payments</strong> when orders are marked "paid"<br>
+                ✅ Shows accurate <strong>daily cash flow</strong> based on when payments are received</p>
+                
+                <h4>🧪 How to Test:</h4>
+                <p>1. <strong>Check System Status</strong> - Run the status check above<br>
+                2. <strong>Find Test Order</strong> - Find an order with pending payment<br>
+                3. <strong>Mark as Paid</strong> - Go to Orders Overview, mark order as "Paid"<br>
+                4. <strong>Check Daily Profit</strong> - See the remaining amount added to today's revenue</p>
+                
+                <h4>🔧 If System Shows "Legacy Mode":</h4>
+                <p>❌ Revenue tracking table is not accessible<br>
+                🔧 Check table permissions in Supabase dashboard<br>
+                💡 Ensure RLS policies allow read/write operations</p>
+                
+                <h4>💰 Expected Behavior:</h4>
+                <p>When you mark an order as "paid":<br>
+                • Remaining balance gets added to <strong>TODAY'S</strong> revenue<br>
+                • Daily Profit screen updates immediately<br>
+                • Revenue is tracked by payment completion date, not order creation date</p>`, 'info');
+        }
+
+        // Auto-run status check when page loads
+        window.addEventListener('load', () => {
+            log('<p><strong>Instructions:</strong> Open your app in another browser tab, then run the tests above.</p>', 'info');
+        });
+    </script>
+</body>
+</html>

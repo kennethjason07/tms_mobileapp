@@ -23,6 +23,11 @@ import { createShadowStyle, shadowPresets } from './utils/shadowUtils';
 // Function to expand orders by garment type and quantity
 // Based on the backend logic: each garment gets its own order row, so we need to group by bill_id and number them
 const expandOrdersByGarmentAndQuantity = (orders) => {
+  if (!orders || orders.length === 0) {
+    console.log('No orders to expand');
+    return [];
+  }
+  
   // Group orders by bill_id first
   const ordersByBill = {};
   orders.forEach(order => {
@@ -41,6 +46,26 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
     const firstOrder = billOrders[0];
     const bill = firstOrder.bills || {};
     
+    console.log('Processing bill', billId, 'with bill data:', bill);
+    
+    // If we don't have proper bill data, try to create a simple expansion based on garment_type
+    if (!bill || Object.keys(bill).length === 0) {
+      console.log('No bill data found, using simple expansion for', billOrders.length, 'orders');
+      
+      // Just add each order as-is without expansion
+      billOrders.forEach((order, index) => {
+        finalExpandedOrders.push({
+          ...order,
+          expanded_id: order.order_id + '_' + index,
+          original_id: order.order_id,
+          expanded_garment_type: order.garment_type || 'N/A',
+          garment_quantity: 1,
+          garment_index: 0,
+        });
+      });
+      return;
+    }
+    
     // Define garment types and their quantities from the bill
     const garmentTypes = [
       { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
@@ -49,6 +74,27 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
       { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
       { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
     ];
+    
+    console.log('Garment quantities:', garmentTypes);
+    
+    // Check if we have any quantities
+    const hasQuantities = garmentTypes.some(({ qty }) => qty > 0);
+    
+    if (!hasQuantities) {
+      console.log('No garment quantities found, using simple expansion');
+      // Just add each order as-is
+      billOrders.forEach((order, index) => {
+        finalExpandedOrders.push({
+          ...order,
+          expanded_id: order.order_id + '_' + index,
+          original_id: order.order_id,
+          expanded_garment_type: order.garment_type || 'N/A',
+          garment_quantity: 1,
+          garment_index: 0,
+        });
+      });
+      return;
+    }
     
     // Create rows for each garment type based on quantities
     garmentTypes.forEach(({ type, qty }) => {
@@ -70,6 +116,7 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
     });
   });
   
+  console.log('Final expanded orders:', finalExpandedOrders.length);
   return finalExpandedOrders;
 };
 
@@ -82,35 +129,50 @@ export default function CustomerInfoScreen({ navigation }) {
 
   // Transform old data format to new format
   const transformCustomerData = (rawData) => {
-    if (!rawData) return null;
+    console.log('🔧 Transforming data:', rawData);
+    
+    if (!rawData) {
+      console.log('❌ No raw data provided');
+      return null;
+    }
 
     // Check if data is already in new format
     if (rawData.customer_orders) {
+      console.log('✅ Data already in new format with', rawData.customer_orders.length, 'orders');
       return rawData;
     }
 
     // Transform old format to new format
     const orderHistory = rawData.order_history || [];
+    console.log('📜 Transforming', orderHistory.length, 'orders from order_history');
     
     // Transform each order to match new field names
-    const transformedOrders = orderHistory.map(order => ({
-      order_id: order.id,
-      bill_number: order.billnumberinput2,
-      garment_type: order.garment_type,
-      status: order.status,
-      order_date: order.order_date,
-      due_date: order.due_date,
-      payment_mode: order.payment_mode,
-      payment_status: order.payment_status,
-      advance_amount: order.payment_amount || 0,
-      total_amount: order.total_amt || 0
-    }));
+    const transformedOrders = orderHistory.map(order => {
+      console.log('Transforming order:', order.id, 'garment_type:', order.garment_type);
+      return {
+        order_id: order.id,
+        bill_id: order.bill_id,
+        bill_number: order.billnumberinput2,
+        garment_type: order.garment_type,
+        status: order.status,
+        order_date: order.order_date,
+        due_date: order.due_date,
+        payment_mode: order.payment_mode,
+        payment_status: order.payment_status,
+        advance_amount: order.payment_amount || 0,
+        total_amount: order.total_amt || 0,
+        // Keep the bills property if it exists
+        bills: order.bills || {},
+        // Keep all original order data for compatibility
+        ...order
+      };
+    });
 
     // Calculate metadata
-    const totalAmount = transformedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const totalAmount = transformedOrders.reduce((sum, order) => sum + (parseFloat(order.total_amount) || 0), 0);
     const uniqueBillNumbers = [...new Set(transformedOrders.map(order => order.bill_number).filter(Boolean))];
     
-    return {
+    const result = {
       customer_orders: transformedOrders,
       metadata: {
         total_orders: transformedOrders.length,
@@ -119,6 +181,9 @@ export default function CustomerInfoScreen({ navigation }) {
         last_updated: new Date().toISOString()
       }
     };
+    
+    console.log('✅ Transformation complete:', result);
+    return result;
   };
 
   const handleSearch = async () => {
@@ -129,26 +194,32 @@ export default function CustomerInfoScreen({ navigation }) {
 
     try {
       setLoading(true);
+      console.log('🔍 Searching for customer:', searchQuery);
       const rawCustomerData = await SupabaseAPI.getCustomerInfo(searchQuery);
+      console.log('📦 Raw customer data received:', rawCustomerData);
       
       // Transform the data to new format
       const customerData = transformCustomerData(rawCustomerData);
+      console.log('🔄 Transformed customer data:', customerData);
       
       if (customerData && customerData.customer_orders && customerData.customer_orders.length > 0) {
+        console.log('📋 Found', customerData.customer_orders.length, 'orders to expand');
         // Expand orders by garment type and quantity
         const expandedOrders = expandOrdersByGarmentAndQuantity(customerData.customer_orders);
+        console.log('📈 Expanded to', expandedOrders.length, 'order rows');
         setCustomerOrders(expandedOrders);
         setCustomerMetadata(customerData.metadata || null);
         setCustomerFound(true);
       } else {
+        console.log('❌ No orders found in customer data');
         Alert.alert('Not Found', 'No orders found for this customer.');
         setCustomerOrders([]);
         setCustomerMetadata(null);
         setCustomerFound(false);
       }
     } catch (error) {
-      console.error('Error fetching customer data:', error);
-      Alert.alert('Error', 'No orders found for this customer.');
+      console.error('❌ Error fetching customer data:', error);
+      Alert.alert('Error', 'Failed to fetch customer data. Please try again.');
       setCustomerOrders([]);
       setCustomerMetadata(null);
       setCustomerFound(false);
@@ -359,16 +430,23 @@ export default function CustomerInfoScreen({ navigation }) {
                 <View style={styles.ordersSection}>
                   {renderSummaryCard()}
                   <Text style={styles.sectionTitle}>Customer Orders ({customerOrders.length})</Text>
-                  <View style={styles.tableContainer}>
-                    {renderTableHeader()}
-                    <FlatList
-                      data={customerOrders}
-                      renderItem={renderOrderItem}
-                      keyExtractor={(item, index) => `${item?.order_id || 'no-id'}-${index}`}
-                      scrollEnabled={false}
-                      showsVerticalScrollIndicator={false}
-                    />
-                  </View>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={true}
+                    style={styles.horizontalScrollContainer}
+                  >
+                    <View style={styles.tableContainer}>
+                      {renderTableHeader()}
+                      <FlatList
+                        data={customerOrders}
+                        renderItem={renderOrderItem}
+                        keyExtractor={(item, index) => `${item?.order_id || 'no-id'}-${index}`}
+                        scrollEnabled={true}
+                        showsVerticalScrollIndicator={true}
+                        nestedScrollEnabled={true}
+                      />
+                    </View>
+                  </ScrollView>
                 </View>
               )}
 
@@ -466,12 +544,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginBottom: 8,
   },
+  horizontalScrollContainer: {
+    flex: 1,
+    maxHeight: 400, // Limit height for vertical scrolling
+  },
   tableContainer: {
     backgroundColor: '#fff',
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#e9ecef',
+    minWidth: 800, // Ensure table is wide enough to trigger horizontal scroll
   },
   tableHeader: {
     flexDirection: 'row',
@@ -480,6 +563,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderBottomWidth: 2,
     borderBottomColor: '#dee2e6',
+    minWidth: 800, // Match table container width
   },
   tableHeaderText: {
     fontSize: 14,
@@ -494,6 +578,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
     backgroundColor: '#fff',
+    minWidth: 800, // Match table container width
   },
   tableCellText: {
     fontSize: 13,
@@ -502,25 +587,32 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   orderIdColumn: {
-    flex: 1,
+    width: 70,
+    minWidth: 70,
   },
   billNumberColumn: {
-    flex: 1.2,
+    width: 90,
+    minWidth: 90,
   },
   garmentTypeColumn: {
-    flex: 1.2,
+    width: 120,
+    minWidth: 120,
   },
   statusColumn: {
-    flex: 1,
+    width: 80,
+    minWidth: 80,
   },
   dateColumn: {
-    flex: 1.4,
+    width: 100,
+    minWidth: 100,
   },
   paymentColumn: {
-    flex: 1.2,
+    width: 100,
+    minWidth: 100,
   },
   amountColumn: {
-    flex: 1.4,
+    width: 90,
+    minWidth: 90,
   },
   noOrdersContainer: {
     padding: 32,

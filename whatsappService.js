@@ -202,8 +202,8 @@ Your Tailor Shop`;
 
 // WhatsApp Redirect Service - Opens WhatsApp with pre-filled message
 export const WhatsAppRedirectService = {
-  // Open WhatsApp with pre-filled message
-  openWhatsAppWithMessage(phoneNumber, message) {
+  // Open WhatsApp with pre-filled message WITH CONFIRMATION POPUP
+  openWhatsAppWithMessage(phoneNumber, message, showConfirmation = true) {
     try {
       // Validate phone number first
       if (!phoneNumber || typeof phoneNumber !== 'string' || phoneNumber.trim() === '') {
@@ -236,47 +236,67 @@ export const WhatsAppRedirectService = {
         return { success: false, message: 'No message content to send' };
       }
       
-      // Encode the message for URL
-      const encodedMessage = encodeURIComponent(message);
-      
-      // Create WhatsApp URL with pre-filled message
-      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
-      
-      // Check if we're in a web environment or React Native
-      if (typeof window !== 'undefined' && typeof window.open === 'function') {
-        // Web environment - open in new window
-        try {
-          window.open(whatsappUrl, '_blank');
-          return { success: true, message: 'WhatsApp opened successfully in browser' };
-        } catch (webError) {
-          console.error('Failed to open WhatsApp in web:', webError);
-          return { success: false, message: 'Failed to open WhatsApp in browser. Please check if popup blocking is disabled.' };
-        }
-      } else {
-        // React Native environment - use Linking
-        try {
-          const { Linking } = require('react-native');
-          
-          // For React Native, we'll use a simpler approach and handle errors
-          Linking.openURL(whatsappUrl)
-            .then(() => {
-              console.log('WhatsApp opened successfully');
-            })
-            .catch(err => {
-              console.error('Failed to open WhatsApp:', err);
-              // Don't throw here as it's async
-            });
+      // Function to actually open WhatsApp
+      const openWhatsApp = () => {
+        // Encode the message for URL
+        const encodedMessage = encodeURIComponent(message);
+        
+        // Create WhatsApp URL with pre-filled message
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+        
+        // Check if we're in a web environment or React Native
+        if (typeof window !== 'undefined' && typeof window.open === 'function') {
+          // Web environment - open in new window
+          try {
+            window.open(whatsappUrl, '_blank');
+            return { success: true, message: 'WhatsApp opened successfully in browser' };
+          } catch (webError) {
+            console.error('Failed to open WhatsApp in web:', webError);
+            return { success: false, message: 'Failed to open WhatsApp in browser. Please check if popup blocking is disabled.' };
+          }
+        } else {
+          // React Native environment - use Linking
+          try {
+            const { Linking } = require('react-native');
             
-          // Return success immediately for React Native as we can't wait for the async result
-          return { success: true, message: 'Attempting to open WhatsApp...' };
-        } catch (linkingError) {
-          console.error('Linking module error:', linkingError);
-          return { success: false, message: 'WhatsApp is not available on this device' };
+            // For React Native, we'll use a simpler approach and handle errors
+            Linking.openURL(whatsappUrl)
+              .then(() => {
+                console.log('WhatsApp opened successfully');
+              })
+              .catch(err => {
+                console.error('Failed to open WhatsApp:', err);
+                // Don't throw here as it's async
+              });
+              
+            // Return success immediately for React Native as we can't wait for the async result
+            return { success: true, message: 'WhatsApp opened successfully' };
+          } catch (linkingError) {
+            console.error('Linking module error:', linkingError);
+            return { success: false, message: 'WhatsApp is not available on this device' };
+          }
         }
+      };
+      
+      // If no confirmation needed, open directly
+      if (!showConfirmation) {
+        return openWhatsApp();
       }
+      
+      // Show confirmation popup (this needs to be handled by the caller)
+      // Return a special response that indicates confirmation is needed
+      return {
+        success: 'confirmation_needed',
+        message: `Open WhatsApp to send completion message to ${phoneNumber}?`,
+        phoneNumber: phoneNumber,
+        formattedPhone: formattedPhone,
+        messageContent: message,
+        openWhatsApp: openWhatsApp // Function to call if user confirms
+      };
+      
     } catch (error) {
-      console.error('Error opening WhatsApp:', error);
-      return { success: false, message: `No WhatsApp exists for this number: ${error.message}` };
+      console.error('Error preparing WhatsApp:', error);
+      return { success: false, message: `Error preparing WhatsApp: ${error.message}` };
     }
   },
 

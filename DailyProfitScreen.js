@@ -38,10 +38,75 @@ export default function DailyProfitScreen({ navigation }) {
     filterData();
   }, [searchQuery, profitData]);
 
+  const loadDataSimple = async () => {
+    try {
+      setLoading(true);
+      console.log('\ud83d\udce6 FALLBACK: Using SupabaseAPI.calculateProfit...');
+      
+      // Use the existing tested API method (enhanced with advance payments)
+      const result = await SupabaseAPI.calculateProfit(null); // null = all time
+      console.log('\ud83d\udce6 API Result:', result);
+      
+      if (result) {
+        // Get orders count separately
+        const { count } = await supabase.from('orders').select('id', { count: 'exact', head: true });
+        const ordersCount = count || 0;
+        
+        // Create a simple data structure for display
+        const simpleData = [{
+          date: result.date || new Date().toISOString().split('T')[0],
+          revenue: result.total_revenue || 0,
+          workPay: 0,
+          shopExpenses: result.daily_expenses || 0,
+          workerExpenses: result.worker_expenses || 0,
+          netProfit: result.net_profit || 0,
+          orderCount: ordersCount,
+          orders: [],
+          expenses: [],
+          bills: []
+        }];
+        
+        setProfitData(simpleData);
+        setFilteredData(simpleData);
+        
+        const summary = {
+          totalRevenue: result.total_revenue || 0,
+          totalNetProfit: result.net_profit || 0,
+          totalOrders: ordersCount,
+          totalWorkPay: 0,
+          totalShopExpenses: result.daily_expenses || 0,
+          totalWorkerExpenses: result.worker_expenses || 0
+        };
+        setSummaryStats(summary);
+        
+        console.log('\u2705 FALLBACK: Simple data loaded successfully');
+        console.log('\u2705 FALLBACK: Revenue:', result.total_revenue, 'Orders:', ordersCount, 'Profit:', result.net_profit);
+      }
+      
+    } catch (error) {
+      console.error('\u274c FALLBACK failed:', error);
+      Alert.alert('Error', `Fallback method failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('\ud83d\udd04 Loading Daily Profit data...');
+      
       const data = await getProfitData();
+      console.log('\ud83d\udcca Profit data received:', data?.length || 0, 'items');
+      console.log('\ud83d\udcca Sample data:', data?.slice(0, 2));
+      
+      // If no data, try fallback
+      if (!data || data.length === 0) {
+        console.log('\ud83d\udd04 No data from complex method, trying simple fallback...');
+        await loadDataSimple();
+        return;
+      }
+      
       setProfitData(data);
       setFilteredData(data);
 
@@ -53,13 +118,19 @@ export default function DailyProfitScreen({ navigation }) {
           .select('id', { count: 'exact', head: true });
         totalBills = count || 0;
         setBillsCount(totalBills);
+        console.log('📋 Total bills count:', totalBills);
       } catch (e) {
         console.warn('Bills count fetch failed:', e?.message || e);
       }
 
       // Calculate summary statistics with precise bills count
       const summary = calculateSummaryStats(data, totalBills);
+      console.log('📊 Summary stats:', summary);
       setSummaryStats(summary);
+      
+      // Verify the data state after setting
+      console.log('✅ Data loading completed. Records to display:', data?.length || 0);
+      
     } catch (error) {
       console.error('Daily profit loading error:', error);
       Alert.alert('Error', `Failed to load profit data: ${error.message}`);
@@ -1054,18 +1125,36 @@ export default function DailyProfitScreen({ navigation }) {
         </View>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <FlatList
-            data={filteredData}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.profitCard}
-                onPress={() => showDateDetail(item)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.cardHeader}>
-                  <Text style={styles.dateText}>{formatDate(item.date)}</Text>
-                  <Text style={styles.profitIcon}>{getProfitIcon(item.netProfit)}</Text>
-                </View>
+          {/* EMERGENCY DEBUG - Show what data we have */}
+          {console.log('🚨 EMERGENCY DEBUG - About to render FlatList with data:', filteredData?.length || 0, 'items')}
+          {console.log('🚨 First item:', filteredData?.[0])}
+          {filteredData?.length === 0 && console.log('⚠️ filteredData is EMPTY!')}
+          {!filteredData && console.log('❌ filteredData is NULL/UNDEFINED!')}
+          {/* Show empty state if no data */}
+          {(!filteredData || filteredData.length === 0) ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>No Data Available</Text>
+              <Text style={styles.emptyText}>No profit data found for the selected period.</Text>
+              <TouchableOpacity style={styles.refreshButton} onPress={loadDataSimple}>
+                <Text style={styles.refreshButtonText}>Try Simple Method</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.refreshButton, { marginTop: 12, backgroundColor: '#95a5a6' }]} onPress={loadData}>
+                <Text style={styles.refreshButtonText}>Full Refresh</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredData}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.profitCard}
+                  onPress={() => showDateDetail(item)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+                    <Text style={styles.profitIcon}>{getProfitIcon(item.netProfit)}</Text>
+                  </View>
 
                 <View style={styles.cardStats}>
                   <View style={styles.statRow}>
@@ -1096,12 +1185,13 @@ export default function DailyProfitScreen({ navigation }) {
                 </View>
               </TouchableOpacity>
             )}
-            keyExtractor={(item, index) => `${item.date}-${index}`}
-            contentContainerStyle={styles.listContainer}
-            refreshing={loading}
-            onRefresh={loadData}
-            showsVerticalScrollIndicator={false}
-          />
+              keyExtractor={(item, index) => `${item.date}-${index}`}
+              contentContainerStyle={styles.listContainer}
+              refreshing={loading}
+              onRefresh={loadData}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
         </KeyboardAvoidingView>
       )}
 

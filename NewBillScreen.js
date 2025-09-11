@@ -326,6 +326,8 @@ import {
   Pressable,
   SafeAreaView,
 } from 'react-native';
+import WebScrollView from './components/WebScrollView';
+import FractionalInput from './components/FractionalInput';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
 import * as Print from 'expo-print';
@@ -1232,6 +1234,13 @@ export default function NewBillScreen({ navigation }) {
         Alert.alert('Error', 'Some orders failed to create. Please try again.');
         return false;
       }
+      
+      console.log('\u2705 BILL CREATED WITH TWO-STAGE REVENUE TRACKING:', {
+        billId: billResult[0].id,
+        orderId: orderResult[0].id,
+        advanceRecorded,
+        advanceAmount
+      });
 
       // 3. After bill is created, increment billno
       console.log('Incrementing bill number with rowId:', rowId, 'orderNumber:', orderNumber);
@@ -1822,65 +1831,72 @@ export default function NewBillScreen({ navigation }) {
               <View style={styles.measurementGrid}>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.pant_length)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_length: parseMeasurementInput(text) })}
-                    placeholder="e.g. 4 2/5 or 4.4"
+                    value={measurements.pant_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
+                    placeholder="32, 1/2, 22/7/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Kamar:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.pant_kamar)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_kamar: parseMeasurementInput(text) })}
-                    placeholder="e.g. 3 1/2 or 3.5"
+                    value={measurements.pant_kamar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
+                    placeholder="34, 3/4"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Hips:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.pant_hips)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_hips: parseMeasurementInput(text) })}
-                    placeholder="e.g. 2/3 or 0.67"
+                    value={measurements.pant_hips}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
+                    placeholder="36, 1/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ran:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.pant_waist)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_waist: parseMeasurementInput(text) })}
-                    placeholder="e.g. 5 1/4 or 5.25"
+                    value={measurements.pant_waist}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
+                    placeholder="32, 1/4"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ghutna:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.pant_ghutna)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_ghutna: parseMeasurementInput(text) })}
-                    placeholder="e.g. 1 3/4 or 1.75"
+                    value={measurements.pant_ghutna}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
+                    placeholder="24, 3/8"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Bottom:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.pant_bottom)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_bottom: parseMeasurementInput(text) })}
-                    placeholder="e.g. 2 1/5 or 2.2"
+                    value={measurements.pant_bottom}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
+                    placeholder="18, 1/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Seat:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.pant_seat)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_seat: parseMeasurementInput(text) })}
-                    placeholder="e.g. 6 2/7 or 6.29"
+                    value={measurements.pant_seat}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
+                    placeholder="40, 5/8"
+                    keyboardType="default"
                   />
                 </View>
           </View>
@@ -1891,47 +1907,52 @@ export default function NewBillScreen({ navigation }) {
                 <View style={styles.detailsGrid}>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>SideP/Cross:</Text>
-            <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.SideP_Cross}
-                      onChangeText={(text) => setMeasurements({ ...measurements, SideP_Cross: text })}
-                      placeholder="SideP/Cross"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
+                      placeholder="2, 1/2, Plain"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Plates:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Plates}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Plates: text })}
-                      placeholder="Plates"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
+                      placeholder="4, Double"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Belt:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Belt}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Belt: text })}
-                      placeholder="Belt"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
+                      placeholder="Yes, No, 1/2"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Back P:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Back_P}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Back_P: text })}
-                      placeholder="Back P"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
+                      placeholder="2, 1/4"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>WP:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.WP}
-                      onChangeText={(text) => setMeasurements({ ...measurements, WP: text })}
-                      placeholder="WP"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
+                      placeholder="High, Low"
+                      allowText={true}
                     />
                   </View>
                 </View>
@@ -1946,65 +1967,73 @@ export default function NewBillScreen({ navigation }) {
               <View style={styles.measurementGrid}>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.shirt_length)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_length: parseMeasurementInput(text) })}
-                    placeholder="e.g. 3 1/4 or 3.25"
+                    value={measurements.shirt_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
+                    placeholder="28, 1/2, 28/5/8"
+                    keyboardType="default"
+                    allowText={true}
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Body:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
                     value={measurements.shirt_body}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_body: text })}
-                    placeholder="Body"
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
+                    placeholder="40, Loose, 3/4"
+                    allowText={true}
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Loose:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
                     value={measurements.shirt_loose}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_loose: text })}
-                    placeholder="Loose"
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
+                    placeholder="Regular, 1/4"
+                    allowText={true}
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.shirt_shoulder)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_shoulder: parseMeasurementInput(text) })}
-                    placeholder="e.g. 2 3/8 or 2.375"
+                    value={measurements.shirt_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
+                    placeholder="18, 1/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Astin:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.shirt_astin)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: parseMeasurementInput(text) })}
-                    placeholder="e.g. 1 1/2 or 1.5"
+                    value={measurements.shirt_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
+                    placeholder="24, 3/4"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Collar:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.shirt_collar)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: parseMeasurementInput(text) })}
-                    placeholder="e.g. 5/8 or 0.625"
+                    value={measurements.shirt_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
+                    placeholder="15, 1/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={formatMeasurementDisplay(measurements.shirt_aloose)}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: parseMeasurementInput(text) })}
-                    placeholder="e.g. 7/16 or 0.44"
+                    value={measurements.shirt_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
+                    placeholder="2, 1/4"
+                    keyboardType="default"
                   />
                 </View>
           </View>
@@ -2015,47 +2044,52 @@ export default function NewBillScreen({ navigation }) {
                 <View style={styles.detailsGrid}>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Collar:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Callar}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Callar: text })}
-                      placeholder="Collar"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
+                      placeholder="Round, Square"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Cuff:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Cuff}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Cuff: text })}
-                      placeholder="Cuff"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
+                      placeholder="Single, Double"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Pkt:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Pkt}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Pkt: text })}
-                      placeholder="Pkt"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
+                      placeholder="1, 2, Flap"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Loose:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.LooseShirt}
-                      onChangeText={(text) => setMeasurements({ ...measurements, LooseShirt: text })}
-                      placeholder="Loose"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
+                      placeholder="Tight, 1/4"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.DT_TT}
-                      onChangeText={(text) => setMeasurements({ ...measurements, DT_TT: text })}
-                      placeholder="DT/TT"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, DT_TT: value })}
+                      placeholder="DT, TT"
+                      allowText={true}
                     />
                   </View>
                 </View>
@@ -2518,72 +2552,72 @@ export default function NewBillScreen({ navigation }) {
               <View style={styles.measurementGrid}>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
-            <TextInput
+            <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_length.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_length: parseFloat(text) || 0 })}
-                    placeholder="Length"
-              keyboardType="numeric"
+                    value={measurements.pant_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
+                    placeholder="32, 1/2, 22/7/2"
+              keyboardType="default"
             />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Kamar:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_kamar.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_kamar: parseFloat(text) || 0 })}
-                    placeholder="Kamar"
-                    keyboardType="numeric"
+                    value={measurements.pant_kamar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
+                    placeholder="34, 3/4"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Hips:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_hips.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_hips: parseFloat(text) || 0 })}
-                    placeholder="Hips"
-                    keyboardType="numeric"
+                    value={measurements.pant_hips}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
+                    placeholder="36, 1/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ran:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_waist.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_waist: parseFloat(text) || 0 })}
-                    placeholder="Ran"
-                    keyboardType="numeric"
+                    value={measurements.pant_waist}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
+                    placeholder="32, 1/4"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ghutna:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_ghutna.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_ghutna: parseFloat(text) || 0 })}
-                    placeholder="Ghutna"
-                    keyboardType="numeric"
+                    value={measurements.pant_ghutna}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
+                    placeholder="24, 3/8"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Bottom:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_bottom.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_bottom: parseFloat(text) || 0 })}
-                    placeholder="Bottom"
-                    keyboardType="numeric"
+                    value={measurements.pant_bottom}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
+                    placeholder="18, 1/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Seat:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.pant_seat.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, pant_seat: parseFloat(text) || 0 })}
-                    placeholder="Seat"
-                    keyboardType="numeric"
+                    value={measurements.pant_seat}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
+                    placeholder="40, 5/8"
+                    keyboardType="default"
                   />
                 </View>
           </View>
@@ -2594,47 +2628,52 @@ export default function NewBillScreen({ navigation }) {
                 <View style={styles.detailsGrid}>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>SideP/Cross:</Text>
-            <TextInput
+            <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.SideP_Cross}
-                      onChangeText={(text) => setMeasurements({ ...measurements, SideP_Cross: text })}
-                      placeholder="SideP/Cross"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
+                      placeholder="2, 1/2, Plain"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Plates:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Plates}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Plates: text })}
-                      placeholder="Plates"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
+                      placeholder="4, Double"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Belt:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Belt}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Belt: text })}
-                      placeholder="Belt"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
+                      placeholder="Yes, No, 1/2"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Back P:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Back_P}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Back_P: text })}
-                      placeholder="Back P"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
+                      placeholder="2, 1/4"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>WP:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.WP}
-                      onChangeText={(text) => setMeasurements({ ...measurements, WP: text })}
-                      placeholder="WP"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
+                      placeholder="High, Low"
+                      allowText={true}
                     />
                   </View>
                 </View>
@@ -2649,70 +2688,73 @@ export default function NewBillScreen({ navigation }) {
               <View style={styles.measurementGrid}>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_length.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_length: parseFloat(text) || 0 })}
-                    placeholder="Length"
-              keyboardType="numeric"
+                    value={measurements.shirt_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
+                    placeholder="28, 1/2, 28/5/8"
+              keyboardType="default"
+                    allowText={true}
             />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Body:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
                     value={measurements.shirt_body}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_body: text })}
-                    placeholder="Body"
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
+                    placeholder="40, Loose, 3/4"
+                    allowText={true}
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Loose:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
                     value={measurements.shirt_loose}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_loose: text })}
-                    placeholder="Loose"
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
+                    placeholder="Regular, 1/4"
+                    allowText={true}
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_shoulder.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_shoulder: parseFloat(text) || 0 })}
-                    placeholder="Shoulder"
-                    keyboardType="numeric"
+                    value={measurements.shirt_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
+                    placeholder="18, 1/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Astin:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_astin.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: parseFloat(text) || 0 })}
-                    placeholder="Astin"
-                    keyboardType="numeric"
+                    value={measurements.shirt_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
+                    placeholder="24, 3/4"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Collar:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_collar.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: parseFloat(text) || 0 })}
-                    placeholder="Collar"
-                    keyboardType="numeric"
+                    value={measurements.shirt_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
+                    placeholder="15, 1/2"
+                    keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <TextInput
+                  <FractionalInput
                     style={styles.measurementTextInput}
-                    value={measurements.shirt_aloose.toString()}
-                    onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: parseFloat(text) || 0 })}
-                    placeholder="Aloose"
-                    keyboardType="numeric"
+                    value={measurements.shirt_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
+                    placeholder="2, 1/4"
+                    keyboardType="default"
                   />
                 </View>
           </View>
@@ -2723,47 +2765,52 @@ export default function NewBillScreen({ navigation }) {
                 <View style={styles.detailsGrid}>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Collar:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Callar}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Callar: text })}
-                      placeholder="Collar"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
+                      placeholder="Round, Square"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Cuff:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Cuff}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Cuff: text })}
-                      placeholder="Cuff"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
+                      placeholder="Single, Double"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Pkt:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.Pkt}
-                      onChangeText={(text) => setMeasurements({ ...measurements, Pkt: text })}
-                      placeholder="Pkt"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
+                      placeholder="1, 2, Flap"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Loose:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.LooseShirt}
-                      onChangeText={(text) => setMeasurements({ ...measurements, LooseShirt: text })}
-                      placeholder="Loose"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
+                      placeholder="Tight, 1/4"
+                      allowText={true}
                     />
                   </View>
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <TextInput
+                    <FractionalInput
                       style={styles.detailTextInput}
                       value={measurements.DT_TT}
-                      onChangeText={(text) => setMeasurements({ ...measurements, DT_TT: text })}
-                      placeholder="DT/TT"
+                      onChangeValue={(value) => setMeasurements({ ...measurements, DT_TT: value })}
+                      placeholder="DT, TT"
+                      allowText={true}
                     />
                   </View>
                 </View>
@@ -3350,6 +3397,8 @@ const styles = StyleSheet.create({
   },
   measurementInput: {
     width: '48%',
+    marginBottom: 12,
+    marginRight: '4%',
   },
   measurementLabel: {
     fontSize: 14,
