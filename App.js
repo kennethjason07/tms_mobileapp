@@ -13,6 +13,9 @@ import WeeklyPayScreen from './WeeklyPayScreen';
 import NewBillScreen from './NewBillScreen';
 import WorkerDetailScreen from './WorkerDetailScreen';
 import DailyProfitScreen from './DailyProfitScreen';
+import TodayProfitScreen from './TodayProfitScreen';
+import WeeklyProfitScreen from './WeeklyProfitScreen';
+import MonthlyProfitScreen from './MonthlyProfitScreen';
 import WhatsAppConfigScreen from './WhatsAppConfigScreen';
 import GenerateBillScreen from './GenerateBillScreen';
 
@@ -58,6 +61,9 @@ export default function App() {
           <Stack.Screen name="NewBill" component={NewBillScreen} />
           <Stack.Screen name="WorkerDetail" component={WorkerDetailScreen} />
           <Stack.Screen name="DailyProfit" component={DailyProfitScreen} />
+          <Stack.Screen name="TodayProfit" component={TodayProfitScreen} />
+          <Stack.Screen name="WeeklyProfit" component={WeeklyProfitScreen} />
+          <Stack.Screen name="MonthlyProfit" component={MonthlyProfitScreen} />
           <Stack.Screen name="WhatsAppConfig" component={WhatsAppConfigScreen} />
           <Stack.Screen name="GenerateBill" component={GenerateBillScreen} />
         </Stack.Navigator>

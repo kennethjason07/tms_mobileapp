@@ -136,8 +136,8 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
             expanded_garment_type: type,
             garment_quantity: 1, // Each row represents quantity of 1
             garment_index: i, // This will be 0, 1, 2, etc. for each garment type
-            // Set worker limit based on garment type
-            max_workers: type.toLowerCase().includes('shirt') ? 3 : 2
+            // Allow up to 3 workers for all garment types
+            max_workers: 3
           });
         }
       }
@@ -983,12 +983,8 @@ export default function OrdersOverviewScreen({ navigation }) {
       const order = orders.find(o => (o.expanded_id || o.id) === orderId) || 
                     filteredOrders.find(o => (o.expanded_id || o.id) === orderId);
       
-      let maxWorkers = 2; // Default for pant
-      if (order) {
-        // Check if it's a shirt order (3 workers) or pant/other (2 workers)
-        const garmentType = order.garment_type || order.expanded_garment_type || '';
-        maxWorkers = garmentType.toLowerCase().includes('shirt') ? 3 : 2;
-      }
+      // Allow up to 3 workers for all garment types
+      let maxWorkers = 3;
       
       // Check if we've reached the worker limit
       if (currentSelected.length >= maxWorkers) {
@@ -1275,9 +1271,29 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
   };
 
-  // Helper to normalize date string to YYYY-MM-DD (no conversion needed, just return as is)
+  // Helper to normalize date string to YYYY-MM-DD with UTC to IST conversion
   function normalizeDate(dateStr) {
-    return dateStr || '';
+    if (!dateStr) return '';
+    
+    try {
+      // Convert UTC date to IST for display
+      const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+      const utcDate = new Date(dateStr);
+      
+      if (isNaN(utcDate.getTime())) {
+        return dateStr; // Return original if invalid date
+      }
+      
+      const istDate = new Date(utcDate.getTime() + IST_OFFSET_MS);
+      const yyyy = istDate.getFullYear();
+      const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(istDate.getDate()).padStart(2, '0');
+      
+      return `${yyyy}-${mm}-${dd}`;
+    } catch (error) {
+      console.warn('Date normalization error:', error);
+      return dateStr || ''; // Fallback to original string
+    }
   }
 
   const renderTableHeader = () => (
@@ -1525,8 +1541,8 @@ export default function OrdersOverviewScreen({ navigation }) {
               >
                 <Text style={styles.dropdownButtonText}>
                   {order.workers && order.workers.length > 0
-                    ? workerNames + ' (max: ' + (order.max_workers || 2) + ')'
-                    : 'Select Workers (max: ' + (order.max_workers || 2) + ')'}
+                    ? workerNames + ' (max: 3)'
+                    : 'Select Workers (max: 3)'}
                 </Text>
                 <Text style={styles.dropdownArrow}>{isWorkerDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
@@ -1552,7 +1568,7 @@ export default function OrdersOverviewScreen({ navigation }) {
                           <View>
                             <Text style={styles.dropdownTitle}>Select Workers</Text>
                             <Text style={styles.dropdownSubtitle}>
-                              {order.garment_type} - Max {order.max_workers || 2} workers ({(selectedWorkers[order.expanded_id || order.id]?.length || 0)} selected)
+                              {order.garment_type} - Max 3 workers ({(selectedWorkers[order.expanded_id || order.id]?.length || 0)} selected)
                             </Text>
                           </View>
                           <TouchableOpacity
@@ -1571,8 +1587,8 @@ export default function OrdersOverviewScreen({ navigation }) {
                           {workers.map((worker, workerIndex) => {
                             const isSelected = selectedWorkers[order.expanded_id || order.id]?.includes(worker.id);
                             const selectionCount = selectedWorkers[order.expanded_id || order.id]?.length || 0;
-                            // Use the max_workers from the expanded order data
-                            const maxWorkers = order.max_workers || 2;
+                            // Allow up to 3 workers for all garment types
+                            const maxWorkers = 3;
                             const isDisabled = !isSelected && selectionCount >= maxWorkers;
                             return (
                               <TouchableOpacity

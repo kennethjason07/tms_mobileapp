@@ -1831,11 +1831,35 @@ export const SupabaseAPI = {
       .from('billno')
       .select('billno, id')
       .order('id', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
+    
     if (error) throw error;
-    if (!data) throw new Error('No billno row found');
-    return data; // { billno, id }
+    
+    // If no data found, initialize the billno table with starting number
+    if (!data || data.length === 0) {
+      console.log('📋 No bill number found, initializing billno table...');
+      
+      // Get the highest bill number from orders table as fallback
+      const highestBillNumber = await this.getHighestBillNumber();
+      const startingBillNumber = Math.max(highestBillNumber + 1, 1);
+      
+      console.log(`🔢 Initializing with bill number: ${startingBillNumber}`);
+      
+      const { data: newData, error: insertError } = await supabase
+        .from('billno')
+        .insert({ billno: startingBillNumber })
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('❌ Failed to initialize billno table:', insertError);
+        throw insertError;
+      }
+      
+      return newData; // { billno, id }
+    }
+    
+    return data[0]; // { billno, id }
   },
 
   async incrementBillNumber(id, currentBillno) {

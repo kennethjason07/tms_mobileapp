@@ -160,18 +160,41 @@ export default function ShopExpenseScreen({ navigation }) {
 
 
   const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    // Use IST timezone for consistency with bill dates
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const now = new Date();
+    const istDate = new Date(now.getTime() + IST_OFFSET_MS);
+    
+    const yyyy = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    
+    return `${yyyy}-${mm}-${dd}`;
   };
 
-  // Helper to format date as dd-mm-yyyy
+  // Helper to format date as dd-mm-yyyy with UTC to IST conversion
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${day}-${month}-${year}`;
+    
+    try {
+      // Convert UTC date to IST for display consistency
+      const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+      const utcDate = new Date(dateString);
+      
+      if (isNaN(utcDate.getTime())) {
+        return dateString; // Return original if invalid
+      }
+      
+      const istDate = new Date(utcDate.getTime() + IST_OFFSET_MS);
+      const year = istDate.getFullYear();
+      const month = String(istDate.getMonth() + 1).padStart(2, '0');
+      const day = String(istDate.getDate()).padStart(2, '0');
+      
+      return `${day}-${month}-${year}`;
+    } catch (error) {
+      console.warn('Date formatting error:', error);
+      return dateString || 'N/A';
+    }
   };
 
   const renderExpense = ({ item }) => (
@@ -410,7 +433,13 @@ export default function ShopExpenseScreen({ navigation }) {
                         onChange={(event, selectedDate) => {
                           setShowDatePicker(false);
                           if (selectedDate) {
-                            const formatted = selectedDate.toISOString().split('T')[0];
+                            // Format date using IST timezone for consistency
+                            const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+                            const istDate = new Date(selectedDate.getTime() + IST_OFFSET_MS);
+                            const yyyy = istDate.getFullYear();
+                            const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+                            const dd = String(istDate.getDate()).padStart(2, '0');
+                            const formatted = `${yyyy}-${mm}-${dd}`;
                             setNewExpense({ ...newExpense, Date: formatted });
                           }
                         }}

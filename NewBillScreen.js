@@ -1003,6 +1003,26 @@ const generateMeasurementHTML = (billData, measurements) => `
   </html>
 `;
 
+// IST Timezone Utility Functions
+const getISTTimestamp = () => {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+  const now = new Date();
+  const istDate = new Date(now.getTime() + IST_OFFSET_MS);
+  return istDate.toISOString();
+};
+
+const getISTDateString = () => {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+  const now = new Date();
+  const istDate = new Date(now.getTime() + IST_OFFSET_MS);
+  
+  const yyyy = istDate.getFullYear();
+  const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(istDate.getDate()).padStart(2, '0');
+  
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export default function NewBillScreen({ navigation }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1288,9 +1308,15 @@ export default function NewBillScreen({ navigation }) {
 
       // 2. Use orderNumber for the new bill
       const totals = calculateTotals();
-      const todayStr = new Date().toISOString().split('T')[0]; // Always use today
-      const currentTimestamp = new Date().toISOString(); // Full timestamp for updated_at
+      const todayStr = getISTDateString(); // Use IST date for today
+      const currentISTTimestamp = getISTTimestamp(); // Full IST timestamp
       const advanceAmount = parseFloat(billData.payment_amount) || 0;
+      
+      console.log('🇮🇳 USING IST TIMEZONE FOR BILL CREATION:');
+      console.log(`   IST Date: ${todayStr}`);
+      console.log(`   IST Timestamp: ${currentISTTimestamp}`);
+      console.log(`   UTC would be: ${new Date().toISOString()}`);
+      console.log('   This ensures bills appear in Today\'s Profit correctly');
       
       let billToSave = {
         customer_name: billData.customer_name,
@@ -1343,8 +1369,8 @@ export default function NewBillScreen({ navigation }) {
         return false;
       }
 
-      // Create individual orders for each garment based on quantities
-      const garmentOrders = createIndividualGarmentOrders(billId, orderNumber, todayStr);
+      // Create individual orders for each garment based on quantities (using IST date)
+      const garmentOrders = createIndividualGarmentOrders(billId, orderNumber, todayStr, currentISTTimestamp);
       
       if (garmentOrders.length === 0) {
         Alert.alert('Error', 'No garments to create orders for.');
@@ -1437,11 +1463,16 @@ export default function NewBillScreen({ navigation }) {
     }
   };
 
-  // Create individual order objects for each garment based on quantities
-  const createIndividualGarmentOrders = (billId, orderNumber, todayStr) => {
+  // Create individual order objects for each garment based on quantities (with IST support)
+  const createIndividualGarmentOrders = (billId, orderNumber, todayStr, istTimestamp = null) => {
     const orders = [];
     const totals = calculateTotals();
     const advanceAmount = parseFloat(billData.payment_amount) || 0;
+    
+    console.log('🇮🇳 createIndividualGarmentOrders - Using IST timezone:');
+    console.log(`   IST Date: ${todayStr}`);
+    console.log(`   IST Timestamp: ${istTimestamp || 'not provided'}`);
+    console.log(`   Advance Amount: ₹${advanceAmount}`);
     
     // Define garment types and their quantities
     const garmentTypes = [

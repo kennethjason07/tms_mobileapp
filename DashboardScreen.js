@@ -272,6 +272,33 @@ export default function DashboardScreen({ navigation }) {
             fontSizes={fontSizes}
             isSmallScreen={isSmallScreen}
           />
+          <DashboardCard
+            icon={<MaterialCommunityIcons name="trending-up" size={32} color="#27ae60" />}
+            label="Today's Profit"
+            desc="View today's profit from advances & payments"
+            onPress={() => navigation.navigate('TodayProfit')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
+          />
+          <DashboardCard
+            icon={<MaterialCommunityIcons name="chart-line" size={32} color="#3498db" />}
+            label="Weekly Profit"
+            desc="View weekly profit breakdown with daily details"
+            onPress={() => navigation.navigate('WeeklyProfit')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
+          />
+          <DashboardCard
+            icon={<MaterialCommunityIcons name="calendar-month" size={32} color="#9b59b6" />}
+            label="Monthly Profit"
+            desc="View monthly profit with weekly breakdown"
+            onPress={() => navigation.navigate('MonthlyProfit')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
+          />
             </View>
           </View>
         </WebScrollView>
@@ -429,6 +456,33 @@ export default function DashboardScreen({ navigation }) {
                 label="Daily Profit"
                 desc="Track daily and monthly profits"
                 onPress={() => navigation.navigate('DailyProfit')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<MaterialCommunityIcons name="trending-up" size={32} color="#27ae60" />}
+                label="Today's Profit"
+                desc="View today's profit from advances & payments"
+                onPress={() => navigation.navigate('TodayProfit')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<MaterialCommunityIcons name="chart-line" size={32} color="#3498db" />}
+                label="Weekly Profit"
+                desc="View weekly profit breakdown with daily details"
+                onPress={() => navigation.navigate('WeeklyProfit')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
+                icon={<MaterialCommunityIcons name="calendar-month" size={32} color="#9b59b6" />}
+                label="Monthly Profit"
+                desc="View monthly profit with weekly breakdown"
+                onPress={() => navigation.navigate('MonthlyProfit')}
                 width={cardWidth}
                 fontSizes={fontSizes}
                 isSmallScreen={isSmallScreen}
