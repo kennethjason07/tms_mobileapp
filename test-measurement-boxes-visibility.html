@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Measurement Boxes Visibility Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .header h2 {
+            margin: 0;
+            font-size: 28px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .header .subtitle {
+            font-size: 18px;
+            color: #ff6600;
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+        }
+        
+        .customer-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .info-item {
+            font-size: 14px;
+        }
+        
+        .info-item strong {
+            color: #333;
+        }
+        
+        .measurement-cards {
+            display: flex;
+            gap: 30px;
+            margin: 30px 0;
+            justify-content: space-between;
+        }
+        
+        .measurement-card {
+            flex: 1;
+            border: 3px solid #333;
+            border-radius: 8px;
+            padding: 0;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            margin: 10px;
+        }
+        
+        .card-header {
+            background: #333;
+            color: white;
+            padding: 8px 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 0;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .card-content {
+            padding: 15px;
+            position: relative;
+            min-height: 200px;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .measurement-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 10px;
+            background: #fafafa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .measurement-field {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background: white;
+        }
+        
+        .field-label {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #444;
+            text-align: center;
+            background: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .field-value {
+            border: 2px solid #333;
+            border-radius: 4px;
+            padding: 10px 8px;
+            min-width: 60px;
+            min-height: 25px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            background: white;
+            color: #333;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .field-value.has-value {
+            background: #e8f5e8;
+            border-color: #2e7d32;
+            color: #1b5e20;
+            box-shadow: inset 0 1px 3px rgba(46,125,50,0.2);
+        }
+        
+        .labeled-boxes {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 25px;
+            padding: 15px 10px 10px 10px;
+            border-top: 2px solid #666;
+            background: #f8f8f8;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .labeled-box {
+            text-align: center;
+        }
+        
+        .box-label {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #444;
+            background: #e0e0e0;
+            padding: 3px 6px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        
+        .box-value {
+            border: 2px solid #666;
+            border-radius: 3px;
+            padding: 8px 4px;
+            min-height: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            background: white;
+            color: #333;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .box-value.has-value {
+            background: #fff8e1;
+            border-color: #f57c00;
+            color: #e65100;
+            box-shadow: inset 0 1px 2px rgba(245,124,0,0.2);
+        }
+        
+        .card-details {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 12px;
+        }
+        
+        .date-field, .number-field {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .date-field input, .number-field input {
+            border: 1px solid #666;
+            border-radius: 2px;
+            background: white;
+            padding: 3px 5px;
+            font-size: 11px;
+            width: 80px;
+            text-align: center;
+        }
+        
+        .test-note {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        
+        .test-note h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="header">
+            <h2>Yak's Men's Wear</h2>
+            <div class="subtitle">Measurement Boxes Visibility Test</div>
+            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                Testing enhanced border visibility
+            </div>
+        </div>
+
+        <div class="test-note">
+            <h4>🔍 Visual Test</h4>
+            <p>This test shows how the measurement boxes should appear with enhanced visibility:</p>
+            <ul>
+                <li><strong>Thick borders:</strong> 2px-3px solid borders for clear visibility</li>
+                <li><strong>Background colors:</strong> Different backgrounds for filled vs empty fields</li>
+                <li><strong>Shadow effects:</strong> Inset shadows for depth</li>
+                <li><strong>Grid layout:</strong> Proper spacing and alignment</li>
+            </ul>
+        </div>
+
+        <div class="customer-info">
+            <div class="info-item">
+                <strong>Customer Name:</strong> Test Customer
+            </div>
+            <div class="info-item">
+                <strong>Mobile Number:</strong> 9876543210
+            </div>
+            <div class="info-item">
+                <strong>Date:</strong> 2025-01-15
+            </div>
+            <div class="info-item">
+                <strong>Delivery Date:</strong> 2025-01-25
+            </div>
+        </div>
+
+        <div class="measurement-cards">
+            <!-- PANT Card -->
+            <div class="measurement-card">
+                <div class="card-header">PANT</div>
+                <div class="card-details">
+                    <div class="date-field">
+                        <span>Date:</span>
+                        <input type="text" value="" readonly />
+                    </div>
+                    <div class="number-field">
+                        <span>No.</span>
+                        <input type="text" value="" readonly />
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="measurement-grid">
+                        <!-- Top row -->
+                        <div class="measurement-field">
+                            <div class="field-label">Length</div>
+                            <div class="field-value has-value">35½</div>
+                        </div>
+                        <div class="measurement-field">
+                            <div class="field-label">Kamar</div>
+                            <div class="field-value has-value">27½</div>
+                        </div>
+                        <div class="measurement-field">
+                            <div class="field-label">Hips</div>
+                            <div class="field-value has-value">33</div>
+                        </div>
+                        
+                        <!-- Middle row -->
+                        <div class="measurement-field">
+                            <div class="field-label">Waist</div>
+                            <div class="field-value has-value">31½</div>
+                        </div>
+                        <div class="measurement-field">
+                            <div class="field-label">Ghutna</div>
+                            <div class="field-value has-value">21¼</div>
+                        </div>
+                        <div class="measurement-field">
+                            <div class="field-label">Bottom</div>
+                            <div class="field-value has-value">21¼</div>
+                        </div>
+                        
+                        <!-- Bottom row -->
+                        <div class="measurement-field">
+                            <div class="field-label">Seat</div>
+                            <div class="field-value has-value">16½</div>
+                        </div>
+                        <div class="measurement-field"></div>
+                        <div class="measurement-field"></div>
+                    </div>
+                    
+                    <!-- Labeled boxes -->
+                    <div class="labeled-boxes">
+                        <div class="labeled-box">
+                            <div class="box-label">SideP/Cross</div>
+                            <div class="box-value has-value">1</div>
+                        </div>
+                        <div class="labeled-box">
+                            <div class="box-label">Plates</div>
+                            <div class="box-value has-value">4</div>
+                        </div>
+                        <div class="labeled-box">
+                            <div class="box-label">Belt</div>
+                            <div class="box-value has-value">½</div>
+                        </div>
+                        <div class="labeled-box">
+                            <div class="box-label">Back P.</div>
+                            <div class="box-value has-value">1</div>
+                        </div>
+                        <div class="labeled-box">
+                            <div class="box-label">WP.</div>
+                            <div class="box-value has-value">1</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SHIRT Card -->
+            <div class="measurement-card">
+                <div class="card-header">SHIRT</div>
+                <div class="card-details">
+                    <div class="date-field">
+                        <span>Date:</span>
+                        <input type="text" value="" readonly />
+                    </div>
+                    <div class="number-field">
+                        <span>No.</span>
+                        <input type="text" value="" readonly />
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="measurement-grid">
+                        <!-- Top row -->
+                        <div class="measurement-field">
+                            <div class="field-label">Length</div>
+                            <div class="field-value has-value">30</div>
+                        </div>
+                        <div class="measurement-field">
+                            <div class="field-label">Body</div>
+                            <div class="field-value has-value">16</div>
+                        </div>
+                        <div class="measurement-field">
+                            <div class="field-label">Loose</div>
+                            <div class="field-value has-value">21¼</div>
+                        </div>
+                        
+                        <!-- Middle row -->
+                        <div class="measurement-field">
+                            <div class="field-label">Shoulder</div>
+                            <div class="field-value has-value">14</div>
+                        </div>
+                        <div class="measurement-field">
+                            <div class="field-label">Astin</div>
+                            <div class="field-value has-value">28</div>
+                        </div>
+                        <div class="measurement-field">
+                            <div class="field-label">Collar</div>
+                            <div class="field-value has-value">33</div>
+                        </div>
+                        
+                        <!-- Bottom row -->
+                        <div class="measurement-field">
+                            <div class="field-label">A.Loose</div>
+                            <div class="field-value has-value">X-1</div>
+                        </div>
+                        <div class="measurement-field"></div>
+                        <div class="measurement-field"></div>
+                    </div>
+                    
+                    <!-- Labeled boxes -->
+                    <div class="labeled-boxes">
+                        <div class="labeled-box">
+                            <div class="box-label">Collar</div>
+                            <div class="box-value has-value">2</div>
+                        </div>
+                        <div class="labeled-box">
+                            <div class="box-label">Cuff</div>
+                            <div class="box-value has-value">X 3</div>
+                        </div>
+                        <div class="labeled-box">
+                            <div class="box-label">Pkt</div>
+                            <div class="box-value has-value">X</div>
+                        </div>
+                        <div class="labeled-box">
+                            <div class="box-label">Loose</div>
+                            <div class="box-value has-value">5</div>
+                        </div>
+                        <div class="labeled-box">
+                            <div class="box-label">DT/TT</div>
+                            <div class="box-value"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-note">
+            <h4>✅ Visibility Enhancements Applied:</h4>
+            <ul>
+                <li><strong>Card borders:</strong> 3px solid #333 (very visible)</li>
+                <li><strong>Field borders:</strong> 2px solid #333 (clearly defined boxes)</li>
+                <li><strong>Label borders:</strong> 2px solid #666 (labeled boxes)</li>
+                <li><strong>Background contrast:</strong> White backgrounds with colored fills</li>
+                <li><strong>Box shadows:</strong> Inset shadows for depth</li>
+                <li><strong>Grid backgrounds:</strong> Light gray backgrounds for sections</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+            <p style="color: #666; font-style: italic;">
+                If these boxes are clearly visible, your NewBillScreen measurement cards should also be visible now.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

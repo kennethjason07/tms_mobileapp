@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Traditional Measurement Cards - Preview</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+            color: #333;
+        }
+        .preview-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .test-controls {
+            background: #e6f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #b3d9ff;
+        }
+        .test-controls h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .test-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            color: #666;
+        }
+        .form-group input {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .test-buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .test-buttons button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .test-buttons button:hover {
+            background: #45a049;
+        }
+        .test-buttons button.preview {
+            background: #2196F3;
+        }
+        .test-buttons button.preview:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <h1>Traditional Measurement Cards - Test & Preview</h1>
+        
+        <div class="test-controls">
+            <h3>📋 Test Your Measurement Cards</h3>
+            <p>Fill in some test measurements below and click "Preview Cards" to see how your measurement sheet will look:</p>
+            
+            <!-- Customer Info -->
+            <div class="test-form">
+                <div class="form-group">
+                    <label>Customer Name:</label>
+                    <input type="text" id="customer-name" value="John Doe" placeholder="Customer name">
+                </div>
+                <div class="form-group">
+                    <label>Mobile Number:</label>
+                    <input type="text" id="mobile-number" value="9876543210" placeholder="Mobile number">
+                </div>
+                <div class="form-group">
+                    <label>Date:</label>
+                    <input type="date" id="date_issue" value="2025-01-15">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Date:</label>
+                    <input type="date" id="delivery-date" value="2025-01-25">
+                </div>
+            </div>
+            
+            <h4>Pant Measurements:</h4>
+            <div class="test-form">
+                <div class="form-group">
+                    <label>Length:</label>
+                    <input type="text" id="length" value="35½" placeholder="Length">
+                </div>
+                <div class="form-group">
+                    <label>Kamar:</label>
+                    <input type="text" id="kamar" value="27½" placeholder="Kamar">
+                </div>
+                <div class="form-group">
+                    <label>Hips:</label>
+                    <input type="text" id="hips" value="33" placeholder="Hips">
+                </div>
+                <div class="form-group">
+                    <label>Waist:</label>
+                    <input type="text" id="waist" value="31½" placeholder="Waist">
+                </div>
+                <div class="form-group">
+                    <label>Ghutna:</label>
+                    <input type="text" id="Ghutna" value="21¼" placeholder="Ghutna">
+                </div>
+                <div class="form-group">
+                    <label>Bottom:</label>
+                    <input type="text" id="Bottom" value="21¼" placeholder="Bottom">
+                </div>
+                <div class="form-group">
+                    <label>Seat:</label>
+                    <input type="text" id="seat" value="16½" placeholder="Seat">
+                </div>
+                <div class="form-group">
+                    <label>SideP/Cross:</label>
+                    <input type="text" id="SideP_Cross" value="1" placeholder="SideP/Cross">
+                </div>
+                <div class="form-group">
+                    <label>Plates:</label>
+                    <input type="text" id="Plates" value="4" placeholder="Plates">
+                </div>
+                <div class="form-group">
+                    <label>Belt:</label>
+                    <input type="text" id="Belt" value="½" placeholder="Belt">
+                </div>
+                <div class="form-group">
+                    <label>Back P:</label>
+                    <input type="text" id="Back_P" value="1" placeholder="Back P">
+                </div>
+                <div class="form-group">
+                    <label>WP:</label>
+                    <input type="text" id="WP" value="1" placeholder="WP">
+                </div>
+            </div>
+            
+            <h4>Shirt Measurements:</h4>
+            <div class="test-form">
+                <div class="form-group">
+                    <label>Length:</label>
+                    <input type="text" id="shirtlength" value="30" placeholder="Shirt Length">
+                </div>
+                <div class="form-group">
+                    <label>Body:</label>
+                    <input type="text" id="body" value="16" placeholder="Body">
+                </div>
+                <div class="form-group">
+                    <label>Loose:</label>
+                    <input type="text" id="Loose" value="21¼" placeholder="Loose">
+                </div>
+                <div class="form-group">
+                    <label>Shoulder:</label>
+                    <input type="text" id="Shoulder" value="14" placeholder="Shoulder">
+                </div>
+                <div class="form-group">
+                    <label>Astin:</label>
+                    <input type="text" id="Astin" value="28" placeholder="Astin">
+                </div>
+                <div class="form-group">
+                    <label>Collar:</label>
+                    <input type="text" id="collor" value="33" placeholder="Collar">
+                </div>
+                <div class="form-group">
+                    <label>A.Loose:</label>
+                    <input type="text" id="allose" value="X-1" placeholder="A.Loose">
+                </div>
+                <div class="form-group">
+                    <label>Collar (labeled):</label>
+                    <input type="text" id="Callar" value="2" placeholder="Collar">
+                </div>
+                <div class="form-group">
+                    <label>Cuff:</label>
+                    <input type="text" id="Cuff" value="X 3" placeholder="Cuff">
+                </div>
+                <div class="form-group">
+                    <label>Pkt:</label>
+                    <input type="text" id="Pkt" value="X" placeholder="Pkt">
+                </div>
+                <div class="form-group">
+                    <label>Loose (labeled):</label>
+                    <input type="text" id="LooseShirt" value="5" placeholder="Loose">
+                </div>
+                <div class="form-group">
+                    <label>DT/TT:</label>
+                    <input type="text" id="DT_TT" value="" placeholder="DT/TT">
+                </div>
+            </div>
+            
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Extra Measurements / Notes:</label>
+                <textarea id="extra-input" rows="3" placeholder="Any additional measurements or special notes..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;">Yulus - 33 X-1</textarea>
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <button onclick="previewCards()" class="preview">📋 Preview Measurement Cards</button>
+            <button onclick="generatePDF()">📄 Generate PDF</button>
+            <button onclick="clearForm()">🗑️ Clear Form</button>
+        </div>
+        
+        <div id="preview-area" style="margin-top: 30px; display: none;">
+            <h3>Preview:</h3>
+            <div id="preview-content"></div>
+        </div>
+    </div>
+
+    <!-- Include required libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="measurement-card-generator.js"></script>
+
+    <script>
+        function previewCards() {
+            try {
+                // Collect data from form
+                const billData = window.measurementCardGenerator.collectBillData();
+                const measurements = window.measurementCardGenerator.collectMeasurementData();
+                
+                console.log('Previewing with data:', { billData, measurements });
+                
+                // Generate HTML
+                const html = window.measurementCardGenerator.generateMeasurementHTML(billData, measurements);
+                
+                // Show in preview area
+                document.getElementById('preview-content').innerHTML = html;
+                document.getElementById('preview-area').style.display = 'block';
+                
+                // Scroll to preview
+                document.getElementById('preview-area').scrollIntoView({ behavior: 'smooth' });
+                
+                console.log('Preview generated successfully');
+            } catch (error) {
+                console.error('Preview error:', error);
+                alert('Error generating preview: ' + error.message);
+            }
+        }
+        
+        async function generatePDF() {
+            try {
+                console.log('Generating PDF...');
+                const success = await window.generateTraditionalMeasurementPDF();
+                if (success) {
+                    alert('✅ PDF generated successfully! Check your downloads folder.');
+                } else {
+                    alert('❌ Failed to generate PDF. Check console for errors.');
+                }
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+        
+        function clearForm() {
+            // Clear all input fields
+            document.querySelectorAll('input, textarea').forEach(input => {
+                if (input.type === 'date') {
+                    input.value = new Date().toISOString().split('T')[0];
+                } else {
+                    input.value = '';
+                }
+            });
+            
+            // Hide preview
+            document.getElementById('preview-area').style.display = 'none';
+            
+            console.log('Form cleared');
+        }
+        
+        // Auto-preview when page loads
+        window.addEventListener('load', function() {
+            setTimeout(previewCards, 500);
+        });
+        
+        console.log('Test page loaded successfully');
+    </script>
+</body>
+</html>

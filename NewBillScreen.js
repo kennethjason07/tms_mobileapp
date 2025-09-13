@@ -1,4 +1,4 @@
-  // Professional bill HTML generator using the same format as GenerateBillScreen
+  // Professional bill HTML generator with inline styles for PDF compatibility
   const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber, includeMeasurements = true) => {
     // Calculate totals and organize data
     const garmentTotals = {};
@@ -40,6 +40,72 @@
         year: 'numeric' 
       }).replace(/\//g, '-') : '';
     
+    // Generate compact measurements text for PDF single page
+    const generateMeasurementsForPDF = (measurements) => {
+      if (!measurements || Object.keys(measurements).length === 0) {
+        return '<div style="font-size: 10px; color: #666;">No measurements available</div>';
+      }
+      
+      const excludedFields = ['id', 'customer_id', 'bill_id', 'order_id', 'phone', 'mobile', 'mobile_number', 'phone_number', 'customer_name', 'name', 'email', 'address', 'order_date', 'due_date', 'created_at', 'updated_at'];
+      
+      const allEntries = Object.entries(measurements).filter(([key, value]) => {
+        const hasValue = value !== '' && value !== null && value !== undefined && value !== 0;
+        const isNotExcluded = !excludedFields.some(excludedField => key.toLowerCase().includes(excludedField.toLowerCase()));
+        return hasValue && isNotExcluded;
+      });
+      
+      if (allEntries.length === 0) {
+        return '<div style="font-size: 10px; color: #666;">No measurements entered</div>';
+      }
+      
+      // Group measurements
+      const pantMeasurements = allEntries.filter(([key]) => 
+        key.toLowerCase().includes('pant') || 
+        ['length', 'kamar', 'hips', 'waist', 'ghutna', 'bottom', 'seat', 'sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(key.toLowerCase())
+      );
+      
+      const shirtMeasurements = allEntries.filter(([key]) => 
+        key.toLowerCase().includes('shirt') || 
+        ['shirtlength', 'body', 'loose', 'shoulder', 'astin', 'collar', 'collor', 'aloose', 'allose', 'callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(key.toLowerCase())
+      );
+      
+      const extraMeasurements = allEntries.filter(([key]) => 
+        !pantMeasurements.some(([pantKey]) => pantKey === key) &&
+        !shirtMeasurements.some(([shirtKey]) => shirtKey === key)
+      );
+      
+      let result = [];
+      
+      // Compact PANT measurements in a single line
+      if (pantMeasurements.length > 0) {
+        const pantValues = pantMeasurements.map(([key, value]) => {
+          const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Pant ', '');
+          return `${label}:${value}`;
+        }).join(' | ');
+        result.push(`<div style="margin-bottom: 3px; font-size: 10px;"><strong style="color: #2c5282;">PANT:</strong> ${pantValues}</div>`);
+      }
+      
+      // Compact SHIRT measurements in a single line
+      if (shirtMeasurements.length > 0) {
+        const shirtValues = shirtMeasurements.map(([key, value]) => {
+          const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Shirt ', '');
+          return `${label}:${value}`;
+        }).join(' | ');
+        result.push(`<div style="margin-bottom: 3px; font-size: 10px;"><strong style="color: #2c5282;">SHIRT:</strong> ${shirtValues}</div>`);
+      }
+      
+      // Compact EXTRA measurements in a single line
+      if (extraMeasurements.length > 0) {
+        const extraValues = extraMeasurements.map(([key, value]) => {
+          const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase());
+          return `${label}:${value}`;
+        }).join(' | ');
+        result.push(`<div style="margin-bottom: 3px; font-size: 10px;"><strong style="color: #2c5282;">EXTRA:</strong> ${extraValues}</div>`);
+      }
+      
+      return result.join('');
+    };
+    
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -49,282 +115,121 @@
   <style>
     @page {
       size: A4;
-      margin: 10mm;
+      margin: 8mm;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
     }
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
     }
-    .bill-container {
-      width: 100%;
-      max-width: 190mm;
-      margin: auto;
-      padding: 10mm;
-      padding-top: 200px;
-      box-sizing: border-box;
-    }
-    .section-title {
-      text-align: center;
-      font-weight: bold;
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-    .info-box {
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    .info-box label {
-      display: block;
-      font-size: 14px;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-    .info-row div {
-      flex: 1;
-      margin-right: 10px;
-    }
-    .info-row div:last-child {
-      margin-right: 0;
-    }
-    input {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #000;
-      box-sizing: border-box;
-      font-family: inherit;
-      font-size: 14px;
-    }
-    .table-section {
-      display: flex;
-      justify-content: space-between;
-    }
-    .items-box {
-      flex: 1;
-      border: 1px solid #000;
-      margin-right: 15px;
-    }
-    .items-box table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .items-box th, .items-box td {
-      border: 1px solid #000;
-      padding: 8px;
-      text-align: center;
-    }
-    .items-box input {
-      width: 90%;
-      border: none;
-      text-align: center;
-      background: transparent;
-    }
-    .suit-box {
-      width: 220px;
-      border: 1px solid #000;
-      text-align: center;
-      font-size: 12px;
-    }
-    .suit-box h3 {
-      background: #3a2f2f;
-      color: #fff;
-      margin: 0;
-      padding: 6px;
-      font-size: 13px;
-    }
-    .suit-box img {
-      width: 150px;
-      height: auto;
-      margin: 10px 0;
-      display: block;
-      max-width: 100%;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      object-fit: contain;
-    }
-    .suit-box img::before {
-      content: "Suit Specialist Logo";
-      display: block;
-      text-align: center;
-      color: #999;
-      font-size: 12px;
-      padding: 20px;
-    }
-    .suit-box .terms {
-      text-align: left;
-      padding: 0 8px 10px;
-    }
-    .suit-box .terms strong {
-      color: #d2691e;
-    }
-    .suit-box .terms p {
-      margin: 4px 0;
-    }
-    .suit-box .highlight {
-      color: red;
-    }
-    .footer-box {
-      margin-top: 6px;
-      text-align: center;
-      font-size: 13px;
-    }
-    .footer-box span {
-      display: block;
-      margin-top: 5px;
-      color: blue;
-      font-weight: bold;
-    }
-    /* Measurements section styles - Pure text format with improved visibility */
-    .measurements-section {
-      margin-top: 6px;
-      padding: 0 20px;
-      font-size: 9px;
-      line-height: 1.2;
-      border-top: 1px dashed #ccc;
-      padding-top: 4px;
-    }
-    .measurements-title {
-      font-weight: bold;
-      font-size: 13px;
-      margin-bottom: 3px;
-      text-align: center;
-      color: #333;
-    }
-    .measurements-header {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 3px;
-      text-align: center;
-      font-weight: 500;
-    }
-    .measurements-content {
-      display: block;
-      line-height: 1.3;
-    }
-    .measurement-line {
-      margin-bottom: 1px;
-      font-size: 14px;
-      line-height: 1.1;
-    }
-    .measurement-item {
-      font-size: 14px;
-      display: inline;
-      line-height: 1.1;
-    }
-    .measurement-label {
-      font-weight: bold;
-      color: #333;
-      font-size: 14px;
-    }
-    .measurement-value {
-      color: #555;
-      font-weight: 500;
-      font-size: 14px;
-    }
   </style>
 </head>
 <body>
-  <div class="bill-container">
+  <div style="width: 100%; max-width: 190mm; margin: auto; padding: 8mm; padding-top: 150px; box-sizing: border-box;">
 
-    <div class="section-title">Customer Information</div>
+    <!-- Customer Information Section with inline styles -->
+    <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 10px; color: #333;">Customer Information</div>
 
-    <div class="info-box">
-      <label>Order Number:</label>
-      <input type="text" value="${orderNumber || billData.billnumberinput2 || ''}" readonly>
+    <div style="width: 100%; margin-bottom: 20px; border: 2px solid #333333; border-radius: 8px; padding: 15px; background: #fafafa;">
+      <div style="font-size: 14px; margin-bottom: 8px; font-weight: bold; color: #333;">Order Number:</div>
+      <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; font-weight: bold; margin-bottom: 10px;">${orderNumber || billData.billnumberinput2 || ''}</div>
 
-      <div class="info-row">
-        <div>
-          <label>Customer Name:</label>
-          <input type="text" value="${billData.customer_name || ''}" readonly>
-        </div>
-        <div>
-          <label>Mobile Number:</label>
-          <input type="text" value="${billData.mobile_number || ''}" readonly>
-        </div>
-      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+        <tr>
+          <td style="width: 50%; padding-right: 5px;">
+            <div style="font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #333;">Customer Name:</div>
+            <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; min-height: 20px;">${billData.customer_name || ''}</div>
+          </td>
+          <td style="width: 50%; padding-left: 5px;">
+            <div style="font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #333;">Mobile Number:</div>
+            <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; min-height: 20px;">${billData.mobile_number || ''}</div>
+          </td>
+        </tr>
+      </table>
 
-      <div class="info-row">
-        <div>
-          <label>Date:</label>
-          <input type="text" value="${orderDate}" readonly>
-        </div>
-        <div>
-          <label>Delivery Date:</label>
-          <input type="text" value="${dueDate}" readonly>
-        </div>
-      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="width: 50%; padding-right: 5px;">
+            <div style="font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #333;">Date:</div>
+            <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; min-height: 20px;">${orderDate}</div>
+          </td>
+          <td style="width: 50%; padding-left: 5px;">
+            <div style="font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #333;">Delivery Date:</div>
+            <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; min-height: 20px;">${dueDate}</div>
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <div class="table-section">
-      <div class="items-box">
-        <table>
-          <tr>
-            <th>Particulars</th>
-            <th>Qty</th>
-            <th>Amount</th>
-          </tr>
-          <tr>
-            <td>Suit</td>
-            <td><input type="text" value="${garmentTotals['Suit']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Suit']?.amount ? garmentTotals['Suit'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Safari/Jacket</td>
-            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.amount ? garmentTotals['Safari/Jacket'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Pant</td>
-            <td><input type="text" value="${garmentTotals['Pant']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Pant']?.amount ? garmentTotals['Pant'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Shirt</td>
-            <td><input type="text" value="${garmentTotals['Shirt']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Shirt']?.amount ? garmentTotals['Shirt'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Sadri</td>
-            <td><input type="text" value="${garmentTotals['Sadri']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Sadri']?.amount ? garmentTotals['Sadri'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td><b>Total</b></td>
-            <td><input type="text" value="${totalQuantity}" readonly></td>
-            <td><input type="text" value="${totalAmount.toFixed(2)}" readonly></td>
-          </tr>
-        </table>
-      </div>
+    <!-- Items and Image Section with inline styles -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+      <tr>
+        <td style="width: 70%; vertical-align: top; padding-right: 15px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; border: 2px solid #000000;">
+            <tr>
+              <th style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f0f0f0; font-weight: bold;">Particulars</th>
+              <th style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f0f0f0; font-weight: bold;">Qty</th>
+              <th style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f0f0f0; font-weight: bold;">Amount</th>
+            </tr>
+            <tr>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Suit</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Suit']?.qty || ''}</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Suit']?.amount ? '₹' + garmentTotals['Suit'].amount.toFixed(2) : ''}</td>
+            </tr>
+            <tr>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Safari/Jacket</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Safari/Jacket']?.qty || ''}</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Safari/Jacket']?.amount ? '₹' + garmentTotals['Safari/Jacket'].amount.toFixed(2) : ''}</td>
+            </tr>
+            <tr>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Pant</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Pant']?.qty || ''}</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Pant']?.amount ? '₹' + garmentTotals['Pant'].amount.toFixed(2) : ''}</td>
+            </tr>
+            <tr>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Shirt</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Shirt']?.qty || ''}</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Shirt']?.amount ? '₹' + garmentTotals['Shirt'].amount.toFixed(2) : ''}</td>
+            </tr>
+            <tr>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Sadri</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Sadri']?.qty || ''}</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Sadri']?.amount ? '₹' + garmentTotals['Sadri'].amount.toFixed(2) : ''}</td>
+            </tr>
+            <tr>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f8f8f8; font-weight: bold;">Total</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f8f8f8; font-weight: bold;">${totalQuantity}</td>
+              <td style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f8f8f8; font-weight: bold;">₹${totalAmount.toFixed(2)}</td>
+            </tr>
+          </table>
+        </td>
+        <td style="width: 30%; vertical-align: top;">
+          <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
+               alt="Terms and Conditions" 
+               style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 2px solid #dddddd; border-radius: 8px; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact;"
+               onerror="this.style.display='none';">
+        </td>
+      </tr>
+    </table>
 
-      <div class="image-box">
-        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
-             alt="Terms and Conditions" 
-             style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background: white;"
-             onerror="this.style.display='none';">
-      </div>
-    </div>
-
-    <div class="footer-box">
+    <!-- Footer with inline styles -->
+    <div style="margin-top: 20px; text-align: center; font-size: 13px; font-weight: bold; color: #333333; border-top: 2px solid #dddddd; padding-top: 10px;">
       Thank You, Visit Again!
-      <span>Sunday Holiday</span>
+      <div style="display: block; margin-top: 5px; color: #ff6600; font-weight: bold;">Sunday Holiday</div>
     </div>
 
-    <!-- Measurements Section -->
+    <!-- Compact Measurements Section -->
     ${includeMeasurements ? `
-    <div class="measurements-section">
-      <div class="measurements-title">Customer Measurements</div>
-      <div class="measurements-header">Bill No: ${orderNumber || billData.billnumberinput2 || 'N/A'}</div>
-      <div class="measurements-content">
-        ${generateMeasurementsTextForBill(billData)}
-      </div>
+    <div style="margin-top: 15px; padding: 8px; border-top: 2px solid #333333; page-break-inside: avoid;">
+      <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px; color: #333333;">Bill No: ${orderNumber || billData.billnumberinput2 || 'N/A'} - Customer Measurements</div>
+      ${generateMeasurementsForPDF(billData.measurements || {})}
     </div>
     ` : ''}
 
@@ -960,48 +865,228 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
   return finalHTML;
 };
 
-const generateMeasurementHTML = (billData, measurements) => `
-  <html>
+// Traditional Measurement Card HTML Generator with inline styles for PDF compatibility
+const generateMeasurementHTML = (billData, measurements) => {
+  // Generate measurement card with full inline styling
+  const generateMeasurementCard = (type, measurements) => {
+    const cardConfig = {
+      pant: {
+        title: "PANT",
+        fields: [
+          { key: "pant_length", label: "Length", position: "top-left" },
+          { key: "pant_kamar", label: "Kamar", position: "top-center" },
+          { key: "pant_hips", label: "Hips", position: "top-right" },
+          { key: "pant_waist", label: "Waist", position: "middle-left" },
+          { key: "pant_ghutna", label: "Ghutna", position: "middle-center" },
+          { key: "pant_bottom", label: "Bottom", position: "middle-right" },
+          { key: "pant_seat", label: "Seat", position: "bottom-left" },
+          { key: "SideP_Cross", label: "SideP/Cross", position: "labeled-box-1" },
+          { key: "Plates", label: "Plates", position: "labeled-box-2" },
+          { key: "Belt", label: "Belt", position: "labeled-box-3" },
+          { key: "Back_P", label: "Back P.", position: "labeled-box-4" },
+          { key: "WP", label: "WP.", position: "labeled-box-5" }
+        ]
+      },
+      shirt: {
+        title: "SHIRT",
+        fields: [
+          { key: "shirt_length", label: "Length", position: "top-left" },
+          { key: "shirt_body", label: "Body", position: "top-center" },
+          { key: "shirt_loose", label: "Loose", position: "top-right" },
+          { key: "shirt_shoulder", label: "Shoulder", position: "middle-left" },
+          { key: "shirt_astin", label: "Astin", position: "middle-center" },
+          { key: "shirt_collar", label: "Collar", position: "middle-right" },
+          { key: "shirt_aloose", label: "A.Loose", position: "bottom-left" },
+          { key: "Callar", label: "Collar", position: "labeled-box-1" },
+          { key: "Cuff", label: "Cuff", position: "labeled-box-2" },
+          { key: "Pkt", label: "Pkt", position: "labeled-box-3" },
+          { key: "LooseShirt", label: "Loose", position: "labeled-box-4" },
+          { key: "DT_TT", label: "DT/TT", position: "labeled-box-5" }
+        ]
+      }
+    };
+    
+    const config = cardConfig[type];
+    if (!config) return '';
+    
+    // Generate main grid fields with inline styling
+    const positions = [
+      'top-left', 'top-center', 'top-right',
+      'middle-left', 'middle-center', 'middle-right',
+      'bottom-left', 'bottom-center', 'bottom-right'
+    ];
+    
+    const gridFields = positions.map(position => {
+      const field = config.fields.find(f => f.position === position);
+      if (!field) {
+        return `<td style="width: 33.33%; padding: 8px; text-align: center; border: 1px solid #ddd;"></td>`;
+      }
+      
+      const value = measurements[field.key] || '';
+      const hasValue = value !== '' && value !== 0;
+      
+      const bgColor = hasValue ? '#e8f5e8' : '#ffffff';
+      const borderColor = hasValue ? '#2e7d32' : '#333333';
+      const textColor = hasValue ? '#1b5e20' : '#333333';
+      
+      return `
+        <td style="width: 33.33%; padding: 8px; text-align: center; border: 1px solid #ddd; vertical-align: top;">
+          <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #666; background: #f5f5f5; padding: 2px 4px; border-radius: 2px;">${field.label}</div>
+          <div style="border: 3px solid ${borderColor}; border-radius: 4px; padding: 8px; min-height: 25px; font-size: 13px; font-weight: bold; background: ${bgColor}; color: ${textColor}; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">${value}</div>
+        </td>
+      `;
+    });
+    
+    // Create grid table (3x3)
+    const gridTable = `
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background: #fafafa; border: 1px solid #ddd;">
+        <tr>
+          ${gridFields[0]}
+          ${gridFields[1]}
+          ${gridFields[2]}
+        </tr>
+        <tr>
+          ${gridFields[3]}
+          ${gridFields[4]}
+          ${gridFields[5]}
+        </tr>
+        <tr>
+          ${gridFields[6]}
+          ${gridFields[7]}
+          ${gridFields[8]}
+        </tr>
+      </table>
+    `;
+    
+    // Generate labeled boxes with inline styling
+    const labeledFields = config.fields.filter(f => f.position.includes('labeled-box-'));
+    const labeledBoxes = labeledFields.map(field => {
+      const value = measurements[field.key] || '';
+      const hasValue = value !== '' && value !== 0;
+      
+      const bgColor = hasValue ? '#fff8e1' : '#ffffff';
+      const borderColor = hasValue ? '#f57c00' : '#666666';
+      const textColor = hasValue ? '#e65100' : '#333333';
+      
+      return `
+        <td style="width: 20%; padding: 4px; text-align: center; border: 1px solid #eee; vertical-align: top;">
+          <div style="font-size: 10px; font-weight: bold; margin-bottom: 3px; color: #444; background: #e0e0e0; padding: 2px 4px; border-radius: 2px; border: 1px solid #ccc;">${field.label}</div>
+          <div style="border: 2px solid ${borderColor}; border-radius: 3px; padding: 6px 2px; min-height: 18px; font-size: 11px; font-weight: bold; background: ${bgColor}; color: ${textColor}; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">${value}</div>
+        </td>
+      `;
+    }).join('');
+    
+    const labeledTable = `
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; padding-top: 10px; border-top: 2px solid #666; background: #f8f8f8;">
+        <tr>
+          ${labeledBoxes}
+        </tr>
+      </table>
+    `;
+    
+    return `
+      <div style="flex: 1; border: 4px solid #333333; border-radius: 8px; margin: 10px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.15); page-break-inside: avoid;">
+        <div style="background: #333333; color: white; padding: 8px 15px; text-align: center; font-weight: bold; font-size: 16px; margin: 0; border-radius: 4px 4px 0 0;">${config.title}</div>
+        <div style="position: absolute; top: 10px; right: 15px; font-size: 11px;">
+          <div style="margin: 3px 0; display: flex; align-items: center; gap: 5px;">
+            <span>Date:</span>
+            <div style="border: 1px solid #666; border-radius: 2px; background: white; padding: 2px 4px; width: 60px; height: 16px;"></div>
+          </div>
+          <div style="margin: 3px 0; display: flex; align-items: center; gap: 5px;">
+            <span>No.</span>
+            <div style="border: 1px solid #666; border-radius: 2px; background: white; padding: 2px 4px; width: 60px; height: 16px;"></div>
+          </div>
+        </div>
+        <div style="padding: 15px; position: relative; min-height: 180px; border: 1px solid #ddd; border-radius: 0 0 4px 4px;">
+          ${gridTable}
+          ${labeledTable}
+        </div>
+      </div>
+    `;
+  };
+  
+  // Generate extra measurements section with inline styling
+  const generateExtraMeasurements = (measurements) => {
+    const extraValue = measurements.extra_measurements || '';
+    return `
+      <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border: 2px solid #4A90E2; border-radius: 5px;">
+        <h4 style="margin: 0 0 10px 0; color: #2c5282; font-size: 14px;">Additional Notes / Extra Measurements:</h4>
+        <div style="background: white; border: 1px solid #ddd; border-radius: 3px; padding: 10px; min-height: 30px; font-size: 13px; line-height: 1.4; color: #333;">${extraValue || 'No additional measurements specified.'}</div>
+      </div>
+    `;
+  };
+  
+  return `
+    <!DOCTYPE html>
+    <html>
     <head>
+      <meta charset="UTF-8">
+      <title>Customer Measurement Sheet</title>
       <style>
-        body { font-family: Arial, sans-serif; }
-        .header { text-align: center; }
-        .info-table, .measure-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        .info-table td { padding: 4px 8px; }
-        .measure-table th, .measure-table td { border: 1px solid #333; padding: 8px; text-align: left; }
-        .measure-table th { background: #eee; }
-        .footer { text-align: center; margin-top: 24px; font-size: 14px; }
+        @page {
+          size: A4;
+          margin: 15mm;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+        
+        body { 
+          font-family: Arial, sans-serif !important;
+          margin: 0;
+          padding: 15px;
+          background: white !important;
+          color: #333 !important;
+          line-height: 1.3;
+        }
       </style>
     </head>
     <body>
-      <div class="header">
-        <h2>Yak's Men's Wear</h2>
-        <div>Customer Measurement Sheet</div>
+      <!-- Header with inline styling -->
+      <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #333333; padding-bottom: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+        <h2 style="margin: 0; font-size: 24px; color: #333333; font-weight: bold;">Yak's Men's Wear</h2>
+        <div style="font-size: 16px; color: #ff6600; margin: 8px 0 4px 0; font-weight: bold;">Customer Measurement Sheet</div>
+        <div style="font-size: 11px; color: #666666; margin-top: 4px;">Prop: Jaganath Sidda | Shop: 8660897168, 9448678033</div>
       </div>
-      <table class="info-table">
+
+      <!-- Customer Info with inline styling -->
+      <table style="width: 100%; margin: 15px 0; border-collapse: collapse; border: 2px solid #dddddd; background: #f9f9f9;">
         <tr>
-          <td><b>Customer Name:</b> ${billData.customer_name}</td>
-          <td><b>Mobile Number:</b> ${billData.mobile_number}</td>
-        </tr>
-        <tr>
-          <td><b>Date:</b> ${billData.order_date}</td>
-          <td><b>Delivery Date:</b> ${billData.due_date}</td>
+          <td style="padding: 8px; border: 1px solid #dddddd; font-size: 13px; width: 25%;"><strong>Customer Name:</strong><br>${billData.customer_name || '___________________'}</td>
+          <td style="padding: 8px; border: 1px solid #dddddd; font-size: 13px; width: 25%;"><strong>Mobile Number:</strong><br>${billData.mobile_number || '___________________'}</td>
+          <td style="padding: 8px; border: 1px solid #dddddd; font-size: 13px; width: 25%;"><strong>Date:</strong><br>${billData.order_date || '___________'}</td>
+          <td style="padding: 8px; border: 1px solid #dddddd; font-size: 13px; width: 25%;"><strong>Delivery Date:</strong><br>${billData.due_date || '___________'}</td>
         </tr>
       </table>
-      <h3>All Measurements</h3>
-      <table class="measure-table">
+
+      <!-- Measurement Cards with inline styling -->
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
         <tr>
-          <th>Measurement</th>
-          <th>Value</th>
+          <td style="width: 50%; vertical-align: top; padding-right: 10px;">
+            ${generateMeasurementCard('pant', measurements)}
+          </td>
+          <td style="width: 50%; vertical-align: top; padding-left: 10px;">
+            ${generateMeasurementCard('shirt', measurements)}
+          </td>
         </tr>
-        ${generateAllMeasurementsTable(measurements)}
       </table>
-      <div class="footer">
-        Thank You, Visit Again!
+
+      ${generateExtraMeasurements(measurements)}
+
+      <!-- Footer with inline styling -->
+      <div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 2px solid #dddddd; font-size: 14px; font-weight: bold; color: #333333;">
+        <div style="color: #ff6600; margin-bottom: 4px;">Thank You, Visit Again!</div>
+        <div style="font-size: 11px; color: #666666; margin-top: 8px;">Sunday Holiday</div>
       </div>
     </body>
-  </html>
-`;
+    </html>
+  `;
+};
 
 // IST Timezone Utility Functions
 const getISTTimestamp = () => {
@@ -1717,12 +1802,56 @@ export default function NewBillScreen({ navigation }) {
 
   const handlePrintMeasurement = async () => {
     try {
+      console.log('🎯 Generating traditional measurement cards PDF...');
+      console.log('📊 Current measurements data:', measurements);
+      
+      // Generate the traditional measurement card HTML
       const html = generateMeasurementHTML(billData, measurements);
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri);
+      
+      console.log('📄 Generated measurement HTML length:', html.length);
+      
+      if (Platform.OS === 'web') {
+        // For web, create a new window and print
+        console.log('🌐 Opening measurement card preview for web...');
+        const printWindow = window.open('', '_blank', 'width=800,height=1000');
+        printWindow.document.write(html);
+        printWindow.document.close();
+        
+        // Wait a moment for rendering then print
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        };
+        
+        Alert.alert(
+          'Measurement Cards Ready', 
+          'Traditional measurement cards are ready to print. The print dialog will open automatically.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        // For mobile, use Expo Print
+        console.log('📱 Generating measurement PDF for mobile...');
+        const { uri } = await Print.printToFileAsync({ html });
+        
+        if (uri) {
+          console.log('✅ Measurement PDF generated:', uri);
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(uri);
+          }
+          
+          Alert.alert(
+            'Measurement Cards Generated',
+            'Traditional measurement cards have been generated successfully!',
+            [{ text: 'OK' }]
+          );
+        } else {
+          throw new Error('Failed to generate PDF file');
+        }
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate or share measurement PDF');
-      console.error(error);
+      console.error('❌ Error generating measurement cards:', error);
+      Alert.alert('Error', 'Failed to generate measurement cards: ' + error.message);
     }
   };
 
