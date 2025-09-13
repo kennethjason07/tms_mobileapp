@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Print Width Test - Yak's Men's Wear</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: white;
+        }
+        
+        .test-container {
+            width: 400px;
+            margin: 0;
+            background: white;
+            border: 2px solid #000;
+            padding: 0;
+        }
+        
+        .width-ruler {
+            background: #f0f0f0;
+            height: 30px;
+            position: relative;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .ruler-marks {
+            display: flex;
+            height: 100%;
+            align-items: flex-end;
+        }
+        
+        .mark {
+            width: 10px;
+            height: 15px;
+            border-left: 1px solid #333;
+            font-size: 8px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .mark.major {
+            height: 25px;
+            border-left: 2px solid #000;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .mark-label {
+            position: absolute;
+            bottom: -15px;
+            left: -5px;
+            font-size: 8px;
+        }
+        
+        /* Original header styling */
+        .header {
+            background: #4a4a4a;
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            background: white;
+            color: #333;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 2px;
+        }
+        
+        .shop-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .shop-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff6600;
+        }
+        
+        .contact-info {
+            text-align: right;
+            font-size: 9px;
+            line-height: 1.2;
+        }
+        
+        .measurement-section {
+            padding: 20px;
+            background: #f9f9f9;
+            margin: 10px 0;
+        }
+        
+        .measurement-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .measurement-box {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: center;
+            font-size: 12px;
+        }
+        
+        .pixel-measurement {
+            background: #ffffcc;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ffcc00;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <!-- Width Ruler -->
+        <div class="width-ruler">
+            <div class="ruler-marks" id="ruler-marks">
+                <!-- JavaScript will populate this -->
+            </div>
+        </div>
+        
+        <!-- Pixel Measurements -->
+        <div class="pixel-measurement">
+            <strong>Container Width Test:</strong><br>
+            • CSS Width: 400px<br>
+            • Expected Print: ~4.17 inches (106mm)<br>
+            • Actual Print: <span id="actual-width">To be measured</span>
+        </div>
+        
+        <!-- Original Header (reproducing your header exactly) -->
+        <div class="header">
+            <div class="shop-info">
+                <div class="logo">Y</div>
+                <div>
+                    <div class="shop-name">Yak's</div>
+                    <div style="font-size: 10px; color: white;">Prop : Jaganath Sidda</div>
+                </div>
+                <div style="color: #ff6600; font-size: 16px; font-weight: bold; margin-left: 4px;">Men's Wear</div>
+            </div>
+            <div class="contact-info">
+                <div>Shop : 8660897168</div>
+                <div>9448678033</div>
+            </div>
+        </div>
+        
+        <!-- Address Bar -->
+        <div style="background: #f5f5f5; padding: 4px 12px; font-size: 9px; text-align: center; border-bottom: 1px solid #ddd;">
+            Sulgunte Complex, Opp. Old Service Stand, Near SBI Bank, BIDAR-585 401 (K.S.)
+        </div>
+        
+        <!-- Measurement Section -->
+        <div class="measurement-section">
+            <h3 style="text-align: center; margin-top: 0;">Print Width Analysis</h3>
+            
+            <div class="measurement-grid">
+                <div class="measurement-box">
+                    <strong>CSS Width</strong><br>400px
+                </div>
+                <div class="measurement-box">
+                    <strong>Expected mm</strong><br>~106mm
+                </div>
+                <div class="measurement-box">
+                    <strong>Expected inches</strong><br>~4.17"
+                </div>
+                <div class="measurement-box">
+                    <strong>PDF Scaling</strong><br>190mm target
+                </div>
+            </div>
+            
+            <div class="pixel-measurement">
+                <strong>Issue Diagnosis:</strong><br>
+                • Screen shows 400px width<br>
+                • PDF generator scales to 190mm (7.48")<br>
+                • Print result is ~79% wider than expected<br>
+                • Header appears stretched when printed
+            </div>
+        </div>
+        
+        <!-- Test Instructions -->
+        <div style="padding: 20px; background: #ffe6e6; border: 1px solid #ff9999; margin: 10px 0;">
+            <h3>How to Use This Test:</h3>
+            <ol>
+                <li><strong>Print this page</strong> using your browser's print function</li>
+                <li><strong>Measure the width</strong> of this entire box with a ruler</li>
+                <li><strong>Compare</strong> with the expected 4.17 inches (106mm)</li>
+                <li><strong>Note the difference</strong> for width adjustment</li>
+            </ol>
+            
+            <p><strong>Expected Result:</strong> This box should print at 4.17 inches (106mm) wide</p>
+            <p><strong>If wider:</strong> Your PDF is being scaled up during generation</p>
+            <p><strong>If narrower:</strong> Your printer margins are affecting the output</p>
+        </div>
+        
+        <!-- Ruler at bottom for easy measurement -->
+        <div class="width-ruler" style="border-top: 2px solid #000;">
+            <div style="text-align: center; padding-top: 5px; font-weight: bold;">
+                ← Measure this full width →
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate ruler marks
+        function generateRuler() {
+            const rulerContainer = document.getElementById('ruler-marks');
+            const totalPixels = 400;
+            const pixelsPerMark = 10;
+            
+            for (let i = 0; i <= totalPixels; i += pixelsPerMark) {
+                const mark = document.createElement('div');
+                mark.className = 'mark';
+                
+                // Major marks every 50px
+                if (i % 50 === 0) {
+                    mark.className += ' major';
+                    const label = document.createElement('div');
+                    label.className = 'mark-label';
+                    label.textContent = i + 'px';
+                    mark.appendChild(label);
+                }
+                
+                rulerContainer.appendChild(mark);
+            }
+        }
+        
+        // Get actual container width
+        function measureActualWidth() {
+            const container = document.querySelector('.test-container');
+            const actualWidth = container.offsetWidth;
+            const actualInches = (actualWidth / 96).toFixed(2); // 96 DPI standard
+            const actualMM = (actualWidth * 0.264583).toFixed(1); // px to mm
+            
+            document.getElementById('actual-width').innerHTML = 
+                `${actualWidth}px (${actualInches}" / ${actualMM}mm)`;
+        }
+        
+        // Run when page loads
+        window.addEventListener('load', function() {
+            generateRuler();
+            measureActualWidth();
+            
+            // Update measurements every second (in case of dynamic changes)
+            setInterval(measureActualWidth, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -518,9 +518,9 @@ function generateMeasurementsTextForBill(billData) {
       const pantLine = '<div class="measurement-line"><strong>Pant:</strong> ' +
         pantMeasurements
           .map(([key, value]) => 
-            `<span class="measurement-item"><span class="measurement-label">${labelize(key)}:</span> <span class="measurement-value">${value}</span></span>`
+            `<span class="measurement-item"><span class="measurement-value">${value}</span></span>`
           )
-          .join(', ') + '</div>';
+          .join('&nbsp;&nbsp;') + '</div>';
       result.push(pantLine);
     }
     
@@ -529,9 +529,9 @@ function generateMeasurementsTextForBill(billData) {
       const shirtLine = '<div class="measurement-line"><strong>Shirt:</strong> ' +
         shirtMeasurements
           .map(([key, value]) => 
-            `<span class="measurement-item"><span class="measurement-label">${labelize(key)}:</span> <span class="measurement-value">${value}</span></span>`
+            `<span class="measurement-item"><span class="measurement-value">${value}</span></span>`
           )
-          .join(', ') + '</div>';
+          .join('&nbsp;&nbsp;') + '</div>';
       result.push(shirtLine);
     }
     
@@ -540,9 +540,9 @@ function generateMeasurementsTextForBill(billData) {
       const extraLine = '<div class="measurement-line"><strong>Extra:</strong> ' +
         extraMeasurements
           .map(([key, value]) => 
-            `<span class="measurement-item"><span class="measurement-label">${labelize(key)}:</span> <span class="measurement-value">${value}</span></span>`
+            `<span class="measurement-item"><span class="measurement-value">${value}</span></span>`
           )
-          .join(', ') + '</div>';
+          .join('&nbsp;&nbsp;') + '</div>';
       result.push(extraLine);
     }
     
