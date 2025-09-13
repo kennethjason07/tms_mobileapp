@@ -280,7 +280,7 @@
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
       <tr>
         <td style="width: 70%; vertical-align: top; padding-right: 15px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px; border: 2px solid #000000;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; border: 2px solid #000000; height: 280px;">
             <tr>
               <th style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f0f0f0; font-weight: bold;">Particulars</th>
               <th style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f0f0f0; font-weight: bold;">Qty</th>
