@@ -47,6 +47,20 @@
       console.log('📋 All measurement keys:', Object.keys(measurements));
       console.log('💡 All measurement entries:', Object.entries(measurements));
       
+      // Format date as dd-mm-yyyy
+      const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        try {
+          const date = new Date(dateString);
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = date.getFullYear();
+          return `${day}-${month}-${year}`;
+        } catch {
+          return dateString; // Return original if parsing fails
+        }
+      };
+      
       if (!measurements || Object.keys(measurements).length === 0) {
         return '<div style="font-size: 10px; color: #666;">No measurements available</div>';
       }
@@ -113,13 +127,12 @@
         
         let pantContent = '';
         
-        // Regular pant measurements in single line
+        // Regular pant measurements in single line (numbers only)
         if (regularPantFields.length > 0) {
           const regularValues = regularPantFields.map(([key, value]) => {
-            const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Pant ', '');
-            return `${label}:${value}`;
+            return `${value}`;
           }).join(' | ');
-          pantContent += `<div style="margin-bottom: 3px; font-size: 10px;">${regularValues}</div>`;
+          pantContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
         }
         
         // Boxed pant fields (SideP/Cross, Plates, Belt, Back P., WP)
@@ -132,14 +145,15 @@
             } else if (key === 'Back_P' || key.toLowerCase() === 'back_p') {
               label = 'Back P.';
             }
-            return `<span style="display: inline-block; margin: 2px; padding: 2px 4px; background: #e8f5e8; border: 1px solid #2e7d32; border-radius: 3px; font-size: 9px; font-weight: bold; color: #1b5e20;">${label}:${value}</span>`;
+            return `<span style="display: inline-block; margin: 1px; padding: 2px 4px; background: #e8f5e8; border: 1px solid #2e7d32; border-radius: 3px; font-size: 12px; font-weight: bold; color: #1b5e20;">${label}:${value}</span>`;
           }).join('');
           pantContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
         }
         
         result.push(`
-          <div style="width: 100%; border: 1px solid #2e7d32; border-radius: 4px; padding: 5px; background: #f9fdf9; margin-bottom: 4px;">
-            <div style="font-weight: bold; font-size: 10px; color: #2e7d32; margin-bottom: 3px; text-align: center;">PANT</div>
+          <div style="width: 100%; border: 1px solid #2e7d32; border-radius: 4px; padding: 4px; background: #f9fdf9; margin-bottom: 3px; min-height: 45px;">
+            <div style="font-weight: bold; font-size: 10px; color: #2e7d32; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #2e7d32; padding-bottom: 1px;">PANT</div>
+            <div style="font-size: 12px; color: #666; text-align: center; margin-bottom: 2px;">Bill No: ${orderNumber || billData.billnumberinput2 || 'N/A'} | Delivery: ${formatDate(billData.due_date)}</div>
             ${pantContent}
           </div>
         `);
@@ -158,13 +172,12 @@
         
         let shirtContent = '';
         
-        // Regular shirt measurements in single line
+        // Regular shirt measurements in single line (numbers only)
         if (regularShirtFields.length > 0) {
           const regularValues = regularShirtFields.map(([key, value]) => {
-            const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Shirt ', '');
-            return `${label}:${value}`;
+            return `${value}`;
           }).join(' | ');
-          shirtContent += `<div style="margin-bottom: 3px; font-size: 10px;">${regularValues}</div>`;
+          shirtContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
         }
         
         // Boxed shirt fields
@@ -177,14 +190,15 @@
             } else if (label.toLowerCase().includes('looseshirt')) {
               label = 'Loose';
             }
-            return `<span style="display: inline-block; margin: 2px; padding: 2px 4px; background: #fff8e1; border: 1px solid #f57c00; border-radius: 3px; font-size: 9px; font-weight: bold; color: #e65100;">${label}:${value}</span>`;
+            return `<span style="display: inline-block; margin: 1px; padding: 2px 4px; background: #fff8e1; border: 1px solid #f57c00; border-radius: 3px; font-size: 12px; font-weight: bold; color: #e65100;">${label}:${value}</span>`;
           }).join('');
           shirtContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
         }
         
         result.push(`
-          <div style="width: 100%; border: 1px solid #f57c00; border-radius: 4px; padding: 5px; background: #fffbf5; margin-bottom: 4px;">
-            <div style="font-weight: bold; font-size: 10px; color: #f57c00; margin-bottom: 3px; text-align: center;">SHIRT</div>
+          <div style="width: 100%; border: 1px solid #f57c00; border-radius: 4px; padding: 4px; background: #fffbf5; margin-bottom: 3px; min-height: 45px;">
+            <div style="font-weight: bold; font-size: 10px; color: #f57c00; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #f57c00; padding-bottom: 1px;">SHIRT</div>
+            <div style="font-size: 12px; color: #666; text-align: center; margin-bottom: 2px;">Bill No: ${orderNumber || billData.billnumberinput2 || 'N/A'} | Delivery: ${formatDate(billData.due_date)}</div>
             ${shirtContent}
           </div>
         `);
