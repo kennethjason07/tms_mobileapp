@@ -40,8 +40,13 @@
         year: 'numeric' 
       }).replace(/\//g, '-') : '';
     
-    // Generate compact measurements text for PDF single page
+    // Generate measurements with separate boxes for PANT and SHIRT
     const generateMeasurementsForPDF = (measurements) => {
+      console.log('🎯 generateMeasurementsForPDF called with:', measurements);
+      console.log('🔍 SideP_Cross value specifically:', measurements.SideP_Cross);
+      console.log('📋 All measurement keys:', Object.keys(measurements));
+      console.log('💡 All measurement entries:', Object.entries(measurements));
+      
       if (!measurements || Object.keys(measurements).length === 0) {
         return '<div style="font-size: 10px; color: #666;">No measurements available</div>';
       }
@@ -50,7 +55,16 @@
       
       const allEntries = Object.entries(measurements).filter(([key, value]) => {
         const hasValue = value !== '' && value !== null && value !== undefined && value !== 0;
-        const isNotExcluded = !excludedFields.some(excludedField => key.toLowerCase().includes(excludedField.toLowerCase()));
+        // More precise exclusion - only exclude exact matches or fields that START with excluded terms
+        const isNotExcluded = !excludedFields.some(excludedField => {
+          return key.toLowerCase() === excludedField.toLowerCase() || 
+                 key.toLowerCase().startsWith(excludedField.toLowerCase() + '_') ||
+                 (excludedField === 'phone' && (key.toLowerCase() === 'phone' || key.toLowerCase() === 'phone_number'));
+        });
+        // Special logging for SideP_Cross
+        if (key === 'SideP_Cross') {
+          console.log(`🔍 SideP_Cross check: key=${key}, value=${value}, hasValue=${hasValue}, isNotExcluded=${isNotExcluded}`);
+        }
         return hasValue && isNotExcluded;
       });
       
@@ -61,7 +75,8 @@
       // Group measurements
       const pantMeasurements = allEntries.filter(([key]) => 
         key.toLowerCase().includes('pant') || 
-        ['length', 'kamar', 'hips', 'waist', 'ghutna', 'bottom', 'seat', 'sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(key.toLowerCase())
+        ['length', 'kamar', 'hips', 'waist', 'ghutna', 'bottom', 'seat', 'sidep_cross', 'plates', 'belt', 'back_p', 'wp', 'sidep', 'cross'].includes(key.toLowerCase()) ||
+        key.toLowerCase().replace('_', '').includes('sidepcross')
       );
       
       const shirtMeasurements = allEntries.filter(([key]) => 
@@ -76,31 +91,112 @@
       
       let result = [];
       
-      // Compact PANT measurements in a single line
+      // Generate PANT measurements box
       if (pantMeasurements.length > 0) {
-        const pantValues = pantMeasurements.map(([key, value]) => {
-          const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Pant ', '');
-          return `${label}:${value}`;
-        }).join(' | ');
-        result.push(`<div style="margin-bottom: 3px; font-size: 10px;"><strong style="color: #2c5282;">PANT:</strong> ${pantValues}</div>`);
+        // Special boxed fields for PANT - exact field name matching
+        const pantBoxedFieldsExact = ['SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP'];
+        const pantBoxedFieldsLower = ['sidep_cross', 'sidepcross', 'plates', 'belt', 'back_p', 'backp', 'wp'];
+        
+        const isBoxedPantField = (key) => {
+          return pantBoxedFieldsExact.includes(key) || 
+                 pantBoxedFieldsLower.includes(key.toLowerCase()) ||
+                 pantBoxedFieldsLower.includes(key.toLowerCase().replace('_', ''));
+        };
+        
+        const regularPantFields = pantMeasurements.filter(([key]) => !isBoxedPantField(key));
+        const boxedPantFields = pantMeasurements.filter(([key]) => isBoxedPantField(key));
+        
+        // Debug logging for SideP_Cross
+        console.log('🔍 PANT measurements found:', pantMeasurements.map(([key, value]) => `${key}:${value}`));
+        console.log('📦 Boxed pant fields:', boxedPantFields.map(([key, value]) => `${key}:${value}`));
+        console.log('📝 Regular pant fields:', regularPantFields.map(([key, value]) => `${key}:${value}`));
+        
+        let pantContent = '';
+        
+        // Regular pant measurements in single line
+        if (regularPantFields.length > 0) {
+          const regularValues = regularPantFields.map(([key, value]) => {
+            const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Pant ', '');
+            return `${label}:${value}`;
+          }).join(' | ');
+          pantContent += `<div style="margin-bottom: 3px; font-size: 10px;">${regularValues}</div>`;
+        }
+        
+        // Boxed pant fields (SideP/Cross, Plates, Belt, Back P., WP)
+        if (boxedPantFields.length > 0) {
+          const boxedValues = boxedPantFields.map(([key, value]) => {
+            let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Pant ', '');
+            // Clean up specific field labels
+            if (key === 'SideP_Cross' || key.toLowerCase() === 'sidep_cross') {
+              label = 'SideP/Cross';
+            } else if (key === 'Back_P' || key.toLowerCase() === 'back_p') {
+              label = 'Back P.';
+            }
+            return `<span style="display: inline-block; margin: 2px; padding: 2px 4px; background: #e8f5e8; border: 1px solid #2e7d32; border-radius: 3px; font-size: 9px; font-weight: bold; color: #1b5e20;">${label}:${value}</span>`;
+          }).join('');
+          pantContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
+        }
+        
+        result.push(`
+          <div style="width: 100%; border: 1px solid #2e7d32; border-radius: 4px; padding: 5px; background: #f9fdf9; margin-bottom: 4px;">
+            <div style="font-weight: bold; font-size: 10px; color: #2e7d32; margin-bottom: 3px; text-align: center;">PANT</div>
+            ${pantContent}
+          </div>
+        `);
       }
       
-      // Compact SHIRT measurements in a single line
+      // Generate SHIRT measurements box
       if (shirtMeasurements.length > 0) {
-        const shirtValues = shirtMeasurements.map(([key, value]) => {
-          const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Shirt ', '');
-          return `${label}:${value}`;
-        }).join(' | ');
-        result.push(`<div style="margin-bottom: 3px; font-size: 10px;"><strong style="color: #2c5282;">SHIRT:</strong> ${shirtValues}</div>`);
+        // Special boxed fields for SHIRT
+        const shirtBoxedFields = ['collar', 'collor', 'callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'];
+        const regularShirtFields = shirtMeasurements.filter(([key]) => 
+          !shirtBoxedFields.includes(key.toLowerCase())
+        );
+        const boxedShirtFields = shirtMeasurements.filter(([key]) => 
+          shirtBoxedFields.includes(key.toLowerCase())
+        );
+        
+        let shirtContent = '';
+        
+        // Regular shirt measurements in single line
+        if (regularShirtFields.length > 0) {
+          const regularValues = regularShirtFields.map(([key, value]) => {
+            const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Shirt ', '');
+            return `${label}:${value}`;
+          }).join(' | ');
+          shirtContent += `<div style="margin-bottom: 3px; font-size: 10px;">${regularValues}</div>`;
+        }
+        
+        // Boxed shirt fields
+        if (boxedShirtFields.length > 0) {
+          const boxedValues = boxedShirtFields.map(([key, value]) => {
+            let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Shirt ', '');
+            // Clean up label names
+            if (label.toLowerCase().includes('collar') || label.toLowerCase().includes('collor') || label.toLowerCase().includes('callar')) {
+              label = 'Collar';
+            } else if (label.toLowerCase().includes('looseshirt')) {
+              label = 'Loose';
+            }
+            return `<span style="display: inline-block; margin: 2px; padding: 2px 4px; background: #fff8e1; border: 1px solid #f57c00; border-radius: 3px; font-size: 9px; font-weight: bold; color: #e65100;">${label}:${value}</span>`;
+          }).join('');
+          shirtContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
+        }
+        
+        result.push(`
+          <div style="width: 100%; border: 1px solid #f57c00; border-radius: 4px; padding: 5px; background: #fffbf5; margin-bottom: 4px;">
+            <div style="font-weight: bold; font-size: 10px; color: #f57c00; margin-bottom: 3px; text-align: center;">SHIRT</div>
+            ${shirtContent}
+          </div>
+        `);
       }
       
-      // Compact EXTRA measurements in a single line
+      // Add EXTRA measurements if any (in simple format)
       if (extraMeasurements.length > 0) {
         const extraValues = extraMeasurements.map(([key, value]) => {
           const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase());
           return `${label}:${value}`;
         }).join(' | ');
-        result.push(`<div style="margin-bottom: 3px; font-size: 10px;"><strong style="color: #2c5282;">EXTRA:</strong> ${extraValues}</div>`);
+        result.push(`<div style="margin-top: 4px; font-size: 10px;"><strong style="color: #2c5282;">EXTRA:</strong> ${extraValues}</div>`);
       }
       
       return result.join('');
@@ -1876,10 +1972,13 @@ export default function NewBillScreen({ navigation }) {
       }
       
       console.log('🖨️ Generating professional bill HTML for order:', billNumber);
+      console.log('📏 Current measurements state:', measurements);
+      console.log('🔍 SideP_Cross in measurements:', measurements.SideP_Cross);
       
       // Generate professional bill HTML using the same format as GenerateBillScreen
       // Pass measurements from the component state
       const billDataWithMeasurements = { ...billData, measurements };
+      console.log('📊 billDataWithMeasurements.measurements:', billDataWithMeasurements.measurements);
       const html = generateProfessionalBillHTML(billDataWithMeasurements, itemizedBill, billNumber, true);
       
       if (Platform.OS === 'web') {
