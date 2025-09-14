@@ -245,7 +245,7 @@
   <div style="width: 100%; max-width: 190mm; margin: auto; padding: 8mm; padding-top: 150px; box-sizing: border-box;">
 
     <!-- Customer Information Section with inline styles -->
-    <div style="width: 100%; margin-bottom: 20px; border: 2px solid #333333; border-radius: 8px; padding: 15px; background: #fafafa;">
+    <div style="width: 95%; margin-bottom: 20px; border: 2px solid #333333; border-radius: 8px; padding: 15px; background: #fafafa;">
       <div style="font-size: 14px; margin-bottom: 8px; font-weight: bold; color: #333;">Order Number:</div>
       <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; font-weight: bold; margin-bottom: 10px;">${orderNumber || billData.billnumberinput2 || ''}</div>
 
