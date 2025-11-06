@@ -1,19 +1,20 @@
   // Professional bill HTML generator with inline styles for PDF compatibility
   const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber, includeMeasurements = true) => {
+    console.log('🏭 generateProfessionalBillHTML called');
+
     // Calculate totals and organize data
     const garmentTotals = {};
     let totalAmount = 0;
     let totalQuantity = 0;
-    
+
     // Process itemized bill data to create garment totals
     const garmentTypes = [
       { type: 'Suit', qty: parseInt(itemizedBill.suit_qty) || 0, amount: parseFloat(itemizedBill.suit_amount) || 0 },
       { type: 'Safari/Jacket', qty: parseInt(itemizedBill.safari_qty) || 0, amount: parseFloat(itemizedBill.safari_amount) || 0 },
       { type: 'Pant', qty: parseInt(itemizedBill.pant_qty) || 0, amount: parseFloat(itemizedBill.pant_amount) || 0 },
-      { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0, amount: parseFloat(itemizedBill.shirt_amount) || 0 },
-      { type: 'Sadri', qty: parseInt(itemizedBill.sadri_qty) || 0, amount: parseFloat(itemizedBill.sadri_amount) || 0 }
+      { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0, amount: parseFloat(itemizedBill.shirt_amount) || 0 }
     ];
-    
+
     garmentTypes.forEach(({ type, qty, amount }) => {
       if (qty > 0) {
         garmentTotals[type] = { qty, amount };
@@ -21,10 +22,10 @@
         totalQuantity += qty;
       }
     });
-    
+
     const advanceAmount = parseFloat(billData.payment_amount) || 0;
     const remainingAmount = totalAmount - advanceAmount;
-    
+
     // Format dates
     const orderDate = billData.order_date ? 
       new Date(billData.order_date).toLocaleDateString('en-GB', { 
@@ -225,7 +226,7 @@
   <style>
     @page {
       size: A4;
-      margin: 8mm;
+      margin: 10mm;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -239,107 +240,149 @@
       margin: 0;
       padding: 0;
     }
+    .bill-container {
+      width: 100%;
+      min-height: 27cm;
+      padding: 5mm;
+      box-sizing: border-box;
+      border: 2px solid #333;
+      position: relative;
+    }
   </style>
 </head>
 <body>
-  <div style="width: 100%; max-width: 190mm; margin: auto; padding: 8mm; padding-top: 150px; box-sizing: border-box;">
+  <div class="bill-container">
 
-    <!-- Customer Information Section with inline styles -->
-    <div style="width: 95%; margin-bottom: 20px; border: 2px solid #333333; border-radius: 8px; padding: 15px; background: #fafafa;">
-      <div style="font-size: 14px; margin-bottom: 8px; font-weight: bold; color: #333;">Order Number:</div>
-      <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; font-weight: bold; margin-bottom: 10px;">${orderNumber || billData.billnumberinput2 || ''}</div>
-
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
-        <tr>
-          <td style="width: 50%; padding-right: 5px;">
-            <div style="font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #333;">Customer Name:</div>
-            <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; min-height: 20px;">${billData.customer_name || ''}</div>
-          </td>
-          <td style="width: 50%; padding-left: 5px;">
-            <div style="font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #333;">Mobile Number:</div>
-            <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; min-height: 20px;">${billData.mobile_number || ''}</div>
-          </td>
-        </tr>
-      </table>
-
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="width: 50%; padding-right: 5px;">
-            <div style="font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #333;">Date:</div>
-            <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; min-height: 20px;">${orderDate}</div>
-          </td>
-          <td style="width: 50%; padding-left: 5px;">
-            <div style="font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #333;">Delivery Date:</div>
-            <div style="width: 100%; padding: 8px; border: 2px solid #000000; box-sizing: border-box; font-family: inherit; font-size: 14px; background: white; min-height: 20px;">${dueDate}</div>
-          </td>
-        </tr>
-      </table>
+    <!-- Header Section -->
+    <div style="margin-bottom: 10px;">
+      <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/Shop.jpeg"
+           alt="Shop Header"
+           style="width: 100%; height: auto; display: block; -webkit-print-color-adjust: exact; print-color-adjust: exact;"
+           onerror="this.style.display='none';">
     </div>
 
-    <!-- Items and Image Section with inline styles -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-      <tr>
-        <td style="width: 70%; vertical-align: top; padding-right: 15px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px; border: 2px solid #000000; height: 280px;">
-            <tr>
-              <th style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f0f0f0; font-weight: bold;">Particulars</th>
-              <th style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f0f0f0; font-weight: bold;">Qty</th>
-              <th style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f0f0f0; font-weight: bold;">Amount</th>
-            </tr>
-            <tr>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Suit</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Suit']?.qty || ''}</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Suit']?.amount ? '₹' + garmentTotals['Suit'].amount.toFixed(2) : ''}</td>
-            </tr>
-            <tr>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Safari/Jacket</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Safari/Jacket']?.qty || ''}</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Safari/Jacket']?.amount ? '₹' + garmentTotals['Safari/Jacket'].amount.toFixed(2) : ''}</td>
-            </tr>
-            <tr>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Pant</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Pant']?.qty || ''}</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Pant']?.amount ? '₹' + garmentTotals['Pant'].amount.toFixed(2) : ''}</td>
-            </tr>
-            <tr>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Shirt</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Shirt']?.qty || ''}</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Shirt']?.amount ? '₹' + garmentTotals['Shirt'].amount.toFixed(2) : ''}</td>
-            </tr>
-            <tr>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center;">Sadri</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Sadri']?.qty || ''}</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; font-weight: bold;">${garmentTotals['Sadri']?.amount ? '₹' + garmentTotals['Sadri'].amount.toFixed(2) : ''}</td>
-            </tr>
-            <tr>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f8f8f8; font-weight: bold;">Total</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f8f8f8; font-weight: bold;">${totalQuantity}</td>
-              <td style="border: 2px solid #000000; padding: 8px; text-align: center; background: #f8f8f8; font-weight: bold;">₹${totalAmount.toFixed(2)}</td>
-            </tr>
-          </table>
-        </td>
-        <td style="width: 30%; vertical-align: top;">
-          <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
-               alt="Terms and Conditions" 
-               style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 2px solid #dddddd; border-radius: 8px; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact;"
+    <!-- Customer Info Fields -->
+    <div style="margin-bottom: 8px; font-size: 11px; padding: 0 5px;">
+      <!-- Line 1: Name and Order No. -->
+      <div style="display: flex; margin-bottom: 3px;">
+        <div style="width: 50%;">
+          <span style="font-weight: bold;">Name</span>
+        </div>
+        <div style="width: 50%;">
+          <span style="font-weight: bold;">Order No.</span>
+        </div>
+      </div>
+      <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
+        <span style="width: 50%;">${billData.customer_name || ''}</span>
+        <span style="width: 50%;">${orderNumber || billData.billnumberinput2 || ''}</span>
+      </div>
+
+      <!-- Line 2: Date (right column) -->
+      <div style="display: flex; margin-bottom: 3px;">
+        <div style="width: 50%;"></div>
+        <div style="width: 50%;">
+          <span style="font-weight: bold;">Date</span>
+        </div>
+      </div>
+      <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
+        <span style="width: 50%;"></span>
+        <span style="width: 50%;">${orderDate}</span>
+      </div>
+
+      <!-- Line 3: Cell and D. Date -->
+      <div style="display: flex; margin-bottom: 3px;">
+        <div style="width: 50%;">
+          <span style="font-weight: bold;">Cell</span>
+        </div>
+        <div style="width: 50%;">
+          <span style="font-weight: bold;">D. Date</span>
+        </div>
+      </div>
+      <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
+        <span style="width: 50%;">${billData.mobile_number || ''}</span>
+        <span style="width: 50%;">${dueDate}</span>
+      </div>
+    </div>
+
+    <!-- Main Content: Table and Image Side by Side -->
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+
+      <!-- Left Side: Particulars Table -->
+      <div style="flex: 0 0 70%;">
+        <!-- Column Headers -->
+        <div style="display: flex; background: #514849; border: 2px solid #000; border-bottom: none; border-radius: 8px 8px 0 0; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+          <div style="flex: 0 0 40%; padding: 8px 10px; text-align: left; font-weight: bold; font-size: 12px; border-right: 2px solid #000; color: #fff;">PARTICULARS</div>
+          <div style="flex: 0 0 20%; padding: 8px 10px; text-align: center; font-weight: bold; font-size: 12px; border-right: 2px solid #000; color: #fff;">QTY.</div>
+          <div style="flex: 0 0 40%; padding: 8px 30px 8px 41px; font-weight: bold; font-size: 12px; color: #fff;">AMOUNT</div>
+        </div>
+
+        <!-- Item Rows -->
+        <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
+          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 12px; font-weight: 600; border-right: 2px solid #000;">Suit</div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 12px; border-right: 2px solid #000;">${garmentTotals['Suit']?.qty || ''}</div>
+          <div style="flex: 0 0 40%; padding: 8px 30px 8px 54px; font-size: 12px;">${garmentTotals['Suit']?.amount || ''}</div>
+        </div>
+
+        <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
+          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 12px; font-weight: 600; border-right: 2px solid #000;">Safari/Jacket</div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 12px; border-right: 2px solid #000;">${garmentTotals['Safari/Jacket']?.qty || ''}</div>
+          <div style="flex: 0 0 40%; padding: 8px 30px 8px 54px; font-size: 12px;">${garmentTotals['Safari/Jacket']?.amount || ''}</div>
+        </div>
+
+        <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
+          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 12px; font-weight: 600; border-right: 2px solid #000;">Pant</div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 12px; border-right: 2px solid #000;">${garmentTotals['Pant']?.qty || ''}</div>
+          <div style="flex: 0 0 40%; padding: 8px 30px 8px 54px; font-size: 12px;">${garmentTotals['Pant']?.amount || ''}</div>
+        </div>
+
+        <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
+          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 12px; font-weight: 600; border-right: 2px solid #000;">Shirt</div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 12px; border-right: 2px solid #000;">${garmentTotals['Shirt']?.qty || ''}</div>
+          <div style="flex: 0 0 40%; padding: 8px 30px 8px 54px; font-size: 12px;">${garmentTotals['Shirt']?.amount || ''}</div>
+        </div>
+
+        <!-- Total Row -->
+        <div style="display: flex; border: 2px solid #000; border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; background: #e8e8e8; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+          <div style="flex: 0 0 40%; padding: 10px; text-align: center; font-size: 11px; font-weight: bold; border-right: 2px solid #000;">
+            <div style="margin-bottom: 2px;">Good Service</div>
+            <div>Prompt Delivery</div>
+          </div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 13px; font-weight: bold; border-right: 2px solid #000; color: #db9b68; -webkit-print-color-adjust: exact; print-color-adjust: exact;">TOTAL</div>
+          <div style="flex: 0 0 40%; padding: 8px 30px 8px 54px; font-size: 12px; font-weight: bold;"></div>
+        </div>
+      </div>
+
+      <!-- Right Side: Suit Specialist Box -->
+      <div style="flex: 0 0 28%; padding: 8px; text-align: center;">
+        <div style="background: #514849; color: #fff; padding: 8px; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 11px;">
+          SUIT SPECIALIST
+        </div>
+        <div style="border: 2px solid #000; border-top: none; padding: 10px;">
+          <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg"
+               alt="Suit"
+               style="width: 100%; max-width: 120px; height: auto; margin-bottom: 8px;"
                onerror="this.style.display='none';">
-        </td>
-      </tr>
-    </table>
-
-    <!-- Footer with inline styles -->
-    <div style="margin-top: 20px; text-align: center; font-size: 13px; font-weight: bold; color: #333333; border-top: 2px solid #dddddd; padding-top: 10px;">
-      Thank You, Visit Again!
-      <div style="display: block; margin-top: 5px; color: #ff6600; font-weight: bold;">Sunday Holiday</div>
+          <div style="font-size: 10px; text-align: left; margin-top: 10px;">
+            <div style="color: #ff8c00; font-weight: bold; margin-bottom: 5px;">Terms & Conditions</div>
+            <div style="line-height: 1.4; margin-bottom: 3px;">1. Delivery will not made without Receipt</div>
+            <div style="line-height: 1.4; margin-bottom: 3px;">2. We are not responsible if the delivery is not taken within 2 months.</div>
+            <div style="line-height: 1.4; margin-bottom: 3px;">3. Trail and Complaint after 7pm & <span style="color: #ff8c00;">Delivery after 7pm</span></div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Compact Measurements Section -->
-    ${includeMeasurements ? `
-    <div style="margin-top: 15px; padding: 8px; border-top: 2px solid #333333; page-break-inside: avoid;">
-      <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px; color: #333333;">Bill No: ${orderNumber || billData.billnumberinput2 || 'N/A'} - Customer Measurements</div>
-      ${generateMeasurementsForPDF(billData.measurements || {})}
+    <!-- Footer -->
+    <div style="text-align: center; border-top: 2px solid #333; padding-top: 8px; margin-top: auto;">
+      <div style="font-size: 13px; font-weight: bold; margin-bottom: 3px;">Thank You, Visit Again</div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="color: #ff6600; font-weight: bold; font-size: 12px;">Sunday Holiday</div>
+        <div style="font-size: 11px;">
+          <span style="font-weight: bold;">Signature</span>
+          <div style="border-bottom: 1px solid #000; width: 150px; margin-top: 5px;"></div>
+        </div>
+      </div>
     </div>
-    ` : ''}
 
   </div>
 </body>
@@ -1217,6 +1260,19 @@ const getISTDateString = () => {
 };
 
 export default function NewBillScreen({ navigation }) {
+  // Responsive design hook
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const isMobile = screenWidth < 768;
+  const isSmallMobile = screenWidth < 480;
+
+  useEffect(() => {
+    const onChange = (result) => {
+      setScreenWidth(result.window.width);
+    };
+    const subscription = Dimensions.addEventListener('change', onChange);
+    return () => subscription?.remove();
+  }, []);
+
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1459,23 +1515,34 @@ export default function NewBillScreen({ navigation }) {
   };
 
   const validateForm = () => {
+    console.log('🔍 Validating form...');
+    console.log('📋 billData:', billData);
+
     if (!billData.customer_name || !billData.mobile_number) {
+      console.log('❌ Validation failed: Missing customer name or mobile');
+      console.log('  customer_name:', billData.customer_name);
+      console.log('  mobile_number:', billData.mobile_number);
       Alert.alert('Error', 'Please select a customer');
       return false;
     }
     if (!billData.order_date) {
+      console.log('❌ Validation failed: Missing order date');
       Alert.alert('Error', 'Please enter order date');
       return false;
     }
     if (!billData.due_date) {
+      console.log('❌ Validation failed: Missing due date');
       Alert.alert('Error', 'Please enter due date');
       return false;
     }
     const totals = calculateTotals();
+    console.log('💰 Calculated totals:', totals);
     if (parseFloat(totals.total_amt) <= 0) {
+      console.log('❌ Validation failed: Invalid amounts (total <= 0)');
       Alert.alert('Error', 'Please enter valid amounts');
       return false;
     }
+    console.log('✅ Validation passed!');
     return true;
   };
 
@@ -1632,7 +1699,12 @@ export default function NewBillScreen({ navigation }) {
       
       Alert.alert(
         'Success', 
-        `Bill ${orderNumber} created successfully!\n\nIndividual orders created:\n${garmentList}\n\nTotal: ${orderResults.length} garment orders`,
+        `Bill ${orderNumber} created successfully!
+
+Individual orders created:
+${garmentList}
+
+Total: ${orderResults.length} garment orders`,
         [
           {
             text: 'View Orders',
@@ -1982,16 +2054,17 @@ export default function NewBillScreen({ navigation }) {
       if (!billNumber) {
         billNumber = 'TEMP_' + Date.now(); // Fallback order number
       }
-      
+
       console.log('🖨️ Generating professional bill HTML for order:', billNumber);
       console.log('📏 Current measurements state:', measurements);
       console.log('🔍 SideP_Cross in measurements:', measurements.SideP_Cross);
-      
+
       // Generate professional bill HTML using the same format as GenerateBillScreen
       // Pass measurements from the component state
       const billDataWithMeasurements = { ...billData, measurements };
       console.log('📊 billDataWithMeasurements.measurements:', billDataWithMeasurements.measurements);
-      const html = generateProfessionalBillHTML(billDataWithMeasurements, itemizedBill, billNumber, true);
+      const html = generateProfessionalBillHTML(billDataWithMeasurements, itemizedBill, billNumber, false);
+      console.log('✅ HTML generated, length:', html.length);
       
       if (Platform.OS === 'web') {
         // For web, create a new window and print
@@ -2141,7 +2214,7 @@ export default function NewBillScreen({ navigation }) {
         <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
           <ScrollView
             style={{ overflow: 'visible' }}
-            contentContainerStyle={Platform.OS === 'web' ? { paddingBottom: 120 } : undefined}
+            contentContainerStyle={Platform.OS === 'web' ? { paddingBottom: isMobile ? 180 : 120 } : undefined}
             showsVerticalScrollIndicator={true}
           >
         {/* Order Number Display */}
@@ -2256,7 +2329,6 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_length}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
-                    placeholder="32, 1/2, 22/7/2"
                     keyboardType="default"
                   />
                 </View>
@@ -2266,7 +2338,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_kamar}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
-                    placeholder="34, 3/4"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2276,7 +2348,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_hips}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
-                    placeholder="36, 1/2"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2286,7 +2358,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_waist}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
-                    placeholder="32, 1/4"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2296,7 +2368,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_ghutna}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
-                    placeholder="24, 3/8"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2306,7 +2378,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_bottom}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
-                    placeholder="18, 1/2"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2316,7 +2388,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_seat}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
-                    placeholder="40, 5/8"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2332,7 +2404,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.SideP_Cross}
                       onChangeValue={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
-                      placeholder="2, 1/2, Plain"
+
                       allowText={true}
                     />
                   </View>
@@ -2342,7 +2414,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Plates}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
-                      placeholder="4, Double"
+
                       allowText={true}
                     />
                   </View>
@@ -2352,7 +2424,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Belt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
-                      placeholder="Yes, No, 1/2"
+
                       allowText={true}
                     />
                   </View>
@@ -2362,7 +2434,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Back_P}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
-                      placeholder="2, 1/4"
+
                       allowText={true}
                     />
                   </View>
@@ -2372,7 +2444,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.WP}
                       onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
-                      placeholder="High, Low"
+
                       allowText={true}
                     />
                   </View>
@@ -2392,7 +2464,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_length}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
-                    placeholder="28, 1/2, 28/5/8"
+
                     keyboardType="default"
                     allowText={true}
                   />
@@ -2403,7 +2475,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_body}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
-                    placeholder="40, Loose, 3/4"
+
                     allowText={true}
                   />
                 </View>
@@ -2413,7 +2485,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_loose}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
-                    placeholder="Regular, 1/4"
+
                     allowText={true}
                   />
                 </View>
@@ -2423,7 +2495,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_shoulder}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
-                    placeholder="18, 1/2"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2433,7 +2505,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_astin}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
-                    placeholder="24, 3/4"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2443,7 +2515,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_collar}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
-                    placeholder="15, 1/2"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2453,7 +2525,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_aloose}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
-                    placeholder="2, 1/4"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2469,7 +2541,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Callar}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
-                      placeholder="Round, Square"
+
                       allowText={true}
                     />
                   </View>
@@ -2479,7 +2551,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Cuff}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
-                      placeholder="Single, Double"
+
                       allowText={true}
                     />
                   </View>
@@ -2489,7 +2561,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Pkt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
-                      placeholder="1, 2, Flap"
+
                       allowText={true}
                     />
                   </View>
@@ -2499,7 +2571,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.LooseShirt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
-                      placeholder="Tight, 1/4"
+
                       allowText={true}
                     />
                   </View>
@@ -2509,7 +2581,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.DT_TT}
                       onChangeValue={(value) => setMeasurements({ ...measurements, DT_TT: value })}
-                      placeholder="DT, TT"
+
                       allowText={true}
                     />
                   </View>
@@ -2643,8 +2715,8 @@ export default function NewBillScreen({ navigation }) {
             {/* Total Row */}
             <View style={[styles.tableRow, styles.totalRow]}>
               <Text style={[styles.tableItemText, styles.totalText]}>Total</Text>
-              <Text style={[styles.tableQtyInput, styles.totalInput]}>{calculateTotals().total_qty}</Text>
-              <Text style={[styles.tableAmountInput, styles.totalInput]}>₹{calculateTotals().total_amt}</Text>
+              <Text style={[styles.tableQtyInput, styles.totalInput]}>{calculateTotals().total_qty || 0}</Text>
+              <Text style={[styles.tableAmountInput, styles.totalInput]}>₹{calculateTotals().total_amt || 0}</Text>
             </View>
           </View>
         </View>
@@ -2987,7 +3059,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_kamar}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
-                    placeholder="34, 3/4"
+
                     keyboardType="default"
                   />
                 </View>
@@ -2997,7 +3069,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_hips}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
-                    placeholder="36, 1/2"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3007,7 +3079,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_waist}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
-                    placeholder="32, 1/4"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3017,7 +3089,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_ghutna}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
-                    placeholder="24, 3/8"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3027,7 +3099,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_bottom}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
-                    placeholder="18, 1/2"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3037,7 +3109,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.pant_seat}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
-                    placeholder="40, 5/8"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3053,7 +3125,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.SideP_Cross}
                       onChangeValue={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
-                      placeholder="2, 1/2, Plain"
+
                       allowText={true}
                     />
                   </View>
@@ -3063,7 +3135,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Plates}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
-                      placeholder="4, Double"
+
                       allowText={true}
                     />
                   </View>
@@ -3073,7 +3145,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Belt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
-                      placeholder="Yes, No, 1/2"
+
                       allowText={true}
                     />
                   </View>
@@ -3083,7 +3155,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Back_P}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
-                      placeholder="2, 1/4"
+
                       allowText={true}
                     />
                   </View>
@@ -3093,7 +3165,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.WP}
                       onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
-                      placeholder="High, Low"
+
                       allowText={true}
                     />
                   </View>
@@ -3113,7 +3185,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_length}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
-                    placeholder="28, 1/2, 28/5/8"
+
               keyboardType="default"
                     allowText={true}
             />
@@ -3124,7 +3196,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_body}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
-                    placeholder="40, Loose, 3/4"
+
                     allowText={true}
                   />
                 </View>
@@ -3134,7 +3206,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_loose}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
-                    placeholder="Regular, 1/4"
+
                     allowText={true}
                   />
                 </View>
@@ -3144,7 +3216,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_shoulder}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
-                    placeholder="18, 1/2"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3154,7 +3226,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_astin}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
-                    placeholder="24, 3/4"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3164,7 +3236,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_collar}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
-                    placeholder="15, 1/2"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3174,7 +3246,7 @@ export default function NewBillScreen({ navigation }) {
                     style={styles.measurementTextInput}
                     value={measurements.shirt_aloose}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
-                    placeholder="2, 1/4"
+
                     keyboardType="default"
                   />
                 </View>
@@ -3190,7 +3262,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Callar}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
-                      placeholder="Round, Square"
+
                       allowText={true}
                     />
                   </View>
@@ -3200,7 +3272,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Cuff}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
-                      placeholder="Single, Double"
+
                       allowText={true}
                     />
                   </View>
@@ -3210,7 +3282,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.Pkt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
-                      placeholder="1, 2, Flap"
+
                       allowText={true}
                     />
                   </View>
@@ -3220,7 +3292,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.LooseShirt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
-                      placeholder="Tight, 1/4"
+
                       allowText={true}
                     />
                   </View>
@@ -3230,7 +3302,7 @@ export default function NewBillScreen({ navigation }) {
                       style={styles.detailTextInput}
                       value={measurements.DT_TT}
                       onChangeValue={(value) => setMeasurements({ ...measurements, DT_TT: value })}
-                      placeholder="DT, TT"
+
                       allowText={true}
                     />
                   </View>
@@ -3364,8 +3436,8 @@ export default function NewBillScreen({ navigation }) {
             {/* Total Row */}
             <View style={[styles.tableRow, styles.totalRow]}>
               <Text style={[styles.tableItemText, styles.totalText]}>Total</Text>
-              <Text style={[styles.tableQtyInput, styles.totalInput]}>{calculateTotals().total_qty}</Text>
-              <Text style={[styles.tableAmountInput, styles.totalInput]}>₹{calculateTotals().total_amt}</Text>
+              <Text style={[styles.tableQtyInput, styles.totalInput]}>{calculateTotals().total_qty || 0}</Text>
+              <Text style={[styles.tableAmountInput, styles.totalInput]}>₹{calculateTotals().total_amt || 0}</Text>
             </View>
           </View>
         </View>
@@ -3882,27 +3954,27 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#f8f9fa',
-    padding: 12,
+    padding: Platform.select({ web: 8, default: 12 }),
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
   tableHeaderText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: Platform.select({ web: 13, default: 16 }),
     fontWeight: 'bold',
     color: '#2c3e50',
     textAlign: 'center',
   },
   tableRow: {
     flexDirection: 'row',
-    padding: 12,
+    padding: Platform.select({ web: 6, default: 12 }),
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     alignItems: 'center',
   },
   tableItemText: {
     flex: 2,
-    fontSize: 16,
+    fontSize: Platform.select({ web: 12, default: 16 }),
     color: '#2c3e50',
   },
   tableQtyInput: {
@@ -3910,20 +3982,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 4,
-    padding: 8,
-    fontSize: 16,
+    padding: Platform.select({ web: 4, default: 8 }),
+    fontSize: Platform.select({ web: 12, default: 16 }),
     textAlign: 'center',
     backgroundColor: '#fff',
+    minWidth: Platform.select({ web: 40, default: 60 }),
   },
   tableAmountInput: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 4,
-    padding: 8,
-    fontSize: 16,
+    padding: Platform.select({ web: 4, default: 8 }),
+    fontSize: Platform.select({ web: 12, default: 16 }),
     textAlign: 'center',
     backgroundColor: '#fff',
+    minWidth: Platform.select({ web: 50, default: 70 }),
   },
   totalRow: {
     backgroundColor: '#f8f9fa',
@@ -3931,12 +4005,12 @@ const styles = StyleSheet.create({
     borderTopColor: '#ddd',
   },
   totalText: {
-    fontSize: 16,
+    fontSize: Platform.select({ web: 13, default: 16 }),
     fontWeight: 'bold',
     color: '#2c3e50',
   },
   totalInput: {
-    fontSize: 16,
+    fontSize: Platform.select({ web: 13, default: 16 }),
     fontWeight: 'bold',
     color: '#2c3e50',
     textAlign: 'center',
@@ -4039,19 +4113,22 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     marginTop: 16,
+    marginBottom: Platform.select({ web: 24, default: 16 }),
+    gap: 12,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: Platform.select({ web: 14, default: 16 }),
     borderRadius: 8,
     alignItems: 'center',
+    minHeight: 48,
   },
   printButton: {
     backgroundColor: '#27ae60',
   },
   printButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: Platform.select({ web: 14, default: 16 }),
     fontWeight: 'bold',
   },
   saveButton: {
@@ -4059,7 +4136,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: Platform.select({ web: 14, default: 16 }),
     fontWeight: 'bold',
   },
   modalOverlay: {

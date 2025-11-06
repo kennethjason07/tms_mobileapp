@@ -197,10 +197,7 @@ const FractionalInput = ({
 
   const getPlaceholderText = () => {
     if (placeholder !== "0") return placeholder;
-    if (allowText) {
-      return "e.g. Cross 1/2, Side 3/4";
-    }
-    return "e.g. 35.5 or 35 1/2";
+    return "";
   };
 
   return (

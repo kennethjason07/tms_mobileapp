@@ -632,6 +632,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderLeftWidth: 4,
     borderLeftColor: '#27ae60',
+    borderLeftStyle: 'solid',
   },
   summaryTitle: {
     fontSize: 16,

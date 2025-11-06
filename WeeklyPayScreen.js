@@ -18,6 +18,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { SupabaseAPI } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
+import WebScrollView from './components/WebScrollView';
 
 export default function WeeklyPayScreen({ navigation }) {
   const [workers, setWorkers] = useState([]);
@@ -130,7 +131,14 @@ export default function WeeklyPayScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      Platform.OS === 'web' && {
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden'
+      }
+    ]}>
       <View style={{
         backgroundColor: '#2980b9',
         paddingTop: Platform.OS === 'ios' ? 50 : 32,
@@ -167,8 +175,18 @@ export default function WeeklyPayScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
+        <WebScrollView
+          style={{
+            flex: 1,
+            height: 'calc(100vh - 120px)',
+            width: '100vw'
+          }}
+          contentContainerStyle={{
+            paddingBottom: 100,
+            minHeight: 'max-content'
+          }}
+          showsVerticalScrollIndicator={true}
+        >
             {/* Worker Selection Section */}
             <View style={styles.selectionSection}>
               <Text style={styles.sectionTitle}>Select Worker:</Text>
@@ -273,8 +291,7 @@ export default function WeeklyPayScreen({ navigation }) {
                 <Text style={styles.noDataText}>No weekly pay data found for this worker.</Text>
               </View>
             )}
-          </ScrollView>
-        </View>
+        </WebScrollView>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView

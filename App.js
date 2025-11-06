@@ -2,7 +2,25 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Platform, StatusBar } from 'react-native';
+import { Platform, StatusBar, LogBox } from 'react-native';
+
+// Suppress specific React Native Web deprecation warnings
+if (Platform.OS === 'web') {
+  // Suppress shadow* deprecation warnings
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (
+      typeof args[0] === 'string' && 
+      (args[0].includes('shadow*') || 
+       args[0].includes('pointerEvents is deprecated') ||
+       args[0].includes('resizeMode is deprecated') ||
+       args[0].includes('textShadow*'))
+    ) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+}
 import DashboardScreen from './DashboardScreen';
 import WorkersScreen from './WorkersScreen';
 import OrdersOverviewScreen from './OrdersOverviewScreen';

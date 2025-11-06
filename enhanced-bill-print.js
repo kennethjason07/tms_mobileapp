@@ -143,11 +143,20 @@ function generateBillHTML() {
                     padding: 10px;
                     border-radius: 5px;
                 }
-                .info-row {
+                .info-row-container {
                     display: flex;
-                    justify-content: space-between;
-                    margin: 5px 0;
+                    margin: 3px 0;
                     font-size: 14px;
+                    padding: 0 20px;
+                }
+                .info-left {
+                    width: 45%;
+                    text-align: left;
+                }
+                .info-right {
+                    width: 45%;
+                    text-align: right;
+                    padding-right: 20px;
                 }
                 .items-table {
                     width: 100%;
@@ -165,6 +174,36 @@ function generateBillHTML() {
                     padding: 8px 5px;
                     border-bottom: 1px solid #ddd;
                     font-size: 14px;
+                }
+                .final-total-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 15px;
+                    border: 2px solid #333;
+                }
+                .final-total-table td {
+                    padding: 10px;
+                    border: 1px solid #333;
+                    vertical-align: middle;
+                }
+                .service-cell {
+                    text-align: center;
+                    font-size: 12px;
+                    width: 33%;
+                    line-height: 1.4;
+                }
+                .total-label-cell {
+                    text-align: center;
+                    font-weight: bold;
+                    font-size: 16px;
+                    width: 33%;
+                    color: #DAA520;
+                }
+                .total-value-cell {
+                    text-align: center;
+                    font-weight: bold;
+                    font-size: 16px;
+                    width: 34%;
                 }
                 .total-section {
                     margin-top: 15px;
@@ -241,25 +280,53 @@ function generateBillHTML() {
                 </div>
                 
                 <div class="customer-info">
-                    <div class="info-row">
-                        <span><strong>Name:</strong></span>
-                        <span>${customerName}</span>
+                    <div class="info-row-container">
+                        <div class="info-left">
+                            <span><strong>Name:</strong></span>
+                        </div>
+                        <div class="info-right">
+                            <span><strong>Order No.</strong></span>
+                        </div>
                     </div>
-                    <div class="info-row">
-                        <span><strong>Order No:</strong></span>
-                        <span>${orderNumber}</span>
+                    <div class="info-row-container">
+                        <div class="info-left">
+                            <span>${customerName}</span>
+                        </div>
+                        <div class="info-right">
+                            <span>${orderNumber}</span>
+                        </div>
                     </div>
-                    <div class="info-row">
-                        <span><strong>Date:</strong></span>
-                        <span>${orderDate}</span>
+                    <div class="info-row-container">
+                        <div class="info-left">
+                            <!-- Empty space -->
+                        </div>
+                        <div class="info-right">
+                            <span><strong>Date</strong></span>
+                        </div>
                     </div>
-                    <div class="info-row">
-                        <span><strong>Cell:</strong></span>
-                        <span>${mobileNumber}</span>
+                    <div class="info-row-container">
+                        <div class="info-left">
+                            <!-- Empty space -->
+                        </div>
+                        <div class="info-right">
+                            <span>${orderDate}</span>
+                        </div>
                     </div>
-                    <div class="info-row">
-                        <span><strong>D. Date:</strong></span>
-                        <span>${deliveryDate}</span>
+                    <div class="info-row-container">
+                        <div class="info-left">
+                            <span><strong>Cell:</strong></span>
+                        </div>
+                        <div class="info-right">
+                            <span><strong>D. Date</strong></span>
+                        </div>
+                    </div>
+                    <div class="info-row-container">
+                        <div class="info-left">
+                            <span>${mobileNumber}</span>
+                        </div>
+                        <div class="info-right">
+                            <span>${deliveryDate}</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -276,12 +343,8 @@ function generateBillHTML() {
                     </tbody>
                 </table>
                 
+                ${advanceAmount > 0 ? `
                 <div class="total-section">
-                    <div class="total-row">
-                        <span><strong>TOTAL</strong></span>
-                        <span class="total-amount">₹${totalAmount.toFixed(2)}</span>
-                    </div>
-                    ${advanceAmount > 0 ? `
                     <div class="total-row">
                         <span><strong>ADVANCE</strong></span>
                         <span>₹${advanceAmount.toFixed(2)}</span>
@@ -290,13 +353,23 @@ function generateBillHTML() {
                         <span><strong>REMAINING</strong></span>
                         <span class="total-amount">₹${remainingAmount.toFixed(2)}</span>
                     </div>
-                    ` : ''}
                 </div>
-                
-                <div class="service-message">
-                    Good Service<br>
-                    Prompt Delivery
-                </div>
+                ` : ''}
+
+                <table class="final-total-table">
+                    <tr>
+                        <td class="service-cell">
+                            Good Service<br>
+                            Prompt Delivery
+                        </td>
+                        <td class="total-label-cell">
+                            TOTAL
+                        </td>
+                        <td class="total-value-cell">
+
+                        </td>
+                    </tr>
+                </table>
                 
                 <div class="terms">
                     <h4>Terms & Conditions :</h4>

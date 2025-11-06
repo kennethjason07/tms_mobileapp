@@ -871,6 +871,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#27ae60',
+    borderLeftStyle: 'solid',
     elevation: 2,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -884,6 +885,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#e74c3c',
+    borderLeftStyle: 'solid',
     elevation: 2,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -1039,6 +1041,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#2980b9',
+    borderLeftStyle: 'solid',
   },
   legendTitle: {
     fontSize: 16,

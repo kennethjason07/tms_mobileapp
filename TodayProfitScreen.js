@@ -734,25 +734,6 @@ export default function TodayProfitScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Calculation Note */}
-      <View style={[styles.noteContainer, { marginHorizontal: isSmallScreen ? 16 : 0 }]}>
-        <Text style={styles.noteTitle}>💡 How Today's Profit is Calculated</Text>
-        <Text style={styles.noteText}>
-          • <Text style={styles.noteBold}>Advance Payments:</Text> Money received when orders are updated today (from orders.payment_amount)
-        </Text>
-        <Text style={styles.noteText}>
-          • <Text style={styles.noteBold}>Remaining Payments:</Text> Money received when order status changes to "Paid"
-        </Text>
-        <Text style={styles.noteText}>
-          • <Text style={styles.noteBold}>Shop Expenses:</Text> Daily business expenses added today
-        </Text>
-        <Text style={styles.noteText}>
-          • <Text style={styles.noteBold}>Worker Expenses:</Text> Payments made to workers today (from Worker_Expense table)
-        </Text>
-        <Text style={styles.noteText}>
-          • <Text style={styles.noteBold}>Net Profit:</Text> Total Revenue - (Shop Expenses + Worker Expenses)
-        </Text>
-      </View>
     </>
   );
 
@@ -930,6 +911,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#27ae60',
+    borderLeftStyle: 'solid',
     elevation: 2,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -943,6 +925,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#e74c3c',
+    borderLeftStyle: 'solid',
     elevation: 2,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -1079,6 +1062,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#2980b9',
+    borderLeftStyle: 'solid',
   },
   noteTitle: {
     fontSize: 16,

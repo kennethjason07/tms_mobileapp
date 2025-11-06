@@ -1759,8 +1759,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginTop: 8,
-    borderLeft: 4,
+    borderLeftWidth: 4,
     borderLeftColor: '#2980b9',
+    borderLeftStyle: 'solid',
   },
   todayNoteText: {
     fontSize: 13,

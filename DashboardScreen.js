@@ -126,62 +126,66 @@ export default function DashboardScreen({ navigation }) {
           {/* Header */}
           <View style={{
             backgroundColor: '#2980b9',
-            paddingTop: 40,
-            paddingBottom: 32,
-            paddingHorizontal: 20,
+            paddingTop: isSmallScreen ? 30 : 40,
+            paddingBottom: isSmallScreen ? 24 : 32,
+            paddingHorizontal: isSmallScreen ? 15 : 20,
             alignItems: 'center',
             justifyContent: 'center',
             borderBottomLeftRadius: 32,
             borderBottomRightRadius: 32,
-            elevation: 8,
-            shadowColor: '#000',
-            shadowOpacity: 0.15,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 6 },
+            ...(Platform.OS === 'web' ? { boxShadow: '0px 6px 12px rgba(0, 0, 0, 0.15)' } : {
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+            }),
             marginBottom: 24,
           }}>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
               <View style={{
-                width: 100,
-                height: 100,
-                borderRadius: 50,
+                width: isSmallScreen ? 80 : 100,
+                height: isSmallScreen ? 80 : 100,
+                borderRadius: isSmallScreen ? 40 : 50,
                 backgroundColor: '#fff',
                 padding: 4,
-                marginBottom: 20,
-                elevation: 4,
-                shadowColor: '#000',
-                shadowOpacity: 0.1,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 3 },
+                marginBottom: isSmallScreen ? 15 : 20,
+                ...(Platform.OS === 'web' ? { boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.1)' } : {
+                  elevation: 4,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.1,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 3 },
+                }),
               }}>
                 <Image 
                   source={require('./assets/logo.jpg')} 
+                  resizeMode="cover"
                   style={{ 
                     width: '100%', 
                     height: '100%', 
-                    borderRadius: 46,
-                    resizeMode: 'cover'
-                  }} 
+                    borderRadius: isSmallScreen ? 38 : 46
+                  }}
                 />
               </View>
               <Text style={{ 
-                fontSize: 28, 
+                fontSize: isSmallScreen ? 22 : 28, 
                 fontWeight: 'bold', 
                 color: '#fff', 
                 textAlign: 'center', 
-                letterSpacing: 1.2, 
+                letterSpacing: isSmallScreen ? 0.5 : 1.2, 
                 marginBottom: 8,
-                textShadowColor: 'rgba(0, 0, 0, 0.3)',
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 3,
+                textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
+                paddingHorizontal: isSmallScreen ? 10 : 0,
               }}>Maximus Consultancy Service</Text>
               <Text style={{ 
-                fontSize: 18, 
+                fontSize: isSmallScreen ? 14 : 18, 
                 color: '#ecf0f1', 
                 textAlign: 'center', 
                 opacity: 0.95,
                 fontWeight: '500',
                 letterSpacing: 0.5,
+                paddingHorizontal: isSmallScreen ? 10 : 0,
               }}>Welcome! Manage your tailoring business with ease.</Text>
             </View>
           </View>
@@ -314,11 +318,13 @@ export default function DashboardScreen({ navigation }) {
             justifyContent: 'center',
             borderBottomLeftRadius: 32,
             borderBottomRightRadius: 32,
-            elevation: 8,
-            shadowColor: '#000',
-            shadowOpacity: 0.15,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 6 },
+            ...(Platform.OS === 'web' ? { boxShadow: '0px 6px 12px rgba(0, 0, 0, 0.15)' } : {
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+            }),
           }}>
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
               <View style={{
@@ -328,40 +334,42 @@ export default function DashboardScreen({ navigation }) {
                 backgroundColor: '#fff',
                 padding: 4,
                 marginBottom: 20,
-                elevation: 4,
-                shadowColor: '#000',
-                shadowOpacity: 0.1,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 3 },
+                ...(Platform.OS === 'web' ? { boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.1)' } : {
+                  elevation: 4,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.1,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 3 },
+                }),
               }}>
                 <Image 
                   source={require('./assets/logo.jpg')} 
+                  resizeMode="cover"
                   style={{ 
                     width: '100%', 
                     height: '100%', 
-                    borderRadius: 46,
-                    resizeMode: 'cover'
+                    borderRadius: 46
                   }} 
                 />
               </View>
               <Text style={{ 
-                fontSize: 28, 
+                fontSize: isSmallScreen ? 22 : 28, 
                 fontWeight: 'bold', 
                 color: '#fff', 
                 textAlign: 'center', 
-                letterSpacing: 1.2, 
+                letterSpacing: isSmallScreen ? 0.5 : 1.2, 
                 marginBottom: 8,
-                textShadowColor: 'rgba(0, 0, 0, 0.3)',
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 3,
+                textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
+                paddingHorizontal: isSmallScreen ? 10 : 0,
               }}>Maximus Consultancy Service</Text>
               <Text style={{ 
-                fontSize: 18, 
+                fontSize: isSmallScreen ? 14 : 18, 
                 color: '#ecf0f1', 
                 textAlign: 'center', 
                 opacity: 0.95,
                 fontWeight: '500',
                 letterSpacing: 0.5,
+                paddingHorizontal: isSmallScreen ? 10 : 0,
               }}>Welcome! Manage your tailoring business with ease.</Text>
             </View>
           </View>
@@ -574,7 +582,7 @@ const styles = StyleSheet.create({
     marginTop: 32, // bring header down
   },
   headerLogo: { flexDirection: 'row', alignItems: 'center' },
-  logo: { width: 60, height: 60, marginRight: 12, resizeMode: 'contain' },
+  logo: { width: 60, height: 60, marginRight: 12 },
   companyName: { fontSize: 18, fontWeight: 'bold', color: '#34495e' },
   profileContainer: { position: 'relative' },
   profileBtn: {

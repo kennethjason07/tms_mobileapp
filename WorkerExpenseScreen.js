@@ -20,6 +20,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SupabaseAPI } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
+import WebScrollView from './components/WebScrollView';
 
 export default function WorkerExpenseScreen({ navigation }) {
   const [expenses, setExpenses] = useState([]);
@@ -240,7 +241,14 @@ export default function WorkerExpenseScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      Platform.OS === 'web' && {
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden'
+      }
+    ]}>
       <View style={{
         backgroundColor: '#2980b9',
         paddingTop: Platform.OS === 'ios' ? 50 : 32,
@@ -301,19 +309,30 @@ export default function WorkerExpenseScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
-            <FlatList
-              data={filteredExpenses}
-              renderItem={renderExpense}
-              keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
-              contentContainerStyle={styles.listContainer}
-              refreshing={loading}
-              onRefresh={loadData}
-              showsVerticalScrollIndicator={false}
-            />
-          </ScrollView>
-        </View>
+        <WebScrollView
+          style={{
+            flex: 1,
+            height: 'calc(100vh - 220px)',
+            width: '100vw'
+          }}
+          contentContainerStyle={{
+            paddingBottom: 200,
+            minHeight: 'max-content',
+            paddingHorizontal: 16
+          }}
+          showsVerticalScrollIndicator={true}
+        >
+          <FlatList
+            data={filteredExpenses}
+            renderItem={renderExpense}
+            keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
+            contentContainerStyle={styles.listContainer}
+            refreshing={loading}
+            onRefresh={loadData}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
+          />
+        </WebScrollView>
       ) : (
         <FlatList
           data={filteredExpenses}

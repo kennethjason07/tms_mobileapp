@@ -15,6 +15,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { SupabaseAPI } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
+import WebScrollView from './components/WebScrollView';
 
 // Function to expand orders by garment type and quantity
 // Based on the backend logic: each garment gets its own order row, so we need to group by bill_id and number them
@@ -186,7 +187,14 @@ export default function WorkerDetailScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      Platform.OS === 'web' && {
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden'
+      }
+    ]}>
       <View style={{
         backgroundColor: '#2980b9',
         paddingTop: Platform.OS === 'ios' ? 50 : 32,
@@ -223,8 +231,18 @@ export default function WorkerDetailScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <ScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
+        <WebScrollView
+          style={{
+            flex: 1,
+            height: 'calc(100vh - 120px)',
+            width: '100vw'
+          }}
+          contentContainerStyle={{
+            paddingBottom: 100,
+            minHeight: 'max-content'
+          }}
+          showsVerticalScrollIndicator={true}
+        >
             {/* Worker Selection Section */}
             <View style={styles.selectionSection}>
               <Text style={styles.sectionTitle}>Select Worker:</Text>
@@ -270,8 +288,7 @@ export default function WorkerDetailScreen({ navigation }) {
                 </View>
               )}
             </View>
-          </ScrollView>
-        </View>
+        </WebScrollView>
       ) : (
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Worker Selection Section */}
