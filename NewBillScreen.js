@@ -362,14 +362,13 @@
     </div>
 
     <!-- Footer -->
-    <div style="text-align: center; border-top: 2px solid #333; padding-top: 8px; margin-top: auto;">
-      <div style="font-size: 13px; font-weight: bold; margin-bottom: 3px;">Thank You, Visit Again</div>
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div style="color: #ff6600; font-weight: bold; font-size: 12px;">Sunday Holiday</div>
-        <div style="font-size: 11px;">
-          <span style="font-weight: bold;">Signature</span>
-          <div style="border-bottom: 1px solid #000; width: 150px; margin-top: 5px;"></div>
+    <div style="margin-top: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #000; border-radius: 8px; padding: 12px 20px; background: #fff;">
+        <div style="flex: 1; text-align: left; font-size: 12px; font-weight: bold;">Thank You, Visit Again</div>
+        <div style="flex: 0 0 auto; text-align: center;">
+          <div style="background: #db9b68; color: #000; padding: 6px 20px; border-radius: 8px; font-weight: bold; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">Sunday Holiday</div>
         </div>
+        <div style="flex: 1; text-align: right; font-size: 12px; font-weight: bold; color: #db9b68; padding-right: 40px;">Signature</div>
       </div>
     </div>
 
