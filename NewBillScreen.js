@@ -242,7 +242,6 @@
     }
     .bill-container {
       width: 100%;
-      min-height: 27cm;
       padding: 5mm;
       box-sizing: border-box;
       border: 2px solid #333;
