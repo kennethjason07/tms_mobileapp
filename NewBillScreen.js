@@ -236,7 +236,7 @@
       color-adjust: exact !important;
     }
     body {
-      font-family: Arial, sans-serif;
+      font-family: Calibri, Arial, sans-serif;
       margin: 0;
       padding: 0;
     }
@@ -262,45 +262,38 @@
     </div>
 
     <!-- Customer Info Fields -->
-    <div style="margin-bottom: 8px; font-size: 11px; padding: 0 5px;">
+    <div style="margin-bottom: 8px; font-size: 14px; padding: 0 5px;">
       <!-- Line 1: Name and Order No. -->
-      <div style="display: flex; margin-bottom: 3px;">
-        <div style="width: 50%;">
-          <span style="font-weight: bold;">Name</span>
-        </div>
-        <div style="width: 50%;">
-          <span style="font-weight: bold;">Order No.</span>
-        </div>
-      </div>
       <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
-        <span style="width: 50%;">${billData.customer_name || ''}</span>
-        <span style="width: 50%;">${orderNumber || billData.billnumberinput2 || ''}</span>
+        <div style="width: 50%; display: flex; gap: 5px;">
+          <span style="font-weight: bold;">Name</span>
+          <span>${billData.customer_name || ''}</span>
+        </div>
+        <div style="width: 50%; display: flex; gap: 5px;">
+          <span style="font-weight: bold;">Order No.</span>
+          <span>${orderNumber || billData.billnumberinput2 || ''}</span>
+        </div>
       </div>
 
       <!-- Line 2: Date (right column) -->
-      <div style="display: flex; margin-bottom: 3px;">
-        <div style="width: 50%;"></div>
-        <div style="width: 50%;">
-          <span style="font-weight: bold;">Date</span>
-        </div>
-      </div>
       <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
-        <span style="width: 50%;"></span>
-        <span style="width: 50%;">${orderDate}</span>
+        <div style="width: 50%;"></div>
+        <div style="width: 50%; display: flex; gap: 5px;">
+          <span style="font-weight: bold;">Date</span>
+          <span>${orderDate}</span>
+        </div>
       </div>
 
       <!-- Line 3: Cell and D. Date -->
-      <div style="display: flex; margin-bottom: 3px;">
-        <div style="width: 50%;">
-          <span style="font-weight: bold;">Cell</span>
-        </div>
-        <div style="width: 50%;">
-          <span style="font-weight: bold;">D. Date</span>
-        </div>
-      </div>
       <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
-        <span style="width: 50%;">${billData.mobile_number || ''}</span>
-        <span style="width: 50%;">${dueDate}</span>
+        <div style="width: 50%; display: flex; gap: 5px;">
+          <span style="font-weight: bold;">Cell</span>
+          <span>${billData.mobile_number || ''}</span>
+        </div>
+        <div style="width: 50%; display: flex; gap: 5px;">
+          <span style="font-weight: bold;">D. Date</span>
+          <span>${dueDate}</span>
+        </div>
       </div>
     </div>
 
@@ -311,49 +304,49 @@
       <div style="flex: 0 0 70%;">
         <!-- Column Headers -->
         <div style="display: flex; background: #514849; border: 2px solid #000; border-bottom: none; border-radius: 8px 8px 0 0; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-          <div style="flex: 0 0 40%; padding: 8px 10px; text-align: left; font-weight: bold; font-size: 12px; border-right: 2px solid #000; color: #fff;">PARTICULARS</div>
-          <div style="flex: 0 0 20%; padding: 8px 10px; text-align: center; font-weight: bold; font-size: 12px; border-right: 2px solid #000; color: #fff;">QTY.</div>
-          <div style="flex: 0 0 40%; padding: 8px 30px 8px 41px; font-weight: bold; font-size: 12px; color: #fff;">AMOUNT</div>
+          <div style="flex: 0 0 40%; padding: 8px 10px; text-align: left; font-weight: bold; font-size: 15px; border-right: 2px solid #000; color: #fff;">PARTICULARS</div>
+          <div style="flex: 0 0 20%; padding: 8px 10px; text-align: center; font-weight: bold; font-size: 15px; border-right: 2px solid #000; color: #fff;">QTY.</div>
+          <div style="flex: 0 0 40%; padding: 8px 30px 8px 41px; font-weight: bold; font-size: 15px; color: #fff;">AMOUNT</div>
         </div>
 
         <!-- Item Rows -->
         <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
-          <div style="flex: 0 0 40%; padding: 15px 10px; text-align: left; font-size: 12px; font-weight: 600; border-right: 2px solid #000;">Suit</div>
-          <div style="flex: 0 0 20%; padding: 15px 10px; text-align: center; font-size: 12px; border-right: 2px solid #000;">${garmentTotals['Suit']?.qty || ''}</div>
-          <div style="flex: 0 0 40%; padding: 15px 30px 15px 54px; font-size: 12px;">${garmentTotals['Suit']?.amount || ''}</div>
+          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 14px; font-weight: 600; border-right: 2px solid #000;">Suit</div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 14px; border-right: 2px solid #000;">${garmentTotals['Suit']?.qty || ''}</div>
+          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 14px;">${garmentTotals['Suit']?.amount || ''}</div>
         </div>
 
         <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
-          <div style="flex: 0 0 40%; padding: 15px 10px; text-align: left; font-size: 12px; font-weight: 600; border-right: 2px solid #000;">Safari/Jacket</div>
-          <div style="flex: 0 0 20%; padding: 15px 10px; text-align: center; font-size: 12px; border-right: 2px solid #000;">${garmentTotals['Safari/Jacket']?.qty || ''}</div>
-          <div style="flex: 0 0 40%; padding: 15px 30px 15px 54px; font-size: 12px;">${garmentTotals['Safari/Jacket']?.amount || ''}</div>
+          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 14px; font-weight: 600; border-right: 2px solid #000;">Safari/Jacket</div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 14px; border-right: 2px solid #000;">${garmentTotals['Safari/Jacket']?.qty || ''}</div>
+          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 14px;">${garmentTotals['Safari/Jacket']?.amount || ''}</div>
         </div>
 
         <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
-          <div style="flex: 0 0 40%; padding: 15px 10px; text-align: left; font-size: 12px; font-weight: 600; border-right: 2px solid #000;">Pant</div>
-          <div style="flex: 0 0 20%; padding: 15px 10px; text-align: center; font-size: 12px; border-right: 2px solid #000;">${garmentTotals['Pant']?.qty || ''}</div>
-          <div style="flex: 0 0 40%; padding: 15px 30px 15px 54px; font-size: 12px;">${garmentTotals['Pant']?.amount || ''}</div>
+          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 14px; font-weight: 600; border-right: 2px solid #000;">Pant</div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 14px; border-right: 2px solid #000;">${garmentTotals['Pant']?.qty || ''}</div>
+          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 14px;">${garmentTotals['Pant']?.amount || ''}</div>
         </div>
 
         <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
-          <div style="flex: 0 0 40%; padding: 15px 10px; text-align: left; font-size: 12px; font-weight: 600; border-right: 2px solid #000;">Shirt</div>
-          <div style="flex: 0 0 20%; padding: 15px 10px; text-align: center; font-size: 12px; border-right: 2px solid #000;">${garmentTotals['Shirt']?.qty || ''}</div>
-          <div style="flex: 0 0 40%; padding: 15px 30px 15px 54px; font-size: 12px;">${garmentTotals['Shirt']?.amount || ''}</div>
+          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 14px; font-weight: 600; border-right: 2px solid #000;">Shirt</div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 14px; border-right: 2px solid #000;">${garmentTotals['Shirt']?.qty || ''}</div>
+          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 14px;">${garmentTotals['Shirt']?.amount || ''}</div>
         </div>
 
         <!-- Total Row -->
         <div style="display: flex; border: 2px solid #000; border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; background: #e8e8e8; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-          <div style="flex: 0 0 40%; padding: 15px 10px; text-align: center; font-size: 11px; font-weight: bold; border-right: 2px solid #000;">
+          <div style="flex: 0 0 40%; padding: 10px; text-align: center; font-size: 14px; font-weight: bold; border-right: 2px solid #000;">
             <div style="margin-bottom: 2px;">Good Service</div>
             <div>Prompt Delivery</div>
           </div>
-          <div style="flex: 0 0 20%; padding: 15px 10px; text-align: center; font-size: 13px; font-weight: bold; border-right: 2px solid #000; color: #db9b68; -webkit-print-color-adjust: exact; print-color-adjust: exact;">TOTAL</div>
-          <div style="flex: 0 0 40%; padding: 15px 30px 15px 54px; font-size: 12px; font-weight: bold;"></div>
+          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 16px; font-weight: bold; border-right: 2px solid #000; color: #db9b68; -webkit-print-color-adjust: exact; print-color-adjust: exact;">TOTAL</div>
+          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 14px; font-weight: bold;"></div>
         </div>
       </div>
 
       <!-- Right Side: Image -->
-      <div style="flex: 0 0 28%; display: flex; align-items: stretch;">
+      <div style="flex: 0 0 26%; display: flex; align-items: stretch;">
         <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg"
              alt="Suit"
              style="width: 100%; height: 100%; object-fit: contain;"
@@ -364,11 +357,11 @@
     <!-- Footer -->
     <div style="margin-top: 8px;">
       <div style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #000; border-radius: 8px; padding: 12px 20px; background: #fff;">
-        <div style="flex: 1; text-align: left; font-size: 12px; font-weight: bold;">Thank You, Visit Again</div>
+        <div style="flex: 1; text-align: left; font-size: 14px; font-weight: bold;">Thank You, Visit Again</div>
         <div style="flex: 0 0 auto; text-align: center;">
-          <div style="background: #db9b68; color: #000; padding: 6px 20px; border-radius: 8px; font-weight: bold; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">Sunday Holiday</div>
+          <div style="background: #db9b68; color: #000; padding: 6px 20px; border-radius: 8px; font-weight: bold; font-size: 13px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">Sunday Holiday</div>
         </div>
-        <div style="flex: 1; text-align: right; font-size: 12px; font-weight: bold; color: #db9b68; padding-right: 40px;">Signature</div>
+        <div style="flex: 1; text-align: right; font-size: 14px; font-weight: bold; color: #db9b68; padding-right: 40px;">Signature</div>
       </div>
     </div>
 
