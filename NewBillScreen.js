@@ -345,10 +345,10 @@
       </div>
 
       <!-- Right Side: Image -->
-      <div style="flex: 0 0 26%; display: flex; align-items: stretch;">
+      <div style="flex: 0 0 20%; display: flex; align-items: stretch;">
         <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg"
              alt="Suit"
-             style="width: 100%; height: 100%; object-fit: cover;"
+             style="width: 140%; height: 100%;"
              onerror="this.style.display='none';">
       </div>
     </div>
