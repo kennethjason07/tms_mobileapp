@@ -238,7 +238,12 @@
     body {
       font-family: Calibri, Arial, sans-serif;
       margin: 0;
-      padding: 0;
+      padding: 15mm;
+      background-image: url('https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/design.png');
+      background-repeat: repeat;
+      background-size: auto;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     .bill-container {
       width: 100%;
@@ -246,6 +251,9 @@
       box-sizing: border-box;
       border: 2px solid #333;
       position: relative;
+      background: white;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
   </style>
 </head>
@@ -305,32 +313,32 @@
         <div style="display: flex; background: #514849; border: 2px solid #000; border-bottom: none; border-radius: 8px 8px 0 0; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
           <div style="flex: 0 0 40%; padding: 8px 10px; text-align: left; font-weight: bold; font-size: 23px; border-right: 2px solid #000; color: #fff;">PARTICULARS</div>
           <div style="flex: 0 0 20%; padding: 8px 10px; text-align: center; font-weight: bold; font-size: 23px; border-right: 2px solid #000; color: #fff;">QTY.</div>
-          <div style="flex: 0 0 40%; padding: 8px 30px 8px 41px; font-weight: bold; font-size: 23px; color: #fff;">AMOUNT</div>
+          <div style="padding: 8px 28px 3px 15px; font-weight: bold; font-size: 23px; color: #fff;">AMOUNT</div>
         </div>
 
         <!-- Item Rows -->
         <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
           <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 21px; font-weight: 600; border-right: 2px solid #000;">Suit</div>
           <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 21px; border-right: 2px solid #000;">${garmentTotals['Suit']?.qty || ''}</div>
-          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 21px;">${garmentTotals['Suit']?.amount || ''}</div>
+          <div style="padding: 8px 28px 3px 15px; font-size: 21px;">${garmentTotals['Suit']?.amount || ''}</div>
         </div>
 
         <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
           <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 21px; font-weight: 600; border-right: 2px solid #000;">Safari/Jacket</div>
           <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 21px; border-right: 2px solid #000;">${garmentTotals['Safari/Jacket']?.qty || ''}</div>
-          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 21px;">${garmentTotals['Safari/Jacket']?.amount || ''}</div>
+          <div style="padding: 8px 28px 3px 15px; font-size: 21px;">${garmentTotals['Safari/Jacket']?.amount || ''}</div>
         </div>
 
         <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
           <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 21px; font-weight: 600; border-right: 2px solid #000;">Pant</div>
           <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 21px; border-right: 2px solid #000;">${garmentTotals['Pant']?.qty || ''}</div>
-          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 21px;">${garmentTotals['Pant']?.amount || ''}</div>
+          <div style="padding: 8px 28px 3px 15px; font-size: 21px;">${garmentTotals['Pant']?.amount || ''}</div>
         </div>
 
         <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
           <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 21px; font-weight: 600; border-right: 2px solid #000;">Shirt</div>
           <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 21px; border-right: 2px solid #000;">${garmentTotals['Shirt']?.qty || ''}</div>
-          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 21px;">${garmentTotals['Shirt']?.amount || ''}</div>
+          <div style="padding: 8px 28px 3px 15px; font-size: 21px;">${garmentTotals['Shirt']?.amount || ''}</div>
         </div>
 
         <!-- Total Row -->
@@ -340,7 +348,7 @@
             <div>Prompt Delivery</div>
           </div>
           <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 24px; font-weight: bold; border-right: 2px solid #000; color: #db9b68; -webkit-print-color-adjust: exact; print-color-adjust: exact;">TOTAL</div>
-          <div style="flex: 0 0 40%; padding: 10px 30px 10px 54px; font-size: 21px; font-weight: bold;"></div>
+          <div style="padding: 8px 28px 3px 15px; font-size: 21px; font-weight: bold;"></div>
         </div>
       </div>
 
