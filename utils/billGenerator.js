@@ -4,10 +4,13 @@
  */
 
 // Helper: Format date as dd-mm-yyyy for receipt
-export const formatDateForReceipt = (dateString) => {
+export const formatDateForReceipt = (dateString, dayOffset = 0) => {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
+    if (dayOffset !== 0) {
+      date.setDate(date.getDate() + dayOffset);
+    }
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
@@ -47,20 +50,20 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
   const remainingAmount = totalAmount - advanceAmount;
 
   // Format dates
-  const orderDate = billData.order_date ? 
-    new Date(billData.order_date).toLocaleDateString('en-GB', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
+  const orderDate = billData.order_date ?
+    new Date(billData.order_date).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     }).replace(/\//g, '-') : '';
-    
-  const dueDate = billData.due_date ? 
-    new Date(billData.due_date).toLocaleDateString('en-GB', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
+
+  const dueDate = billData.due_date ?
+    new Date(billData.due_date).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     }).replace(/\//g, '-') : '';
-  
+
   // Generate measurements with separate boxes for PANT and SHIRT
   const generateMeasurementsForPDF = (measurements) => {
     // Format date as dd-mm-yyyy local helper
@@ -76,60 +79,60 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         return dateString;
       }
     };
-    
+
     if (!measurements || Object.keys(measurements).length === 0) {
       return '<div style="font-size: 10px; color: #666;">No measurements available</div>';
     }
-    
+
     const excludedFields = ['id', 'customer_id', 'bill_id', 'order_id', 'phone', 'mobile', 'mobile_number', 'phone_number', 'customer_name', 'name', 'email', 'address', 'order_date', 'due_date', 'created_at', 'updated_at'];
-    
+
     const allEntries = Object.entries(measurements).filter(([key, value]) => {
       const hasValue = value !== '' && value !== null && value !== undefined && value !== 0;
       const isNotExcluded = !excludedFields.some(excludedField => {
-        return key.toLowerCase() === excludedField.toLowerCase() || 
-               key.toLowerCase().startsWith(excludedField.toLowerCase() + '_') ||
-               (excludedField === 'phone' && (key.toLowerCase() === 'phone' || key.toLowerCase() === 'phone_number'));
+        return key.toLowerCase() === excludedField.toLowerCase() ||
+          key.toLowerCase().startsWith(excludedField.toLowerCase() + '_') ||
+          (excludedField === 'phone' && (key.toLowerCase() === 'phone' || key.toLowerCase() === 'phone_number'));
       });
       return hasValue && isNotExcluded;
     });
-    
+
     if (allEntries.length === 0) {
       return '<div style="font-size: 10px; color: #666;">No measurements entered</div>';
     }
-    
+
     // Group measurements
-    const pantMeasurements = allEntries.filter(([key]) => 
-      key.toLowerCase().includes('pant') || 
+    const pantMeasurements = allEntries.filter(([key]) =>
+      key.toLowerCase().includes('pant') ||
       ['length', 'kamar', 'hips', 'waist', 'ghutna', 'bottom', 'seat', 'sidep_cross', 'plates', 'belt', 'back_p', 'wp', 'sidep', 'cross'].includes(key.toLowerCase()) ||
       key.toLowerCase().replace('_', '').includes('sidepcross')
     );
-    
-    const shirtMeasurements = allEntries.filter(([key]) => 
-      key.toLowerCase().includes('shirt') || 
+
+    const shirtMeasurements = allEntries.filter(([key]) =>
+      key.toLowerCase().includes('shirt') ||
       ['shirtlength', 'body', 'loose', 'shoulder', 'astin', 'collar', 'collor', 'aloose', 'allose', 'callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(key.toLowerCase())
     );
 
-    const suitMeasurements = allEntries.filter(([key]) => 
-      key.toLowerCase().includes('suit') || 
+    const suitMeasurements = allEntries.filter(([key]) =>
+      key.toLowerCase().includes('suit') ||
       ['suitlength', 'suitbody', 'suitloose', 'suitshoulder', 'suitastin', 'suitcollar', 'suitaloose', 'suitcallar', 'suitcuff', 'suitpkt', 'suitlooseshirt', 'suitdttt'].includes(key.toLowerCase())
     );
 
-    const safariMeasurements = allEntries.filter(([key]) => 
-      key.toLowerCase().includes('safari') || 
+    const safariMeasurements = allEntries.filter(([key]) =>
+      key.toLowerCase().includes('safari') ||
       ['safarilength', 'safaribody', 'safariloose', 'safarishoulder', 'safariastin', 'safaricollar', 'safarialoose', 'safaricallar', 'safaricuff', 'safaripkt', 'safarilooseshirt', 'safaridttt'].includes(key.toLowerCase())
     );
 
-    const nshirtMeasurements = allEntries.filter(([key]) => 
-      key.toLowerCase().includes('nshirt') || 
+    const nshirtMeasurements = allEntries.filter(([key]) =>
+      key.toLowerCase().includes('nshirt') ||
       ['nshirtlength', 'nshirtbody', 'nshirtloose', 'nshirtshoulder', 'nshirtastin', 'nshirtcollar', 'nshirtaloose', 'nshirtcallar', 'nshirtcuff', 'nshirtpkt', 'nshirtlooseshirt', 'nshirtdttt'].includes(key.toLowerCase())
     );
 
-    const sadriMeasurements = allEntries.filter(([key]) => 
-      key.toLowerCase().includes('sadri') || 
+    const sadriMeasurements = allEntries.filter(([key]) =>
+      key.toLowerCase().includes('sadri') ||
       ['sadrilength', 'sadribody', 'sadriloose', 'sadrishoulder', 'sadriastin', 'sadricollar', 'sadrialoose', 'sadricallar', 'sadricuff', 'sadripkt', 'sadrilooseshirt', 'sadridttt'].includes(key.toLowerCase())
     );
-    
-    const extraMeasurements = allEntries.filter(([key]) => 
+
+    const extraMeasurements = allEntries.filter(([key]) =>
       !pantMeasurements.some(([pantKey]) => pantKey === key) &&
       !shirtMeasurements.some(([shirtKey]) => shirtKey === key) &&
       !suitMeasurements.some(([suitKey]) => suitKey === key) &&
@@ -137,25 +140,25 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
       !nshirtMeasurements.some(([nshirtKey]) => nshirtKey === key) &&
       !sadriMeasurements.some(([sadriKey]) => sadriKey === key)
     );
-    
+
     let result = [];
-    
+
     // Generate PANT measurements box
     if (pantMeasurements.length > 0) {
       const pantBoxedFieldsExact = ['SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP'];
       const pantBoxedFieldsLower = ['sidep_cross', 'sidepcross', 'plates', 'belt', 'back_p', 'backp', 'wp'];
-      
+
       const isBoxedPantField = (key) => {
-        return pantBoxedFieldsExact.includes(key) || 
-               pantBoxedFieldsLower.includes(key.toLowerCase()) ||
-               pantBoxedFieldsLower.includes(key.toLowerCase().replace('_', ''));
+        return pantBoxedFieldsExact.includes(key) ||
+          pantBoxedFieldsLower.includes(key.toLowerCase()) ||
+          pantBoxedFieldsLower.includes(key.toLowerCase().replace('_', ''));
       };
-      
+
       const regularPantFields = pantMeasurements.filter(([key]) => !isBoxedPantField(key));
       const boxedPantFields = pantMeasurements.filter(([key]) => isBoxedPantField(key));
-      
+
       let pantContent = '';
-      
+
       // Regular pant measurements in single line (numbers only)
       if (regularPantFields.length > 0) {
         const regularValues = regularPantFields.map(([key, value]) => {
@@ -163,7 +166,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join(' | ');
         pantContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
       }
-      
+
       // Boxed pant fields
       if (boxedPantFields.length > 0) {
         const boxedValues = boxedPantFields.map(([key, value]) => {
@@ -177,7 +180,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join('');
         pantContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
       }
-      
+
       result.push(`
         <div style="width: 100%; border: 1px solid #2e7d32; border-radius: 4px; padding: 4px; background: #f9fdf9; margin-bottom: 3px; min-height: 45px;">
           <div style="font-weight: bold; font-size: 10px; color: #2e7d32; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #2e7d32; padding-bottom: 1px;">PANT</div>
@@ -190,15 +193,15 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
     // Generate SUIT measurements box
     if (suitMeasurements.length > 0) {
       const suitBoxedFields = ['suit_callar', 'suit_cuff', 'suit_pkt', 'suit_looseshirt', 'suit_dt_tt'];
-      const regularSuitFields = suitMeasurements.filter(([key]) => 
+      const regularSuitFields = suitMeasurements.filter(([key]) =>
         !suitBoxedFields.includes(key.toLowerCase())
       );
-      const boxedSuitFields = suitMeasurements.filter(([key]) => 
+      const boxedSuitFields = suitMeasurements.filter(([key]) =>
         suitBoxedFields.includes(key.toLowerCase())
       );
-      
+
       let suitContent = '';
-      
+
       // Regular suit measurements
       if (regularSuitFields.length > 0) {
         const regularValues = regularSuitFields.map(([key, value]) => {
@@ -206,7 +209,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join(' | ');
         suitContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
       }
-      
+
       // Boxed suit fields
       if (boxedSuitFields.length > 0) {
         const boxedValues = boxedSuitFields.map(([key, value]) => {
@@ -218,7 +221,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join('');
         suitContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
       }
-      
+
       result.push(`
         <div style="width: 100%; border: 1px solid #1976d2; border-radius: 4px; padding: 4px; background: #f5fafd; margin-bottom: 3px; min-height: 45px;">
           <div style="font-weight: bold; font-size: 10px; color: #1976d2; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #1976d2; padding-bottom: 1px;">SUIT</div>
@@ -227,19 +230,19 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         </div>
       `);
     }
-    
+
     // Generate SHIRT measurements box
     if (shirtMeasurements.length > 0) {
       const shirtBoxedFields = ['collar', 'collor', 'callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'];
-      const regularShirtFields = shirtMeasurements.filter(([key]) => 
+      const regularShirtFields = shirtMeasurements.filter(([key]) =>
         !shirtBoxedFields.includes(key.toLowerCase())
       );
-      const boxedShirtFields = shirtMeasurements.filter(([key]) => 
+      const boxedShirtFields = shirtMeasurements.filter(([key]) =>
         shirtBoxedFields.includes(key.toLowerCase())
       );
-      
+
       let shirtContent = '';
-      
+
       // Regular shirt measurements
       if (regularShirtFields.length > 0) {
         const regularValues = regularShirtFields.map(([key, value]) => {
@@ -247,7 +250,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join(' | ');
         shirtContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
       }
-      
+
       // Boxed shirt fields
       if (boxedShirtFields.length > 0) {
         const boxedValues = boxedShirtFields.map(([key, value]) => {
@@ -261,7 +264,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join('');
         shirtContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
       }
-      
+
       result.push(`
         <div style="width: 100%; border: 1px solid #f57c00; border-radius: 4px; padding: 4px; background: #fffbf5; margin-bottom: 3px; min-height: 45px;">
           <div style="font-weight: bold; font-size: 10px; color: #f57c00; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #f57c00; padding-bottom: 1px;">SHIRT</div>
@@ -274,20 +277,20 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
     // Generate SAFARI/JACKET measurements box
     if (safariMeasurements.length > 0) {
       const safariBoxedFields = ['safari_callar', 'safari_cuff', 'safari_pkt', 'safari_looseshirt', 'safari_dt_tt'];
-      const regularSafariFields = safariMeasurements.filter(([key]) => 
+      const regularSafariFields = safariMeasurements.filter(([key]) =>
         !safariBoxedFields.includes(key.toLowerCase())
       );
-      const boxedSafariFields = safariMeasurements.filter(([key]) => 
+      const boxedSafariFields = safariMeasurements.filter(([key]) =>
         safariBoxedFields.includes(key.toLowerCase())
       );
-      
+
       let safariContent = '';
-      
+
       if (regularSafariFields.length > 0) {
         const regularValues = regularSafariFields.map(([key, value]) => `${value}`).join(' | ');
         safariContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
       }
-      
+
       if (boxedSafariFields.length > 0) {
         const boxedValues = boxedSafariFields.map(([key, value]) => {
           let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Safari ', '').replace('safari_', '');
@@ -298,7 +301,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join('');
         safariContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
       }
-      
+
       result.push(`
         <div style="width: 100%; border: 1px solid #00695c; border-radius: 4px; padding: 4px; background: #f0f7f6; margin-bottom: 3px; min-height: 45px;">
           <div style="font-weight: bold; font-size: 10px; color: #00695c; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #00695c; padding-bottom: 1px;">SAFARI/JACKET</div>
@@ -311,20 +314,20 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
     // Generate N.SHIRT measurements box
     if (nshirtMeasurements.length > 0) {
       const nshirtBoxedFields = ['nshirt_callar', 'nshirt_cuff', 'nshirt_pkt', 'nshirt_looseshirt', 'nshirt_dt_tt'];
-      const regularNShirtFields = nshirtMeasurements.filter(([key]) => 
+      const regularNShirtFields = nshirtMeasurements.filter(([key]) =>
         !nshirtBoxedFields.includes(key.toLowerCase())
       );
-      const boxedNShirtFields = nshirtMeasurements.filter(([key]) => 
+      const boxedNShirtFields = nshirtMeasurements.filter(([key]) =>
         nshirtBoxedFields.includes(key.toLowerCase())
       );
-      
+
       let nshirtContent = '';
-      
+
       if (regularNShirtFields.length > 0) {
         const regularValues = regularNShirtFields.map(([key, value]) => `${value}`).join(' | ');
         nshirtContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
       }
-      
+
       if (boxedNShirtFields.length > 0) {
         const boxedValues = boxedNShirtFields.map(([key, value]) => {
           let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Nshirt ', '').replace('nshirt_', '');
@@ -335,7 +338,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join('');
         nshirtContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
       }
-      
+
       result.push(`
         <div style="width: 100%; border: 1px solid #8e24aa; border-radius: 4px; padding: 4px; background: #f3e5f5; margin-bottom: 3px; min-height: 45px;">
           <div style="font-weight: bold; font-size: 10px; color: #8e24aa; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #8e24aa; padding-bottom: 1px;">N.SHIRT</div>
@@ -348,20 +351,20 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
     // Generate SADRI measurements box
     if (sadriMeasurements.length > 0) {
       const sadriBoxedFields = ['sadri_callar', 'sadri_cuff', 'sadri_pkt', 'sadri_looseshirt', 'sadri_dt_tt'];
-      const regularSadriFields = sadriMeasurements.filter(([key]) => 
+      const regularSadriFields = sadriMeasurements.filter(([key]) =>
         !sadriBoxedFields.includes(key.toLowerCase())
       );
-      const boxedSadriFields = sadriMeasurements.filter(([key]) => 
+      const boxedSadriFields = sadriMeasurements.filter(([key]) =>
         sadriBoxedFields.includes(key.toLowerCase())
       );
-      
+
       let sadriContent = '';
-      
+
       if (regularSadriFields.length > 0) {
         const regularValues = regularSadriFields.map(([key, value]) => `${value}`).join(' | ');
         sadriContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
       }
-      
+
       if (boxedSadriFields.length > 0) {
         const boxedValues = boxedSadriFields.map(([key, value]) => {
           let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Sadri ', '').replace('sadri_', '');
@@ -372,7 +375,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         }).join('');
         sadriContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
       }
-      
+
       result.push(`
         <div style="width: 100%; border: 1px solid #fbc02d; border-radius: 4px; padding: 4px; background: #fffde7; margin-bottom: 3px; min-height: 45px;">
           <div style="font-weight: bold; font-size: 10px; color: #fbc02d; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #fbc02d; padding-bottom: 1px;">SADRI</div>
@@ -381,7 +384,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         </div>
       `);
     }
-    
+
     // Add EXTRA measurements
     if (extraMeasurements.length > 0) {
       const extraValues = extraMeasurements.map(([key, value]) => {
@@ -390,10 +393,10 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
       }).join(' | ');
       result.push(`<div style="margin-top: 4px; font-size: 10px;"><strong style="color: #2c5282;">EXTRA:</strong> ${extraValues}</div>`);
     }
-    
+
     return result.join('');
   };
-  
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -617,30 +620,30 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ]
       }
     };
-    
+
     const config = cardConfig[type];
     if (!config) return '';
-    
+
     // Generate main grid fields with inline styling
     const positions = [
       'top-left', 'top-center', 'top-right',
       'middle-left', 'middle-center', 'middle-right',
       'bottom-left', 'bottom-center', 'bottom-right'
     ];
-    
+
     const gridFields = positions.map(position => {
       const field = config.fields.find(f => f.position === position);
       if (!field) {
         return `<td style="width: 33.33%; padding: 8px; text-align: center; border: 1px solid #ddd;"></td>`;
       }
-      
+
       const value = measurements[field.key] || '';
       const hasValue = value !== '' && value !== 0;
-      
+
       const bgColor = hasValue ? '#e8f5e8' : '#ffffff';
       const borderColor = hasValue ? '#2e7d32' : '#333333';
       const textColor = hasValue ? '#1b5e20' : '#333333';
-      
+
       return `
         <td style="width: 33.33%; padding: 8px; text-align: center; border: 1px solid #ddd; vertical-align: top;">
           <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #666; background: #f5f5f5; padding: 2px 4px; border-radius: 2px;">${field.label}</div>
@@ -648,7 +651,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         </td>
       `;
     });
-    
+
     // Create grid table (3x3)
     const gridTable = `
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background: #fafafa; border: 1px solid #ddd;">
@@ -669,17 +672,17 @@ export const generateMeasurementHTML = (billData, measurements) => {
         </tr>
       </table>
     `;
-    
+
     // Generate labeled boxes with inline styling
     const labeledFields = config.fields.filter(f => f.position.includes('labeled-box-'));
     const labeledBoxes = labeledFields.map(field => {
       const value = measurements[field.key] || '';
       const hasValue = value !== '' && value !== 0;
-      
+
       const bgColor = hasValue ? '#fff8e1' : '#ffffff';
       const borderColor = hasValue ? '#f57c00' : '#666666';
       const textColor = hasValue ? '#e65100' : '#333333';
-      
+
       return `
         <td style="width: 20%; padding: 4px; text-align: center; border: 1px solid #eee; vertical-align: top;">
           <div style="font-size: 10px; font-weight: bold; margin-bottom: 3px; color: #444; background: #e0e0e0; padding: 2px 4px; border-radius: 2px; border: 1px solid #ccc;">${field.label}</div>
@@ -687,7 +690,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         </td>
       `;
     }).join('');
-    
+
     const labeledTable = `
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; padding-top: 10px; border-top: 2px solid #666; background: #f8f8f8;">
         <tr>
@@ -695,7 +698,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         </tr>
       </table>
     `;
-    
+
     return `
       <div style="flex: 1; border: 4px solid #333333; border-radius: 8px; margin: 10px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.15); page-break-inside: avoid;">
         <div style="background: #333333; color: white; padding: 8px 15px; text-align: center; font-weight: bold; font-size: 16px; margin: 0; border-radius: 4px 4px 0 0;">${config.title}</div>
@@ -716,7 +719,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
       </div>
     `;
   };
-  
+
   // Generate extra measurements section with inline styling
   const generateExtraMeasurements = (measurements) => {
     const extraValue = measurements.extra_measurements || '';
@@ -863,7 +866,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         </div>
         <div class="info-row">
           <span>Delivery:</span>
-          <span>${formatDateForReceipt(billData.due_date)}</span>
+          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
         </div>
       </div>
       
@@ -909,39 +912,16 @@ export const generateMeasurementHTML = (billData, measurements) => {
       ` : ''}
       ` : ''}
       
-      <!-- Repeated Header for SHIRT Section -->
-      ${measurements.shirt_length || measurements.shirt_body || measurements.shirt_loose || measurements.shirt_shoulder || measurements.shirt_astin || measurements.shirt_collar || measurements.shirt_aloose ? `
-      <div style="margin-top: 4mm; padding-top: 3mm; border-top: 2px dashed #000;">
-        <div class="header">
-        </div>
-        
-        <div class="customer-info">
-          <div class="info-row">
-            <span>Order No:</span>
-            <span>${billData.billnumberinput2 || 'N/A'}</span>
-          </div>
-          <div class="info-row">
-            <span>Date:</span>
-            <span>${formatDateForReceipt(billData.order_date)}</span>
-          </div>
-          <div class="info-row">
-            <span>Delivery:</span>
-            <span>${formatDateForReceipt(billData.due_date)}</span>
-          </div>
-        </div>
-      </div>
-      ` : ''}
-      
       <!-- SHIRT Measurements -->
       ${measurements.shirt_length || measurements.shirt_body || measurements.shirt_loose || measurements.shirt_shoulder || measurements.shirt_astin || measurements.shirt_collar || measurements.shirt_aloose ? `
       <div class="section-title">${(measurements.shirt_type || 'SHIRT').toUpperCase()}</div>
       ${measurements.shirt_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.shirt_length}</span></div>` : ''}
+      ${(measurements.shirt_loose || measurements.LooseShirt) ? `<div class="measurement-item"><span class="measurement-label">Loose:</span><span class="measurement-value">${measurements.shirt_loose || measurements.LooseShirt}</span></div>` : ''}
       ${measurements.shirt_body ? `<div class="measurement-item"><span class="measurement-label">Body:</span><span class="measurement-value">${measurements.shirt_body}</span></div>` : ''}
-      ${measurements.shirt_loose ? `<div class="measurement-item"><span class="measurement-label">Loose:</span><span class="measurement-value">${measurements.shirt_loose}</span></div>` : ''}
       ${measurements.shirt_shoulder ? `<div class="measurement-item"><span class="measurement-label">Shoulder:</span><span class="measurement-value">${measurements.shirt_shoulder}</span></div>` : ''}
       ${measurements.shirt_astin ? `<div class="measurement-item"><span class="measurement-label">Astin:</span><span class="measurement-value">${measurements.shirt_astin}</span></div>` : ''}
-      ${measurements.shirt_collar ? `<div class="measurement-item"><span class="measurement-label">Collar:</span><span class="measurement-value">${measurements.shirt_collar}</span></div>` : ''}
       ${measurements.shirt_aloose ? `<div class="measurement-item"><span class="measurement-label">A.Loose:</span><span class="measurement-value">${measurements.shirt_aloose}</span></div>` : ''}
+      ${(measurements.shirt_collar || measurements.Callar) ? `<div class="measurement-item"><span class="measurement-label">Collar:</span><span class="measurement-value">${measurements.shirt_collar || measurements.Callar}</span></div>` : ''}
       ${measurements.Callar || measurements.Cuff || measurements.Pkt || measurements.LooseShirt || measurements.DT_TT ? `
       <div class="special-boxes">
         ${measurements.Callar ? `<span class="special-box">Collar: ${measurements.Callar}</span>` : ''}

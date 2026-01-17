@@ -36,16 +36,16 @@ const { width } = Dimensions.get('window');
 const splitCommaGarmentsIntoRows = (orders) => {
   console.log('\n📋 PROCESSING ORDERS: Splitting comma-separated garments...');
   console.log(`📊 Input orders: ${orders.length}`);
-  
+
   const finalOrders = [];
   let splitCount = 0;
-  
+
   orders.forEach(order => {
     if (order.garment_type && order.garment_type.includes(',')) {
       // Split comma-separated garments into individual rows
       const garmentTypes = order.garment_type.split(',').map(g => g.trim());
       console.log(`🔄 Splitting order ${order.id} with garments: ${garmentTypes.join(', ')}`);
-      
+
       garmentTypes.forEach((garmentType, index) => {
         if (garmentType) { // Skip empty strings
           finalOrders.push({
@@ -66,29 +66,29 @@ const splitCommaGarmentsIntoRows = (orders) => {
       finalOrders.push(order);
     }
   });
-  
+
   console.log(`✅ Split ${splitCount} garment entries from comma-separated records`);
-  
+
   // Sort the final orders
   const sortedOrders = finalOrders.sort((a, b) => {
     const billNumberA = Number(a.billnumberinput2) || 0;
     const billNumberB = Number(b.billnumberinput2) || 0;
-    
+
     if (billNumberB !== billNumberA) {
       return billNumberB - billNumberA; // Descending: highest first
     }
-    
+
     // Secondary sort by original order ID descending
     const orderIdA = Number(a.original_id || a.id) || 0;
     const orderIdB = Number(b.original_id || b.id) || 0;
     if (orderIdB !== orderIdA) {
       return orderIdB - orderIdA;
     }
-    
+
     // Tertiary sort by garment index to maintain order within split garments
     return (a.garment_index || 0) - (b.garment_index || 0);
   });
-  
+
   console.log('\n📋 FINAL SORTED ORDERS:');
   console.log('Total orders (after splitting):', sortedOrders.length);
   if (sortedOrders.length > 0) {
@@ -97,7 +97,7 @@ const splitCommaGarmentsIntoRows = (orders) => {
       console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}, Garment: ${order.garment_type}`);
     });
   }
-  
+
   return sortedOrders;
 };
 
@@ -113,7 +113,7 @@ const splitCommaGarmentsIntoRows = (orders) => {
 const generateBillHTML = (billData, orders) => {
   // Supabase public URL for the suit icon
   const suitImageUrl = "https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg";
-  
+
   // Fallback base64 image (simple suit icon)
   const fallbackSuitIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMyYzNlNTAiLz4KICA8IS0tIFN1aXQgamFja2V0IC0tPgogIDxyZWN0IHg9IjEwIiB5PSIxNSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjI1IiBmaWxsPSIjMzQ0OTVlIi8+CiAgPCEtLSBTdWl0IGNvbGxhciAtLT4KICA8cGF0aCBkPSJNMjAgMTVMMjUgMTBMMzAgMTVaIiBmaWxsPSIjZmZmIi8+CiAgPCEtLSBTdWl0IGJ1dHRvbnMgLS0+CiAgPGNpcmNsZSBjeD0iMjUiIGN5PSIyMiIgcj0iMSIgZmlsbD0iI2ZmZiIvPgogIDxjaXJjbGUgY3g9IjI1IiBjeT0iMjciIHI9IjEiIGZpbGw9IiNmZmYiLz4KICA8Y2lyY2xlIGN4PSIyNSIgY3k9IjMyIiByPSIxIiBmaWxsPSIjZmZmIi8+CiAgPCEtLSBTdWl0IHBvY2tldCAtLT4KICA8cmVjdCB4PSIxMyIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KICA8IS0tIFRleHQgLS0+CiAgPHRleHQgeD0iMjUiIHk9IjQ2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNiIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U1VJVDwvdGV4dD4KPC9zdmc+";
 
@@ -121,40 +121,40 @@ const generateBillHTML = (billData, orders) => {
   const garmentTotals = {};
   let totalAmount = 0;
   let totalQuantity = 0;
-  
+
   // Aggregate quantities and amounts by garment type
   orders.forEach(order => {
     const garmentType = order.garment_type || 'Unknown';
     const amount = parseFloat(order.total_amt || 0);
-    
+
     if (!garmentTotals[garmentType]) {
       garmentTotals[garmentType] = { qty: 0, amount: 0 };
     }
-    
+
     garmentTotals[garmentType].qty += 1;
     garmentTotals[garmentType].amount += amount;
     totalAmount += amount;
     totalQuantity += 1;
   });
-  
+
   const advanceAmount = parseFloat(billData.payment_amount || 0);
   const remainingAmount = totalAmount - advanceAmount;
-  
+
   // Format dates
-  const orderDate = billData.order_date ? 
-    new Date(billData.order_date).toLocaleDateString('en-GB', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
+  const orderDate = billData.order_date ?
+    new Date(billData.order_date).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     }).replace(/\//g, '-') : '';
-    
-  const dueDate = billData.due_date ? 
-    new Date(billData.due_date).toLocaleDateString('en-GB', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
+
+  const dueDate = billData.due_date ?
+    new Date(billData.due_date).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     }).replace(/\//g, '-') : '';
-  
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -405,14 +405,14 @@ export default function GenerateBillScreen({ navigation }) {
   const [selectedOrderDate, setSelectedOrderDate] = useState(new Date());
   const [measurementSelectionVisible, setMeasurementSelectionVisible] = useState(false);
   const [availableMeasurements, setAvailableMeasurements] = useState({ pant: false, shirt: false, suit: false });
-  
+
   // Use IST timezone for initial date
   const getISTDateString = () => {
     const utcDate = new Date();
     const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
     return istDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
   };
-  
+
   const [billData, setBillData] = useState({
     customer_name: '',
     mobile_number: '',
@@ -480,7 +480,7 @@ export default function GenerateBillScreen({ navigation }) {
   });
   const [measurementType, setMeasurementType] = useState({ pant: false, shirt: false, suit: false, extra: false });
   const [billFound, setBillFound] = useState(false);
-  
+
   // Scroll refs for both web and mobile
   const webScrollRef = useRef(null);
   const mobileScrollRef = useRef(null);
@@ -600,7 +600,7 @@ export default function GenerateBillScreen({ navigation }) {
       const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
       const formattedDate = istDate.toISOString().split('T')[0];
       console.log('🇮🇳 Date selected (IST):', formattedDate);
-      
+
       if (activeDateField === 'order') {
         setBillData(prev => ({ ...prev, order_date: formattedDate }));
         setSelectedOrderDate(date);
@@ -623,26 +623,26 @@ export default function GenerateBillScreen({ navigation }) {
 
       // Search for orders with the bill number
       const searchResults = await SupabaseAPI.searchOrders(searchQuery);
-      
+
       if (searchResults && searchResults.length > 0) {
         // Get the first order to extract bill information
         const firstOrder = searchResults[0];
-        
+
         if (firstOrder.bill_id) {
           // Get complete bill information
           const { orders: billOrders, bill } = await SupabaseAPI.getOrdersByBillId(firstOrder.bill_id);
-          
+
           if (bill && billOrders) {
             // Debug: Log the actual data structure
             console.log('🔍 DEBUG: Bill data:', JSON.stringify(bill, null, 2));
             console.log('🔍 DEBUG: First order data:', JSON.stringify(billOrders[0], null, 2));
             console.log('🔍 DEBUG: Available bill fields:', Object.keys(bill));
             console.log('🔍 DEBUG: Available order fields:', billOrders[0] ? Object.keys(billOrders[0]) : 'No orders');
-            
+
             // Populate bill data with multiple possible field names
-            const orderDate = bill.order_date || bill.date_issue || bill.created_at || bill.today_date || 
-                             billOrders[0]?.order_date || billOrders[0]?.date_issue || billOrders[0]?.created_at;
-            
+            const orderDate = bill.order_date || bill.date_issue || bill.created_at || bill.today_date ||
+              billOrders[0]?.order_date || billOrders[0]?.date_issue || billOrders[0]?.created_at;
+
             console.log('📅 DEBUG: Trying order date fields:');
             console.log('  bill.order_date:', bill.order_date);
             console.log('  bill.date_issue:', bill.date_issue);
@@ -652,7 +652,7 @@ export default function GenerateBillScreen({ navigation }) {
             console.log('  billOrders[0]?.date_issue:', billOrders[0]?.date_issue);
             console.log('  billOrders[0]?.created_at:', billOrders[0]?.created_at);
             console.log('  Final orderDate selected:', orderDate);
-            
+
             setBillData({
               customer_name: bill.customer_name || '',
               mobile_number: bill.mobile_number || '',
@@ -663,11 +663,11 @@ export default function GenerateBillScreen({ navigation }) {
               payment_amount: bill.payment_amount || billOrders[0]?.payment_amount || '0',
               billnumberinput2: bill.billnumberinput2 || searchQuery,
             });
-            
+
             // Split comma-separated garments into individual rows
             const processedOrders = splitCommaGarmentsIntoRows(billOrders);
             setOrders(processedOrders);
-            
+
             // Calculate itemized bill from orders
             const itemized = {
               suit_qty: (bill.suit_qty || 0).toString(),
@@ -685,15 +685,15 @@ export default function GenerateBillScreen({ navigation }) {
               total_qty: '0',
               total_amt: '0',
             };
-            
+
             let totalAmount = 0;
             let totalQty = 0;
-            
+
             billOrders.forEach(order => {
               const amount = parseFloat(order.total_amt || 0);
               totalAmount += amount;
               totalQty += 1;
-              
+
               const garmentType = order.garment_type?.toLowerCase();
               if (garmentType?.includes('suit')) {
                 itemized.suit_qty = (parseInt(itemized.suit_qty) + 1).toString();
@@ -715,11 +715,11 @@ export default function GenerateBillScreen({ navigation }) {
                 itemized.sadri_amount = (parseFloat(itemized.sadri_amount) + amount).toString();
               }
             });
-            
+
             itemized.total_amt = totalAmount.toString();
             itemized.total_qty = totalQty.toString();
             setItemizedBill(itemized);
-            
+
             // Try to get measurements if mobile number is available
             if (bill.mobile_number) {
               try {
@@ -734,21 +734,21 @@ export default function GenerateBillScreen({ navigation }) {
                   const hasNShirt = Object.keys(customerMeasurements).some(key => key.includes('nshirt'));
                   const hasSadri = Object.keys(customerMeasurements).some(key => key.includes('sadri'));
                   const hasExtra = customerMeasurements.extra_measurements;
-                  setMeasurementType({ 
-                    pant: hasPant, 
-                    shirt: hasShirt, 
-                    suit: hasSuit, 
-                    safari: hasSafari, 
-                    nshirt: hasNShirt, 
-                    sadri: hasSadri, 
-                    extra: !!hasExtra 
+                  setMeasurementType({
+                    pant: hasPant,
+                    shirt: hasShirt,
+                    suit: hasSuit,
+                    safari: hasSafari,
+                    nshirt: hasNShirt,
+                    sadri: hasSadri,
+                    extra: !!hasExtra
                   });
                 }
               } catch (measurementError) {
                 console.log('No measurements found for customer:', measurementError);
               }
             }
-            
+
             setBillFound(true);
             Alert.alert('Success', 'Bill found successfully!');
           } else {
@@ -887,7 +887,7 @@ export default function GenerateBillScreen({ navigation }) {
   const handlePrintBill = async () => {
     console.log('🖨️ handlePrintBill called');
     console.log('📱 Platform.OS:', Platform.OS);
-    
+
     if (!billData) {
       console.log('❌ No bill data');
       Alert.alert('Error', 'No bill data to print');
@@ -896,7 +896,7 @@ export default function GenerateBillScreen({ navigation }) {
 
     try {
       console.log('📄 Generating professional bill HTML...');
-      
+
       // Transform orders to itemizedBill format expected by shared utility
       const itemizedBill = {
         suit_qty: 0, suit_amount: 0,
@@ -906,11 +906,11 @@ export default function GenerateBillScreen({ navigation }) {
         nshirt_qty: 0, nshirt_amount: 0,
         sadri_qty: 0, sadri_amount: 0,
       };
-      
+
       orders.forEach(order => {
         const type = (order.garment_type || '').toLowerCase();
         const amount = parseFloat(order.total_amt || 0);
-        
+
         if (type.includes('suit')) {
           itemizedBill.suit_qty++;
           itemizedBill.suit_amount += amount;
@@ -931,30 +931,30 @@ export default function GenerateBillScreen({ navigation }) {
           itemizedBill.sadri_amount += amount;
         }
       });
-      
+
       const orderNumber = billData.billnumberinput2;
       const html = generateProfessionalBillHTML(billData, itemizedBill, orderNumber, true);
       console.log('✅ HTML generated, length:', html.length);
-      
+
       if (Platform.OS === 'web') {
         console.log('🌐 Web platform - opening print window');
         // For web, create a new window and print
         const printWindow = window.open('', '_blank');
         printWindow.document.write(html);
         printWindow.document.close();
-        
+
         // Wait for images to load before printing
         printWindow.onload = () => {
           const images = printWindow.document.querySelectorAll('img');
           let loadedImages = 0;
-          
+
           if (images.length === 0) {
             // No images, print immediately
             console.log('🖨️ No images found, printing immediately');
             printWindow.print();
             return;
           }
-          
+
           console.log(`📸 Found ${images.length} images, waiting for them to load...`);
           images.forEach((img) => {
             if (img.complete) {
@@ -978,16 +978,16 @@ export default function GenerateBillScreen({ navigation }) {
               };
             }
           });
-          
+
           if (loadedImages === images.length) {
             console.log('🖨️ All images already loaded, printing now');
             printWindow.print();
           }
         };
-        
+
         // Show success message
         Alert.alert(
-          'Print Ready', 
+          'Print Ready',
           `Bill #${billData.billnumberinput2 || 'N/A'} is ready to print. The print dialog will open once images load.`,
           [{ text: 'OK' }]
         );
@@ -998,21 +998,21 @@ export default function GenerateBillScreen({ navigation }) {
           html,
           base64: false,
         });
-        
+
         console.log('Print result:', result);
-        
+
         if (result && result.uri) {
           console.log('PDF generated successfully, sharing:', result.uri);
-          
+
           if (await Sharing.isAvailableAsync()) {
             await Sharing.shareAsync(result.uri);
           } else {
             Alert.alert('Success', `Bill #${billData.billnumberinput2 || 'N/A'} generated successfully`);
           }
-          
+
           // Show success message
           Alert.alert(
-            'Bill Generated', 
+            'Bill Generated',
             `Bill #${billData.billnumberinput2 || 'N/A'} has been generated and is ready to print or share.`,
             [{ text: 'OK' }]
           );
@@ -1038,51 +1038,54 @@ export default function GenerateBillScreen({ navigation }) {
     try {
       // Filter measurements based on selection
       if (selection === 'both') {
-         measurementsToPrint = { ...measurements };
+        measurementsToPrint = { ...measurements };
       } else {
-         measurementsToPrint = { extra_measurements: measurements.extra_measurements }; // Always keep extra
-         
-         Object.keys(measurements).forEach(key => {
-            if (key === 'extra_measurements') return;
-            
-            const lowerKey = key.toLowerCase();
-            let include = false;
-            
-            if (selection === 'pant') {
-               include = lowerKey.includes('pant') || ['sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(lowerKey);
-            } else if (selection === 'shirt') {
-               include = (lowerKey.includes('shirt') && !lowerKey.includes('nshirt') && !lowerKey.includes('looseshirt') && !lowerKey.includes('looseshirt')) || 
-                        ['callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(lowerKey);
-            } else if (selection === 'suit') {
-               include = lowerKey.startsWith('suit');
-            } else if (selection === 'safari') {
-               include = lowerKey.startsWith('safari');
-            } else if (selection === 'nshirt') {
-               include = lowerKey.startsWith('nshirt');
-            } else if (selection === 'sadri') {
-               include = lowerKey.startsWith('sadri');
-            }
-            
-            if (include) {
-               measurementsToPrint[key] = measurements[key];
-            }
-         });
+        measurementsToPrint = { extra_measurements: measurements.extra_measurements }; // Always keep extra
+
+        Object.keys(measurements).forEach(key => {
+          if (key === 'extra_measurements') return;
+
+          const lowerKey = key.toLowerCase();
+          let include = false;
+
+          if (selection === 'pant') {
+            include = lowerKey.includes('pant') || ['sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(lowerKey);
+          } else if (selection === 'shirt') {
+            // Per user request: Print Shirt should include both Shirt and Pant
+            include = (lowerKey.includes('shirt') && !lowerKey.includes('nshirt')) ||
+              ['callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(lowerKey) ||
+              lowerKey.includes('pant') ||
+              ['sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(lowerKey);
+          } else if (selection === 'suit') {
+            include = lowerKey.startsWith('suit');
+          } else if (selection === 'safari') {
+            include = lowerKey.startsWith('safari');
+          } else if (selection === 'nshirt') {
+            include = lowerKey.startsWith('nshirt');
+          } else if (selection === 'sadri') {
+            include = lowerKey.startsWith('sadri');
+          }
+
+          if (include) {
+            measurementsToPrint[key] = measurements[key];
+          }
+        });
       }
 
       console.log('📄 Generating measurements HTML for selection:', selection);
       const html = generateMeasurementHTML(billData, measurementsToPrint);
-      
+
       if (Platform.OS === 'web') {
         const printWindow = window.open('', '_blank');
         printWindow.document.write(html);
         printWindow.document.close();
-        setTimeout(() => printWindow.print(), 500); 
+        setTimeout(() => printWindow.print(), 500);
       } else {
         const { uri } = await Print.printToFileAsync({
           html,
           base64: false,
         });
-        
+
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri);
         } else {
@@ -1100,11 +1103,11 @@ export default function GenerateBillScreen({ navigation }) {
       Alert.alert('Error', 'No measurements data to print');
       return;
     }
-    
+
     // Check available measurements
     const pantKeys = ['pant_length', 'pant_kamar', 'pant_hips', 'pant_waist', 'pant_ghutna', 'pant_bottom', 'pant_seat', 'SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP'];
     const hasPant = pantKeys.some(key => measurements[key] && measurements[key] !== '0' && measurements[key] !== 0);
-    
+
     const shirtKeys = ['shirt_length', 'shirt_body', 'shirt_loose', 'shirt_shoulder', 'shirt_astin', 'shirt_collar', 'shirt_aloose', 'Callar', 'Cuff', 'Pkt', 'LooseShirt', 'DT_TT'];
     const hasShirt = shirtKeys.some(key => measurements[key] && measurements[key] !== '0' && measurements[key] !== 0);
 
@@ -1112,25 +1115,25 @@ export default function GenerateBillScreen({ navigation }) {
     const hasSafari = measurements.safari_length && measurements.safari_length !== '0';
     const hasNShirt = measurements.nshirt_length && measurements.nshirt_length !== '0';
     const hasSadri = measurements.sadri_length && measurements.sadri_length !== '0';
-    
+
     const activeTypes = [
-      hasPant && 'pant', 
-      hasShirt && 'shirt', 
+      hasPant && 'pant',
+      hasShirt && 'shirt',
       hasSuit && 'suit',
       hasSafari && 'safari',
       hasNShirt && 'nshirt',
       hasSadri && 'sadri'
     ].filter(Boolean);
-    
-    setAvailableMeasurements({ 
-      pant: hasPant, 
-      shirt: hasShirt, 
+
+    setAvailableMeasurements({
+      pant: hasPant,
+      shirt: hasShirt,
       suit: hasSuit,
       safari: hasSafari,
       nshirt: hasNShirt,
       sadri: hasSadri
     });
-    
+
     if (activeTypes.length > 1) {
       setMeasurementSelectionVisible(true);
     } else if (activeTypes.length === 1) {
@@ -1286,7 +1289,7 @@ export default function GenerateBillScreen({ navigation }) {
       {Platform.OS === 'web' ? (
         <WebScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ 
+          contentContainerStyle={{
             paddingBottom: 180,
             paddingHorizontal: responsivePadding,
             minHeight: '100%'
@@ -1316,7 +1319,7 @@ export default function GenerateBillScreen({ navigation }) {
                 )}
               </TouchableOpacity>
             </View>
-            
+
             {searchQuery !== '' && (
               <TouchableOpacity
                 style={[dynamicStyles.searchButton, { backgroundColor: '#95a5a6', marginTop: 10 }]}
@@ -1351,7 +1354,7 @@ export default function GenerateBillScreen({ navigation }) {
           {billFound && (
             <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
               <Text style={dynamicStyles.sectionTitle}>Customer Information</Text>
-              
+
               <View style={styles.inputRow}>
                 <Text style={dynamicStyles.inputLabel}>Customer Name:</Text>
                 <TextInput
@@ -1379,7 +1382,7 @@ export default function GenerateBillScreen({ navigation }) {
           {billFound && (
             <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
               <Text style={dynamicStyles.sectionTitle}>Measurements</Text>
-              
+
               {/* Measurement Type Selection */}
               <View style={styles.measurementTypeContainer}>
                 <Text style={dynamicStyles.inputLabel}>Select Measurement Type:</Text>
@@ -1658,7 +1661,7 @@ export default function GenerateBillScreen({ navigation }) {
                         keyboardType="numeric"
                       />
                     </View>
-                     <View style={dynamicStyles.measurementInput}>
+                    <View style={dynamicStyles.measurementInput}>
                       <Text style={dynamicStyles.measurementLabel}>Collar (Detail):</Text>
                       <TextInput
                         style={dynamicStyles.measurementTextInput}
@@ -2080,14 +2083,14 @@ export default function GenerateBillScreen({ navigation }) {
           {billFound && (
             <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
               <Text style={dynamicStyles.sectionTitle}>Itemized Billing</Text>
-              
+
               <View style={styles.billingTable}>
                 <View style={styles.tableHeader}>
                   <Text style={styles.tableHeaderText}>Item</Text>
                   <Text style={styles.tableHeaderText}>Qty</Text>
                   <Text style={styles.tableHeaderText}>Amount</Text>
                 </View>
-                
+
                 {/* Suit */}
                 <View style={styles.tableRow}>
                   <Text style={styles.tableItemText}>Suit</Text>
@@ -2125,7 +2128,7 @@ export default function GenerateBillScreen({ navigation }) {
                     placeholder="0"
                   />
                 </View>
-                
+
                 {/* Pant */}
                 <View style={styles.tableRow}>
                   <Text style={styles.tableItemText}>Pant</Text>
@@ -2144,7 +2147,7 @@ export default function GenerateBillScreen({ navigation }) {
                     placeholder="0"
                   />
                 </View>
-                
+
                 {/* Shirt */}
                 <View style={styles.tableRow}>
                   <Text style={styles.tableItemText}>Shirt</Text>
@@ -2163,7 +2166,7 @@ export default function GenerateBillScreen({ navigation }) {
                     placeholder="0"
                   />
                 </View>
-                
+
                 {/* N.Shirt */}
                 <View style={styles.tableRow}>
                   <Text style={styles.tableItemText}>N.Shirt</Text>
@@ -2182,7 +2185,7 @@ export default function GenerateBillScreen({ navigation }) {
                     placeholder="0"
                   />
                 </View>
-                
+
                 {/* Sadri */}
                 <View style={styles.tableRow}>
                   <Text style={styles.tableItemText}>Sadri</Text>
@@ -2201,7 +2204,7 @@ export default function GenerateBillScreen({ navigation }) {
                     placeholder="0"
                   />
                 </View>
-                
+
                 {/* Total Row */}
                 <View style={[styles.tableRow, styles.totalRow]}>
                   <Text style={[styles.tableItemText, styles.totalText]}>Total</Text>
@@ -2304,9 +2307,9 @@ export default function GenerateBillScreen({ navigation }) {
                 <View style={styles.pickerContainer}>
                   <TouchableOpacity
                     style={[styles.pickerOption, billData.payment_mode === 'Cash' && styles.pickerOptionSelected]}
-                    onPress={() => setBillData({ 
-                      ...billData, 
-                      payment_mode: billData.payment_mode === 'Cash' ? '' : 'Cash' 
+                    onPress={() => setBillData({
+                      ...billData,
+                      payment_mode: billData.payment_mode === 'Cash' ? '' : 'Cash'
                     })}
                   >
                     <Text style={[styles.pickerOptionText, billData.payment_mode === 'Cash' && styles.pickerOptionTextSelected]}>
@@ -2333,18 +2336,18 @@ export default function GenerateBillScreen({ navigation }) {
           {billFound && (
             <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
               <Text style={dynamicStyles.sectionTitle}>Summary</Text>
-              
+
               <View style={styles.summaryContainer}>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Total Amount:</Text>
                   <Text style={styles.summaryValue}>₹{parseFloat(calculateTotals().total_amt) || 0}</Text>
                 </View>
-                
+
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Advance Amount:</Text>
                   <Text style={styles.summaryValue}>₹{parseFloat(billData.payment_amount) || 0}</Text>
                 </View>
-                
+
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Remaining Amount:</Text>
                   <Text style={[styles.summaryValue, styles.remainingAmount]}>
@@ -2400,7 +2403,7 @@ export default function GenerateBillScreen({ navigation }) {
       ) : (
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ 
+          contentContainerStyle={{
             paddingBottom: 180,
             paddingHorizontal: responsivePadding,
             flexGrow: 1
@@ -2430,7 +2433,7 @@ export default function GenerateBillScreen({ navigation }) {
                 )}
               </TouchableOpacity>
             </View>
-            
+
             {searchQuery !== '' && (
               <TouchableOpacity
                 style={[dynamicStyles.searchButton, { backgroundColor: '#95a5a6', marginTop: 10 }]}
@@ -2445,37 +2448,37 @@ export default function GenerateBillScreen({ navigation }) {
           {billFound && billData && (
             <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
               <Text style={dynamicStyles.sectionTitle}>Bill Details</Text>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Bill Number:</Text>
                 <Text style={styles.detailValue}>{billData.billnumberinput2}</Text>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Customer Name:</Text>
                 <Text style={styles.detailValue}>{billData.customer_name}</Text>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Mobile Number:</Text>
                 <Text style={styles.detailValue}>{billData.mobile_number}</Text>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Payment Mode:</Text>
                 <Text style={styles.detailValue}>{billData.payment_mode || 'N/A'}</Text>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Payment Status:</Text>
                 <Text style={styles.detailValue}>{billData.payment_status || 'N/A'}</Text>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Total Amount:</Text>
                 <Text style={styles.detailValue}>₹{billData.total_amt || 0}</Text>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Advance Amount:</Text>
                 <Text style={styles.detailValue}>₹{billData.payment_amount || 0}</Text>
@@ -2487,30 +2490,30 @@ export default function GenerateBillScreen({ navigation }) {
           {billFound && orders.length > 0 && (
             <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
               <Text style={dynamicStyles.sectionTitle}>Order Items ({orders.length})</Text>
-              
+
               {orders.map((order, index) => {
                 const displayGarmentType = order.expanded_garment_type || order.garment_type || 'N/A';
                 // Add garment count indicator if garment_index is a valid number (including 0)
                 const hasValidIndex = typeof order.garment_index === 'number' && order.garment_index >= 0;
                 const garmentDisplay = hasValidIndex ? displayGarmentType + ' (' + (order.garment_index + 1) + ')' : displayGarmentType;
-                
+
                 return (
                   <View key={index} style={styles.orderItem}>
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Item:</Text>
                       <Text style={styles.detailValue}>{garmentDisplay}</Text>
                     </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Status:</Text>
-                    <Text style={[styles.detailValue, { color: order.status === 'completed' ? '#27ae60' : '#e74c3c' }]}>
-                      {order.status}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Amount:</Text>
-                    <Text style={styles.detailValue}>₹{order.total_amt}</Text>
-                  </View>
-                  {index < orders.length - 1 && <View style={styles.orderSeparator} />}
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Status:</Text>
+                      <Text style={[styles.detailValue, { color: order.status === 'completed' ? '#27ae60' : '#e74c3c' }]}>
+                        {order.status}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Amount:</Text>
+                      <Text style={styles.detailValue}>₹{order.total_amt}</Text>
+                    </View>
+                    {index < orders.length - 1 && <View style={styles.orderSeparator} />}
                   </View>
                 );
               })}
@@ -2529,7 +2532,7 @@ export default function GenerateBillScreen({ navigation }) {
           {billFound && (
             <View style={[dynamicStyles.section, { marginHorizontal: 0 }]}>
               <Text style={dynamicStyles.sectionTitle}>Actions</Text>
-              
+
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={handlePrintBill}
@@ -2537,7 +2540,7 @@ export default function GenerateBillScreen({ navigation }) {
                 <Ionicons name="print" size={24} color="#fff" />
                 <Text style={styles.actionButtonText}>Print/Download Bill</Text>
               </TouchableOpacity>
-              
+
               {measurements && (
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: '#27ae60' }]}
@@ -2551,7 +2554,7 @@ export default function GenerateBillScreen({ navigation }) {
           )}
         </ScrollView>
       )}
-      
+
       {datePickerVisible && (
         <DateTimePicker
           value={activeDateField === 'order' ? selectedOrderDate : selectedDueDate}
@@ -2560,7 +2563,7 @@ export default function GenerateBillScreen({ navigation }) {
           onChange={handleDateChange}
         />
       )}
-      
+
       <Modal
         visible={measurementSelectionVisible}
         transparent={true}
@@ -2572,57 +2575,57 @@ export default function GenerateBillScreen({ navigation }) {
             <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#2c3e50' }}>
               Select Measurements to Print
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
               onPress={() => executePrintMeasurements('shirt')}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Shirt Only</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Shirt & Pant</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
               onPress={() => executePrintMeasurements('pant')}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Pant Only</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
               onPress={() => executePrintMeasurements('suit')}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Suit Only</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
               onPress={() => executePrintMeasurements('safari')}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Safari/Jacket Only</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
               onPress={() => executePrintMeasurements('nshirt')}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print N.Shirt Only</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
               onPress={() => executePrintMeasurements('sadri')}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Sadri Only</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={{ backgroundColor: '#27ae60', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
               onPress={() => executePrintMeasurements('both')}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print All Available</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={{ marginTop: 10, padding: 10 }}
               onPress={() => setMeasurementSelectionVisible(false)}
             >
@@ -2631,7 +2634,7 @@ export default function GenerateBillScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-      
+
       <SafeAreaView style={{ height: 32 }} />
     </View>
   );
