@@ -244,44 +244,54 @@ export default function WeeklyPayScreen({ navigation }) {
                 {/* Weekly Breakdown */}
                 <View style={styles.weeklySummary}>
                   <Text style={styles.weeklyTitle}>Weekly Breakdown</Text>
-                  {/* Table Header */}
-                  <View style={styles.tableHeader}>
-                    <View style={[styles.headerCell, styles.weekPeriodCell]}>
-                      <Text style={styles.headerText}>Week Period</Text>
-                    </View>
-                    <View style={[styles.headerCell, styles.numberCell]}>
-                      <Text style={styles.headerText}>Orders</Text>
-                    </View>
-                    <View style={[styles.headerCell, styles.amountCell]}>
-                      <Text style={styles.headerText}>Work Pay</Text>
-                    </View>
-                    <View style={[styles.headerCell, styles.amountCell]}>
-                      <Text style={styles.headerText}>Amount Paid</Text>
-                    </View>
-                    <View style={[styles.headerCell, styles.amountCell]}>
-                      <Text style={styles.headerText}>Remaining</Text>
-                    </View>
-                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={true}
+                    style={styles.horizontalScrollContainer}
+                    nestedScrollEnabled={true}
+                  >
+                    <View style={styles.tableWrapper}>
+                      {/* Table Header */}
+                      <View style={styles.tableHeader}>
+                        <View style={[styles.headerCell, styles.weekPeriodCell]}>
+                          <Text style={styles.headerText}>Week Period</Text>
+                        </View>
+                        <View style={[styles.headerCell, styles.numberCell]}>
+                          <Text style={styles.headerText}>Orders</Text>
+                        </View>
+                        <View style={[styles.headerCell, styles.amountCell]}>
+                          <Text style={styles.headerText}>Work Pay</Text>
+                        </View>
+                        <View style={[styles.headerCell, styles.amountCell]}>
+                          <Text style={styles.headerText}>Amount Paid</Text>
+                        </View>
+                        <View style={[styles.headerCell, styles.amountCell]}>
+                          <Text style={styles.headerText}>Remaining</Text>
+                        </View>
+                      </View>
 
-                  {/* Table Body */}
-                  {calculating ? (
-                    <View style={styles.calculatingContainer}>
-                      <ActivityIndicator size="small" color="#2980b9" />
-                      <Text style={styles.calculatingText}>Calculating weekly pay...</Text>
+                      {/* Table Body */}
+                      {calculating ? (
+                        <View style={styles.calculatingContainer}>
+                          <ActivityIndicator size="small" color="#2980b9" />
+                          <Text style={styles.calculatingText}>Calculating weekly pay...</Text>
+                        </View>
+                      ) : weeklyPayData.weekly_data && weeklyPayData.weekly_data.length > 0 ? (
+                        <FlatList
+                          data={weeklyPayData.weekly_data}
+                          renderItem={renderWeeklyRow}
+                          keyExtractor={(item, index) => `week-${index}-${item?.week_period || 'unknown'}`}
+                          scrollEnabled={true}
+                          showsVerticalScrollIndicator={true}
+                          nestedScrollEnabled={true}
+                        />
+                      ) : (
+                        <View style={styles.noDataContainer}>
+                          <Text style={styles.noDataText}>No weekly data available</Text>
+                        </View>
+                      )}
                     </View>
-                  ) : weeklyPayData.weekly_data && weeklyPayData.weekly_data.length > 0 ? (
-                    <FlatList
-                      data={weeklyPayData.weekly_data}
-                      renderItem={renderWeeklyRow}
-                      keyExtractor={(item, index) => `week-${index}-${item?.week_period || 'unknown'}`}
-                      scrollEnabled={false}
-                      showsVerticalScrollIndicator={false}
-                    />
-                  ) : (
-                    <View style={styles.noDataContainer}>
-                      <Text style={styles.noDataText}>No weekly data available</Text>
-                    </View>
-                  )}
+                  </ScrollView>
                 </View>
               </View>
             )}
@@ -356,45 +366,54 @@ export default function WeeklyPayScreen({ navigation }) {
                 {/* Weekly Breakdown */}
                 <View style={styles.weeklySummary}>
                   <Text style={styles.weeklyTitle}>Weekly Breakdown</Text>
-                  
-                  {/* Table Header */}
-                  <View style={styles.tableHeader}>
-                    <View style={[styles.headerCell, styles.weekPeriodCell]}>
-                      <Text style={styles.headerText}>Week Period</Text>
-                    </View>
-                    <View style={[styles.headerCell, styles.numberCell]}>
-                      <Text style={styles.headerText}>Orders</Text>
-                    </View>
-                    <View style={[styles.headerCell, styles.amountCell]}>
-                      <Text style={styles.headerText}>Work Pay</Text>
-                    </View>
-                    <View style={[styles.headerCell, styles.amountCell]}>
-                      <Text style={styles.headerText}>Amount Paid</Text>
-                    </View>
-                    <View style={[styles.headerCell, styles.amountCell]}>
-                      <Text style={styles.headerText}>Remaining</Text>
-                    </View>
-                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={true}
+                    style={styles.horizontalScrollContainer}
+                    nestedScrollEnabled={true}
+                  >
+                    <View style={styles.tableWrapper}>
+                      {/* Table Header */}
+                      <View style={styles.tableHeader}>
+                        <View style={[styles.headerCell, styles.weekPeriodCell]}>
+                          <Text style={styles.headerText}>Week Period</Text>
+                        </View>
+                        <View style={[styles.headerCell, styles.numberCell]}>
+                          <Text style={styles.headerText}>Orders</Text>
+                        </View>
+                        <View style={[styles.headerCell, styles.amountCell]}>
+                          <Text style={styles.headerText}>Work Pay</Text>
+                        </View>
+                        <View style={[styles.headerCell, styles.amountCell]}>
+                          <Text style={styles.headerText}>Amount Paid</Text>
+                        </View>
+                        <View style={[styles.headerCell, styles.amountCell]}>
+                          <Text style={styles.headerText}>Remaining</Text>
+                        </View>
+                      </View>
 
-                  {/* Table Body */}
-                  {calculating ? (
-                    <View style={styles.calculatingContainer}>
-                      <ActivityIndicator size="small" color="#2980b9" />
-                      <Text style={styles.calculatingText}>Calculating weekly pay...</Text>
+                      {/* Table Body */}
+                      {calculating ? (
+                        <View style={styles.calculatingContainer}>
+                          <ActivityIndicator size="small" color="#2980b9" />
+                          <Text style={styles.calculatingText}>Calculating weekly pay...</Text>
+                        </View>
+                      ) : weeklyPayData.weekly_data && weeklyPayData.weekly_data.length > 0 ? (
+                        <FlatList
+                          data={weeklyPayData.weekly_data}
+                          renderItem={renderWeeklyRow}
+                          keyExtractor={(item, index) => `week-${index}-${item?.week_period || 'unknown'}`}
+                          scrollEnabled={true}
+                          showsVerticalScrollIndicator={true}
+                          nestedScrollEnabled={true}
+                        />
+                      ) : (
+                        <View style={styles.noDataContainer}>
+                          <Text style={styles.noDataText}>No weekly data available</Text>
+                        </View>
+                      )}
                     </View>
-                  ) : weeklyPayData.weekly_data && weeklyPayData.weekly_data.length > 0 ? (
-                    <FlatList
-                      data={weeklyPayData.weekly_data}
-                      renderItem={renderWeeklyRow}
-                      keyExtractor={(item, index) => `week-${index}-${item?.week_period || 'unknown'}`}
-                      scrollEnabled={false}
-                      showsVerticalScrollIndicator={false}
-                    />
-                  ) : (
-                    <View style={styles.noDataContainer}>
-                      <Text style={styles.noDataText}>No weekly data available</Text>
-                    </View>
-                  )}
+                  </ScrollView>
                 </View>
               </View>
             )}
@@ -588,6 +607,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2c3e50',
     marginBottom: 12,
+  },
+  horizontalScrollContainer: {
+    flex: 1,
+    maxHeight: 500,
+  },
+  tableWrapper: {
+    minWidth: 800,
   },
   tableHeader: {
     flexDirection: 'row',

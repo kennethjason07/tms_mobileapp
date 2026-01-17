@@ -21,7 +21,8 @@ const FractionalInput = ({
   maxFractionalDigits = 4,
   showDecimalValue = false,
   allowText = false,  // New prop to allow text input mixed with fractions
-  numericOnly = false  // New prop to force numeric-only mode
+  // New prop to force numeric-only mode
+  disableCalculation = false // New prop to disable automatic calculation and allow raw text
 }) => {
   const [displayValue, setDisplayValue] = useState('');
   const [decimalValue, setDecimalValue] = useState(0);
@@ -32,6 +33,13 @@ const FractionalInput = ({
       setDisplayValue('');
       setDecimalValue(0);
     } else {
+      // If calculation is disabled, show value as is
+      if (disableCalculation) {
+        setDisplayValue(value.toString());
+        setDecimalValue(0); // Decimal value not relevant
+        return;
+      }
+      
       // If it's already a decimal, show it as is
       const numValue = typeof value === 'string' ? parseFloat(value) : value;
       if (!isNaN(numValue)) {
@@ -39,18 +47,24 @@ const FractionalInput = ({
         setDecimalValue(numValue);
       }
     }
-  }, [value]);
+  }, [value, disableCalculation]);
 
   // Parse various input formats and convert to decimal
   const parseInput = (input) => {
     if (!input || input.trim() === '') {
       return { decimal: 0, isValid: true, text: '' };
     }
+    
+    // If calculation is disabled, treat everything as valid text
+    if (disableCalculation) {
+      return { decimal: 0, isValid: true, text: input };
+    }
 
     const trimmedInput = input.trim();
 
     // If allowText is true, check if input contains non-numeric characters
     if (allowText) {
+      // ... existing allowText logic ...
       // Look for numeric patterns within text
       const numericPatterns = [
         /\b(\d+)\s+(\d+)\/(\d+)\b/g,  // Mixed numbers: "35 1/2"
@@ -135,6 +149,7 @@ const FractionalInput = ({
 
   // Format decimal as fraction for common fractions
   const formatAsCommonFraction = (decimal) => {
+    // ... existing logic ...
     const tolerance = 0.01;
     const commonFractions = [
       { decimal: 0.125, display: '1/8' },
@@ -167,6 +182,14 @@ const FractionalInput = ({
 
   const handleTextChange = (text) => {
     setDisplayValue(text);
+
+    // If calculation is disabled, just pass the raw text
+    if (disableCalculation) {
+      if (onChangeValue) {
+        onChangeValue(text);
+      }
+      return;
+    }
 
     const parseResult = parseInput(text);
     
@@ -207,11 +230,11 @@ const FractionalInput = ({
         value={displayValue}
         onChangeText={handleTextChange}
         placeholder={getPlaceholderText()}
-        keyboardType={keyboardType}
+        keyboardType={disableCalculation ? "default" : keyboardType}
         autoCorrect={false}
         selectTextOnFocus={true}
       />
-      {showDecimalValue && decimalValue > 0 && (
+      {showDecimalValue && decimalValue > 0 && !disableCalculation && (
         <Text style={styles.decimalDisplay}>
           = {decimalValue}
         </Text>

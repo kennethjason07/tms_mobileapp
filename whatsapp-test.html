@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #128C7E;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #25D366;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 WhatsApp Integration Test</h1>
+    <p>Test if WhatsApp Web opens correctly from your browser</p>
+    
+    <div>
+        <label for="phone">Mobile Number (10 digits):</label>
+        <input type="text" id="phone" placeholder="9876543210" value="7619107621">
+        
+        <label for="message">Message:</label>
+        <input type="text" id="message" placeholder="Test message" value="Hello! This is a test message from TMS.">
+        
+        <button onclick="testWhatsApp()">📱 Open WhatsApp</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+    
+    <div class="log" id="log">
+        <div class="log-entry">Ready to test...</div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '<div class="log-entry">Log cleared...</div>';
+        }
+
+        function testWhatsApp() {
+            const phone = document.getElementById('phone').value;
+            const message = document.getElementById('message').value;
+            
+            log('🚀 Starting WhatsApp test...');
+            log(`Phone: ${phone}`);
+            log(`Message: ${message}`);
+            
+            // Validate phone number
+            const cleanPhone = phone.replace(/\D/g, '');
+            log(`Clean phone: ${cleanPhone}`);
+            
+            if (cleanPhone.length !== 10) {
+                log('❌ ERROR: Phone number must be 10 digits');
+                alert('Please enter a valid 10-digit mobile number');
+                return;
+            }
+            
+            if (!/^[6-9]/.test(cleanPhone)) {
+                log('❌ ERROR: Phone number must start with 6-9');
+                alert('Please enter a valid Indian mobile number (starts with 6-9)');
+                return;
+            }
+            
+            // Format phone with country code
+            const formattedPhone = '91' + cleanPhone;
+            log(`✅ Formatted phone: ${formattedPhone}`);
+            
+            // Encode message
+            const encodedMessage = encodeURIComponent(message);
+            log(`✅ Encoded message: ${encodedMessage.substring(0, 50)}...`);
+            
+            // Create WhatsApp URL
+            const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+            log(`✅ WhatsApp URL: ${whatsappUrl.substring(0, 80)}...`);
+            
+            // Try to open WhatsApp
+            log('📱 Opening WhatsApp in new tab...');
+            try {
+                const newWindow = window.open(whatsappUrl, '_blank');
+                if (newWindow) {
+                    log('✅ SUCCESS: WhatsApp opened in new tab!');
+                    log('Check if new tab opened with WhatsApp Web');
+                } else {
+                    log('❌ FAILED: Popup blocked or window.open failed');
+                    log('Please allow popups for this site');
+                    alert('Popup blocked! Please allow popups and try again.');
+                }
+            } catch (error) {
+                log(`❌ ERROR: ${error.message}`);
+                alert(`Error: ${error.message}`);
+            }
+        }
+        
+        // Auto-test on load (optional)
+        log('✅ Test page loaded successfully');
+        log('Enter phone number and click "Open WhatsApp" to test');
+    </script>
+</body>
+</html>

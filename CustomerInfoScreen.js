@@ -169,7 +169,17 @@ export default function CustomerInfoScreen({ navigation }) {
     });
 
     // Calculate metadata
-    const totalAmount = transformedOrders.reduce((sum, order) => sum + (parseFloat(order.total_amount) || 0), 0);
+    // Use a Map to track unique bills and their amounts to avoid double counting
+    const uniqueBillsMap = new Map();
+    transformedOrders.forEach(order => {
+      // Use bill_id as primary key, fallback to bill_number if necessary
+      const billKey = order.bill_id || order.bill_number;
+      if (billKey && !uniqueBillsMap.has(billKey)) {
+        uniqueBillsMap.set(billKey, parseFloat(order.total_amount) || 0);
+      }
+    });
+    
+    const totalAmount = Array.from(uniqueBillsMap.values()).reduce((sum, amount) => sum + amount, 0);
     const uniqueBillNumbers = [...new Set(transformedOrders.map(order => order.bill_number).filter(Boolean))];
     
     const result = {
@@ -336,8 +346,8 @@ export default function CustomerInfoScreen({ navigation }) {
       </View>
 
       {Platform.OS === 'web' ? (
-        <View style={{ height: '100vh', width: '100vw', overflow: 'auto' }}>
-          <WebScrollView style={{ overflow: 'visible' }} showsVerticalScrollIndicator={true}>
+        <View style={{ flex: 1, width: '100%' }}>
+          <WebScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
             {/* Search Section */}
             <View style={styles.searchSection}>
               <Text style={styles.sectionTitle}>Customer's Information</Text>
@@ -370,16 +380,24 @@ export default function CustomerInfoScreen({ navigation }) {
                 <View style={styles.ordersSection}>
                   {renderSummaryCard()}
                   <Text style={styles.sectionTitle}>Customer Orders ({customerOrders.length})</Text>
-                  <View style={styles.tableContainer}>
-                    {renderTableHeader()}
-                    <FlatList
-                      data={customerOrders}
-                      renderItem={renderOrderItem}
-                      keyExtractor={(item, index) => `${item?.order_id || 'no-id'}-${index}`}
-                      scrollEnabled={false}
-                      showsVerticalScrollIndicator={false}
-                    />
-                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={true}
+                    style={styles.horizontalScrollContainer}
+                    nestedScrollEnabled={true}
+                  >
+                    <View style={styles.tableContainer}>
+                      {renderTableHeader()}
+                      <FlatList
+                        data={customerOrders}
+                        renderItem={renderOrderItem}
+                        keyExtractor={(item, index) => `${item?.order_id || 'no-id'}-${index}`}
+                        scrollEnabled={true}
+                        showsVerticalScrollIndicator={true}
+                        nestedScrollEnabled={true}
+                      />
+                    </View>
+                  </ScrollView>
                 </View>
               )}
 
@@ -546,12 +564,12 @@ const styles = StyleSheet.create({
   },
   horizontalScrollContainer: {
     flex: 1,
-    maxHeight: 400, // Limit height for vertical scrolling
+    maxHeight: 500, // Increased height for better vertical scrolling
   },
   tableContainer: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: 'visible',
     borderWidth: 1,
     borderColor: '#e9ecef',
     minWidth: 800, // Ensure table is wide enough to trigger horizontal scroll

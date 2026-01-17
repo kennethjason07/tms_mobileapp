@@ -13,11 +13,10 @@ const NAV_ITEMS = [
   { label: 'Worker Expenses', desc: 'Track worker payments and expenses', screen: 'WorkerExpense', available: true },
   { label: 'Weekly Pay Calculation', desc: 'Calculate worker weekly payments', screen: 'WeeklyPay', available: true },
   { label: 'Worker Detailed Overview', desc: 'View detailed worker performance', screen: 'WorkerDetail', available: true },
-  { label: 'Daily Profit', desc: 'Track daily and monthly profits', screen: 'DailyProfit', available: true },
   { label: 'Workers', desc: 'Add and manage workers', screen: 'Workers', available: true },
 ];
 
-export default function DashboardScreen({ navigation }) {
+export default function DashboardScreen({ navigation, onLogout }) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
@@ -232,6 +231,15 @@ export default function DashboardScreen({ navigation }) {
             isSmallScreen={isSmallScreen}
           />
           <DashboardCard
+            icon={<MaterialCommunityIcons name="view-dashboard" size={32} color="#1abc9c" />}
+            label="Total Orders"
+            desc="Orders due for delivery today"
+            onPress={() => navigation.navigate('TodaysOrders')}
+            width={cardWidth}
+            fontSizes={fontSizes}
+            isSmallScreen={isSmallScreen}
+          />
+          <DashboardCard
             icon={<FontAwesome5 name="money-bill-wave" size={32} color="#e67e22" />}
             label="Shop Expenses"
             desc="Manage shop expenses and costs"
@@ -263,15 +271,6 @@ export default function DashboardScreen({ navigation }) {
             label="Worker Detailed Overview"
             desc="View detailed worker performance"
             onPress={() => navigation.navigate('Workers')}
-            width={cardWidth}
-            fontSizes={fontSizes}
-            isSmallScreen={isSmallScreen}
-          />
-          <DashboardCard
-            icon={<MaterialCommunityIcons name="chart-bar" size={32} color="#e67e22" />}
-            label="Daily Profit"
-            desc="Track daily and monthly profits"
-            onPress={() => navigation.navigate('DailyProfit')}
             width={cardWidth}
             fontSizes={fontSizes}
             isSmallScreen={isSmallScreen}
@@ -424,6 +423,15 @@ export default function DashboardScreen({ navigation }) {
                 isSmallScreen={isSmallScreen}
               />
               <DashboardCard
+                icon={<MaterialCommunityIcons name="view-dashboard" size={32} color="#1abc9c" />}
+                label="Total Orders"
+                desc="Orders due for delivery today"
+                onPress={() => navigation.navigate('TodaysOrders')}
+                width={cardWidth}
+                fontSizes={fontSizes}
+                isSmallScreen={isSmallScreen}
+              />
+              <DashboardCard
                 icon={<FontAwesome5 name="money-bill-wave" size={32} color="#e67e22" />}
                 label="Shop Expenses"
                 desc="Manage shop expenses and costs"
@@ -460,15 +468,6 @@ export default function DashboardScreen({ navigation }) {
                 isSmallScreen={isSmallScreen}
               />
               <DashboardCard
-                icon={<MaterialCommunityIcons name="chart-bar" size={32} color="#e67e22" />}
-                label="Daily Profit"
-                desc="Track daily and monthly profits"
-                onPress={() => navigation.navigate('DailyProfit')}
-                width={cardWidth}
-                fontSizes={fontSizes}
-                isSmallScreen={isSmallScreen}
-              />
-              <DashboardCard
                 icon={<MaterialCommunityIcons name="trending-up" size={32} color="#27ae60" />}
                 label="Today's Profit"
                 desc="View today's profit from advances & payments"
@@ -499,6 +498,48 @@ export default function DashboardScreen({ navigation }) {
           </WebScrollView>
         </SafeAreaView>
       )}
+      
+      {/* Floating Logout Button */}
+      <TouchableOpacity 
+        style={styles.logoutButton}
+        onPress={() => {
+          if (Platform.OS === 'web') {
+            // For web, use window.confirm
+            if (window.confirm('Are you sure you want to logout?')) {
+              if (onLogout) {
+                onLogout();
+              } else {
+                console.error('onLogout function not provided');
+              }
+            }
+          } else {
+            // For mobile, use Alert
+            Alert.alert(
+              'Logout',
+              'Are you sure you want to logout?',
+              [
+                {
+                  text: 'Cancel',
+                  style: 'cancel'
+                },
+                {
+                  text: 'Logout',
+                  onPress: () => {
+                    if (onLogout) {
+                      onLogout();
+                    } else {
+                      console.error('onLogout function not provided');
+                    }
+                  },
+                  style: 'destructive'
+                }
+              ]
+            );
+          }
+        }}
+      >
+        <Ionicons name="log-out-outline" size={24} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -647,4 +688,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   navCardDesc: { fontSize: 14, color: '#7f8c8d' },
+  logoutButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#e74c3c',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 1000,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+    }),
+  },
 }); 

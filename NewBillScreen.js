@@ -1,382 +1,4 @@
-  // Professional bill HTML generator with inline styles for PDF compatibility
-  const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber, includeMeasurements = true) => {
-    console.log('🏭 generateProfessionalBillHTML called');
 
-    // Calculate totals and organize data
-    const garmentTotals = {};
-    let totalAmount = 0;
-    let totalQuantity = 0;
-
-    // Process itemized bill data to create garment totals
-    const garmentTypes = [
-      { type: 'Suit', qty: parseInt(itemizedBill.suit_qty) || 0, amount: parseFloat(itemizedBill.suit_amount) || 0 },
-      { type: 'Safari/Jacket', qty: parseInt(itemizedBill.safari_qty) || 0, amount: parseFloat(itemizedBill.safari_amount) || 0 },
-      { type: 'Pant', qty: parseInt(itemizedBill.pant_qty) || 0, amount: parseFloat(itemizedBill.pant_amount) || 0 },
-      { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0, amount: parseFloat(itemizedBill.shirt_amount) || 0 }
-    ];
-
-    garmentTypes.forEach(({ type, qty, amount }) => {
-      if (qty > 0) {
-        garmentTotals[type] = { qty, amount };
-        totalAmount += amount;
-        totalQuantity += qty;
-      }
-    });
-
-    const advanceAmount = parseFloat(billData.payment_amount) || 0;
-    const remainingAmount = totalAmount - advanceAmount;
-
-    // Format dates
-    const orderDate = billData.order_date ? 
-      new Date(billData.order_date).toLocaleDateString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      }).replace(/\//g, '-') : '';
-      
-    const dueDate = billData.due_date ? 
-      new Date(billData.due_date).toLocaleDateString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      }).replace(/\//g, '-') : '';
-    
-    // Generate measurements with separate boxes for PANT and SHIRT
-    const generateMeasurementsForPDF = (measurements) => {
-      console.log('🎯 generateMeasurementsForPDF called with:', measurements);
-      console.log('🔍 SideP_Cross value specifically:', measurements.SideP_Cross);
-      console.log('📋 All measurement keys:', Object.keys(measurements));
-      console.log('💡 All measurement entries:', Object.entries(measurements));
-      
-      // Format date as dd-mm-yyyy
-      const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        try {
-          const date = new Date(dateString);
-          const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const year = date.getFullYear();
-          return `${day}-${month}-${year}`;
-        } catch {
-          return dateString; // Return original if parsing fails
-        }
-      };
-      
-      if (!measurements || Object.keys(measurements).length === 0) {
-        return '<div style="font-size: 10px; color: #666;">No measurements available</div>';
-      }
-      
-      const excludedFields = ['id', 'customer_id', 'bill_id', 'order_id', 'phone', 'mobile', 'mobile_number', 'phone_number', 'customer_name', 'name', 'email', 'address', 'order_date', 'due_date', 'created_at', 'updated_at'];
-      
-      const allEntries = Object.entries(measurements).filter(([key, value]) => {
-        const hasValue = value !== '' && value !== null && value !== undefined && value !== 0;
-        // More precise exclusion - only exclude exact matches or fields that START with excluded terms
-        const isNotExcluded = !excludedFields.some(excludedField => {
-          return key.toLowerCase() === excludedField.toLowerCase() || 
-                 key.toLowerCase().startsWith(excludedField.toLowerCase() + '_') ||
-                 (excludedField === 'phone' && (key.toLowerCase() === 'phone' || key.toLowerCase() === 'phone_number'));
-        });
-        // Special logging for SideP_Cross
-        if (key === 'SideP_Cross') {
-          console.log(`🔍 SideP_Cross check: key=${key}, value=${value}, hasValue=${hasValue}, isNotExcluded=${isNotExcluded}`);
-        }
-        return hasValue && isNotExcluded;
-      });
-      
-      if (allEntries.length === 0) {
-        return '<div style="font-size: 10px; color: #666;">No measurements entered</div>';
-      }
-      
-      // Group measurements
-      const pantMeasurements = allEntries.filter(([key]) => 
-        key.toLowerCase().includes('pant') || 
-        ['length', 'kamar', 'hips', 'waist', 'ghutna', 'bottom', 'seat', 'sidep_cross', 'plates', 'belt', 'back_p', 'wp', 'sidep', 'cross'].includes(key.toLowerCase()) ||
-        key.toLowerCase().replace('_', '').includes('sidepcross')
-      );
-      
-      const shirtMeasurements = allEntries.filter(([key]) => 
-        key.toLowerCase().includes('shirt') || 
-        ['shirtlength', 'body', 'loose', 'shoulder', 'astin', 'collar', 'collor', 'aloose', 'allose', 'callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(key.toLowerCase())
-      );
-      
-      const extraMeasurements = allEntries.filter(([key]) => 
-        !pantMeasurements.some(([pantKey]) => pantKey === key) &&
-        !shirtMeasurements.some(([shirtKey]) => shirtKey === key)
-      );
-      
-      let result = [];
-      
-      // Generate PANT measurements box
-      if (pantMeasurements.length > 0) {
-        // Special boxed fields for PANT - exact field name matching
-        const pantBoxedFieldsExact = ['SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP'];
-        const pantBoxedFieldsLower = ['sidep_cross', 'sidepcross', 'plates', 'belt', 'back_p', 'backp', 'wp'];
-        
-        const isBoxedPantField = (key) => {
-          return pantBoxedFieldsExact.includes(key) || 
-                 pantBoxedFieldsLower.includes(key.toLowerCase()) ||
-                 pantBoxedFieldsLower.includes(key.toLowerCase().replace('_', ''));
-        };
-        
-        const regularPantFields = pantMeasurements.filter(([key]) => !isBoxedPantField(key));
-        const boxedPantFields = pantMeasurements.filter(([key]) => isBoxedPantField(key));
-        
-        // Debug logging for SideP_Cross
-        console.log('🔍 PANT measurements found:', pantMeasurements.map(([key, value]) => `${key}:${value}`));
-        console.log('📦 Boxed pant fields:', boxedPantFields.map(([key, value]) => `${key}:${value}`));
-        console.log('📝 Regular pant fields:', regularPantFields.map(([key, value]) => `${key}:${value}`));
-        
-        let pantContent = '';
-        
-        // Regular pant measurements in single line (numbers only)
-        if (regularPantFields.length > 0) {
-          const regularValues = regularPantFields.map(([key, value]) => {
-            return `${value}`;
-          }).join(' | ');
-          pantContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
-        }
-        
-        // Boxed pant fields (SideP/Cross, Plates, Belt, Back P., WP)
-        if (boxedPantFields.length > 0) {
-          const boxedValues = boxedPantFields.map(([key, value]) => {
-            let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Pant ', '');
-            // Clean up specific field labels
-            if (key === 'SideP_Cross' || key.toLowerCase() === 'sidep_cross') {
-              label = 'SideP/Cross';
-            } else if (key === 'Back_P' || key.toLowerCase() === 'back_p') {
-              label = 'Back P.';
-            }
-            return `<span style="display: inline-block; margin: 1px; padding: 2px 4px; background: #e8f5e8; border: 1px solid #2e7d32; border-radius: 3px; font-size: 12px; font-weight: bold; color: #1b5e20;">${label}:${value}</span>`;
-          }).join('');
-          pantContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
-        }
-        
-        result.push(`
-          <div style="width: 100%; border: 1px solid #2e7d32; border-radius: 4px; padding: 4px; background: #f9fdf9; margin-bottom: 3px; min-height: 45px;">
-            <div style="font-weight: bold; font-size: 10px; color: #2e7d32; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #2e7d32; padding-bottom: 1px;">PANT</div>
-            <div style="font-size: 12px; color: #666; text-align: center; margin-bottom: 2px;">Bill No: ${orderNumber || billData.billnumberinput2 || 'N/A'} | Delivery: ${formatDate(billData.due_date)}</div>
-            ${pantContent}
-          </div>
-        `);
-      }
-      
-      // Generate SHIRT measurements box
-      if (shirtMeasurements.length > 0) {
-        // Special boxed fields for SHIRT
-        const shirtBoxedFields = ['collar', 'collor', 'callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'];
-        const regularShirtFields = shirtMeasurements.filter(([key]) => 
-          !shirtBoxedFields.includes(key.toLowerCase())
-        );
-        const boxedShirtFields = shirtMeasurements.filter(([key]) => 
-          shirtBoxedFields.includes(key.toLowerCase())
-        );
-        
-        let shirtContent = '';
-        
-        // Regular shirt measurements in single line (numbers only)
-        if (regularShirtFields.length > 0) {
-          const regularValues = regularShirtFields.map(([key, value]) => {
-            return `${value}`;
-          }).join(' | ');
-          shirtContent += `<div style="margin-bottom: 2px; font-size: 16px; font-weight: bold;">${regularValues}</div>`;
-        }
-        
-        // Boxed shirt fields
-        if (boxedShirtFields.length > 0) {
-          const boxedValues = boxedShirtFields.map(([key, value]) => {
-            let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Shirt ', '');
-            // Clean up label names
-            if (label.toLowerCase().includes('collar') || label.toLowerCase().includes('collor') || label.toLowerCase().includes('callar')) {
-              label = 'Collar';
-            } else if (label.toLowerCase().includes('looseshirt')) {
-              label = 'Loose';
-            }
-            return `<span style="display: inline-block; margin: 1px; padding: 2px 4px; background: #fff8e1; border: 1px solid #f57c00; border-radius: 3px; font-size: 12px; font-weight: bold; color: #e65100;">${label}:${value}</span>`;
-          }).join('');
-          shirtContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
-        }
-        
-        result.push(`
-          <div style="width: 100%; border: 1px solid #f57c00; border-radius: 4px; padding: 4px; background: #fffbf5; margin-bottom: 3px; min-height: 45px;">
-            <div style="font-weight: bold; font-size: 10px; color: #f57c00; margin-bottom: 2px; text-align: center; border-bottom: 1px solid #f57c00; padding-bottom: 1px;">SHIRT</div>
-            <div style="font-size: 12px; color: #666; text-align: center; margin-bottom: 2px;">Bill No: ${orderNumber || billData.billnumberinput2 || 'N/A'} | Delivery: ${formatDate(billData.due_date)}</div>
-            ${shirtContent}
-          </div>
-        `);
-      }
-      
-      // Add EXTRA measurements if any (in simple format)
-      if (extraMeasurements.length > 0) {
-        const extraValues = extraMeasurements.map(([key, value]) => {
-          const label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase());
-          return `${label}:${value}`;
-        }).join(' | ');
-        result.push(`<div style="margin-top: 4px; font-size: 10px;"><strong style="color: #2c5282;">EXTRA:</strong> ${extraValues}</div>`);
-      }
-      
-      return result.join('');
-    };
-    
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Bill</title>
-  <style>
-    @page {
-      size: A4;
-      margin: 10mm;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-    }
-    body {
-      font-family: Calibri, Arial, sans-serif;
-      margin: 0;
-      padding: 15mm;
-      background-image: url('https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/design.png');
-      background-repeat: repeat;
-      background-size: auto;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .bill-container {
-      width: 100%;
-      padding: 5mm;
-      box-sizing: border-box;
-      border: 2px solid #333;
-      position: relative;
-      background: white;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-  </style>
-</head>
-<body>
-  <div class="bill-container">
-
-    <!-- Header Section -->
-    <div style="margin-bottom: 10px;">
-      <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/Shop.jpeg"
-           alt="Shop Header"
-           style="width: 100%; height: auto; display: block; -webkit-print-color-adjust: exact; print-color-adjust: exact;"
-           onerror="this.style.display='none';">
-    </div>
-
-    <!-- Customer Info Fields -->
-    <div style="margin-bottom: 8px; font-size: 21px; padding: 0 5px;">
-      <!-- Line 1: Name and Order No. -->
-      <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
-        <div style="width: 50%; display: flex; gap: 5px;">
-          <span style="font-weight: bold;">Name</span>
-          <span>${billData.customer_name || ''}</span>
-        </div>
-        <div style="width: 50%; display: flex; gap: 5px;">
-          <span style="font-weight: bold;">Order No.</span>
-          <span>${orderNumber || billData.billnumberinput2 || ''}</span>
-        </div>
-      </div>
-
-      <!-- Line 2: Date (right column) -->
-      <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
-        <div style="width: 50%;"></div>
-        <div style="width: 50%; display: flex; gap: 5px;">
-          <span style="font-weight: bold;">Date</span>
-          <span>${orderDate}</span>
-        </div>
-      </div>
-
-      <!-- Line 3: Cell and D. Date -->
-      <div style="display: flex; border-bottom: 1px solid #000; padding: 2px 0; min-height: 18px; margin-bottom: 8px;">
-        <div style="width: 50%; display: flex; gap: 5px;">
-          <span style="font-weight: bold;">Cell</span>
-          <span>${billData.mobile_number || ''}</span>
-        </div>
-        <div style="width: 50%; display: flex; gap: 5px;">
-          <span style="font-weight: bold;">D. Date</span>
-          <span>${dueDate}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content: Table and Image Side by Side -->
-    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-
-      <!-- Left Side: Particulars Table -->
-      <div style="flex: 0 0 70%;">
-        <!-- Column Headers -->
-        <div style="display: flex; background: #514849; border: 2px solid #000; border-bottom: none; border-radius: 8px 8px 0 0; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-          <div style="flex: 0 0 40%; padding: 8px 10px; text-align: left; font-weight: bold; font-size: 23px; border-right: 2px solid #000; color: #fff;">PARTICULARS</div>
-          <div style="flex: 0 0 20%; padding: 8px 10px; text-align: center; font-weight: bold; font-size: 23px; border-right: 2px solid #000; color: #fff;">QTY.</div>
-          <div style="padding: 8px 28px 3px 15px; font-weight: bold; font-size: 23px; color: #fff;">AMOUNT</div>
-        </div>
-
-        <!-- Item Rows -->
-        <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
-          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 21px; font-weight: 600; border-right: 2px solid #000;">Suit</div>
-          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 21px; border-right: 2px solid #000;">${garmentTotals['Suit']?.qty || ''}</div>
-          <div style="padding: 8px 28px 3px 15px; font-size: 21px;">${garmentTotals['Suit']?.amount || ''}</div>
-        </div>
-
-        <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
-          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 21px; font-weight: 600; border-right: 2px solid #000;">Safari/Jacket</div>
-          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 21px; border-right: 2px solid #000;">${garmentTotals['Safari/Jacket']?.qty || ''}</div>
-          <div style="padding: 8px 28px 3px 15px; font-size: 21px;">${garmentTotals['Safari/Jacket']?.amount || ''}</div>
-        </div>
-
-        <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
-          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 21px; font-weight: 600; border-right: 2px solid #000;">Pant</div>
-          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 21px; border-right: 2px solid #000;">${garmentTotals['Pant']?.qty || ''}</div>
-          <div style="padding: 8px 28px 3px 15px; font-size: 21px;">${garmentTotals['Pant']?.amount || ''}</div>
-        </div>
-
-        <div style="display: flex; border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 1px solid #000;">
-          <div style="flex: 0 0 40%; padding: 10px; text-align: left; font-size: 21px; font-weight: 600; border-right: 2px solid #000;">Shirt</div>
-          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 21px; border-right: 2px solid #000;">${garmentTotals['Shirt']?.qty || ''}</div>
-          <div style="padding: 8px 28px 3px 15px; font-size: 21px;">${garmentTotals['Shirt']?.amount || ''}</div>
-        </div>
-
-        <!-- Total Row -->
-        <div style="display: flex; border: 2px solid #000; border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; background: #e8e8e8; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-          <div style="flex: 0 0 40%; padding: 10px; text-align: center; font-size: 21px; font-weight: bold; border-right: 2px solid #000;">
-            <div style="margin-bottom: 2px;">Good Service</div>
-            <div>Prompt Delivery</div>
-          </div>
-          <div style="flex: 0 0 20%; padding: 10px; text-align: center; font-size: 24px; font-weight: bold; border-right: 2px solid #000; color: #db9b68; -webkit-print-color-adjust: exact; print-color-adjust: exact;">TOTAL</div>
-          <div style="padding: 8px 28px 3px 15px; font-size: 21px; font-weight: bold;"></div>
-        </div>
-      </div>
-
-      <!-- Right Side: Image -->
-      <div style="flex: 0 0 20%; display: flex; align-items: stretch;">
-        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg"
-             alt="Suit"
-             style="width: 140%; height: 100%;"
-             onerror="this.style.display='none';">
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div style="margin-top: 8px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #000; border-radius: 8px; padding: 12px 20px; background: #fff;">
-        <div style="flex: 1; text-align: left; font-size: 21px; font-weight: bold;">Thank You, Visit Again</div>
-        <div style="flex: 0 0 auto; text-align: center;">
-          <div style="background: #db9b68; color: #000; padding: 6px 20px; border-radius: 8px; font-weight: bold; font-size: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">Sunday Holiday</div>
-        </div>
-        <div style="flex: 1; text-align: right; font-size: 21px; font-weight: bold; color: #db9b68; padding-right: 40px;">Signature</div>
-      </div>
-    </div>
-
-  </div>
-</body>
-</html>
-    `;
-  };
 
 import React, { useState, useEffect, useRef } from 'react';
 // Test function to verify template system works
@@ -431,11 +53,14 @@ import {
 import WebScrollView from './components/WebScrollView';
 import FractionalInput from './components/FractionalInput';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { SupabaseAPI } from './supabase';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+
+import { generateProfessionalBillHTML, generateMeasurementHTML, formatDateForReceipt } from './utils/billGenerator';
 
 const { width } = Dimensions.get('window');
 
@@ -924,9 +549,10 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
     const items = [
       { name: 'Suit', qty: itemizedBillData.suit_qty || '0', amount: itemizedBillData.suit_amount || '0' },
       { name: 'Safari/Jacket', qty: itemizedBillData.safari_qty || '0', amount: itemizedBillData.safari_amount || '0' },
-      { name: 'Pant', qty: itemizedBillData.pant_qty || '0', amount: itemizedBillData.pant_amount || '0' },
-      { name: 'Shirt', qty: itemizedBillData.shirt_qty || '0', amount: itemizedBillData.shirt_amount || '0' },
-      { name: 'Sadri', qty: itemizedBillData.sadri_qty || '0', amount: itemizedBillData.sadri_amount || '0' }
+      { name: 'Pant', qty: parseInt(itemizedBillData.pant_qty) || 0, amount: parseFloat(itemizedBillData.pant_amount) || 0 },
+      { name: 'Shirt', qty: parseInt(itemizedBillData.shirt_qty) || 0, amount: parseFloat(itemizedBillData.shirt_amount) || 0 },
+      { name: 'N.Shirt', qty: parseInt(itemizedBillData.nshirt_qty) || 0, amount: parseFloat(itemizedBillData.nshirt_amount) || 0 },
+      { name: 'Sadri', qty: parseInt(itemizedBillData.sadri_qty) || 0, amount: parseFloat(itemizedBillData.sadri_amount) || 0 }
     ];
     
     const rows = items
@@ -950,7 +576,9 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
     const totalQty = parseInt(itemizedBillData.suit_qty || 0) + 
                     parseInt(itemizedBillData.safari_qty || 0) + 
                     parseInt(itemizedBillData.pant_qty || 0) + 
+                    parseInt(itemizedBillData.pant_qty || 0) + 
                     parseInt(itemizedBillData.shirt_qty || 0) + 
+                    parseInt(itemizedBillData.nshirt_qty || 0) + 
                     parseInt(itemizedBillData.sadri_qty || 0);
     return totalQty > 0 ? totalQty.toString() : '0';
   }
@@ -959,7 +587,9 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
     const totalAmount = (parseFloat(itemizedBillData.suit_amount) || 0) + 
                        (parseFloat(itemizedBillData.safari_amount) || 0) + 
                        (parseFloat(itemizedBillData.pant_amount) || 0) + 
+                       (parseFloat(itemizedBillData.pant_amount) || 0) + 
                        (parseFloat(itemizedBillData.shirt_amount) || 0) + 
+                       (parseFloat(itemizedBillData.nshirt_amount) || 0) + 
                        (parseFloat(itemizedBillData.sadri_amount) || 0);
     return totalAmount.toFixed(2);
   }
@@ -1004,228 +634,10 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
   return finalHTML;
 };
 
+
+
 // Traditional Measurement Card HTML Generator with inline styles for PDF compatibility
-const generateMeasurementHTML = (billData, measurements) => {
-  // Generate measurement card with full inline styling
-  const generateMeasurementCard = (type, measurements) => {
-    const cardConfig = {
-      pant: {
-        title: "PANT",
-        fields: [
-          { key: "pant_length", label: "Length", position: "top-left" },
-          { key: "pant_kamar", label: "Kamar", position: "top-center" },
-          { key: "pant_hips", label: "Hips", position: "top-right" },
-          { key: "pant_waist", label: "Waist", position: "middle-left" },
-          { key: "pant_ghutna", label: "Ghutna", position: "middle-center" },
-          { key: "pant_bottom", label: "Bottom", position: "middle-right" },
-          { key: "pant_seat", label: "Seat", position: "bottom-left" },
-          { key: "SideP_Cross", label: "SideP/Cross", position: "labeled-box-1" },
-          { key: "Plates", label: "Plates", position: "labeled-box-2" },
-          { key: "Belt", label: "Belt", position: "labeled-box-3" },
-          { key: "Back_P", label: "Back P.", position: "labeled-box-4" },
-          { key: "WP", label: "WP.", position: "labeled-box-5" }
-        ]
-      },
-      shirt: {
-        title: "SHIRT",
-        fields: [
-          { key: "shirt_length", label: "Length", position: "top-left" },
-          { key: "shirt_body", label: "Body", position: "top-center" },
-          { key: "shirt_loose", label: "Loose", position: "top-right" },
-          { key: "shirt_shoulder", label: "Shoulder", position: "middle-left" },
-          { key: "shirt_astin", label: "Astin", position: "middle-center" },
-          { key: "shirt_collar", label: "Collar", position: "middle-right" },
-          { key: "shirt_aloose", label: "A.Loose", position: "bottom-left" },
-          { key: "Callar", label: "Collar", position: "labeled-box-1" },
-          { key: "Cuff", label: "Cuff", position: "labeled-box-2" },
-          { key: "Pkt", label: "Pkt", position: "labeled-box-3" },
-          { key: "LooseShirt", label: "Loose", position: "labeled-box-4" },
-          { key: "DT_TT", label: "DT/TT", position: "labeled-box-5" }
-        ]
-      }
-    };
-    
-    const config = cardConfig[type];
-    if (!config) return '';
-    
-    // Generate main grid fields with inline styling
-    const positions = [
-      'top-left', 'top-center', 'top-right',
-      'middle-left', 'middle-center', 'middle-right',
-      'bottom-left', 'bottom-center', 'bottom-right'
-    ];
-    
-    const gridFields = positions.map(position => {
-      const field = config.fields.find(f => f.position === position);
-      if (!field) {
-        return `<td style="width: 33.33%; padding: 8px; text-align: center; border: 1px solid #ddd;"></td>`;
-      }
-      
-      const value = measurements[field.key] || '';
-      const hasValue = value !== '' && value !== 0;
-      
-      const bgColor = hasValue ? '#e8f5e8' : '#ffffff';
-      const borderColor = hasValue ? '#2e7d32' : '#333333';
-      const textColor = hasValue ? '#1b5e20' : '#333333';
-      
-      return `
-        <td style="width: 33.33%; padding: 8px; text-align: center; border: 1px solid #ddd; vertical-align: top;">
-          <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #666; background: #f5f5f5; padding: 2px 4px; border-radius: 2px;">${field.label}</div>
-          <div style="border: 3px solid ${borderColor}; border-radius: 4px; padding: 8px; min-height: 25px; font-size: 13px; font-weight: bold; background: ${bgColor}; color: ${textColor}; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">${value}</div>
-        </td>
-      `;
-    });
-    
-    // Create grid table (3x3)
-    const gridTable = `
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background: #fafafa; border: 1px solid #ddd;">
-        <tr>
-          ${gridFields[0]}
-          ${gridFields[1]}
-          ${gridFields[2]}
-        </tr>
-        <tr>
-          ${gridFields[3]}
-          ${gridFields[4]}
-          ${gridFields[5]}
-        </tr>
-        <tr>
-          ${gridFields[6]}
-          ${gridFields[7]}
-          ${gridFields[8]}
-        </tr>
-      </table>
-    `;
-    
-    // Generate labeled boxes with inline styling
-    const labeledFields = config.fields.filter(f => f.position.includes('labeled-box-'));
-    const labeledBoxes = labeledFields.map(field => {
-      const value = measurements[field.key] || '';
-      const hasValue = value !== '' && value !== 0;
-      
-      const bgColor = hasValue ? '#fff8e1' : '#ffffff';
-      const borderColor = hasValue ? '#f57c00' : '#666666';
-      const textColor = hasValue ? '#e65100' : '#333333';
-      
-      return `
-        <td style="width: 20%; padding: 4px; text-align: center; border: 1px solid #eee; vertical-align: top;">
-          <div style="font-size: 10px; font-weight: bold; margin-bottom: 3px; color: #444; background: #e0e0e0; padding: 2px 4px; border-radius: 2px; border: 1px solid #ccc;">${field.label}</div>
-          <div style="border: 2px solid ${borderColor}; border-radius: 3px; padding: 6px 2px; min-height: 18px; font-size: 11px; font-weight: bold; background: ${bgColor}; color: ${textColor}; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">${value}</div>
-        </td>
-      `;
-    }).join('');
-    
-    const labeledTable = `
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; padding-top: 10px; border-top: 2px solid #666; background: #f8f8f8;">
-        <tr>
-          ${labeledBoxes}
-        </tr>
-      </table>
-    `;
-    
-    return `
-      <div style="flex: 1; border: 4px solid #333333; border-radius: 8px; margin: 10px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.15); page-break-inside: avoid;">
-        <div style="background: #333333; color: white; padding: 8px 15px; text-align: center; font-weight: bold; font-size: 16px; margin: 0; border-radius: 4px 4px 0 0;">${config.title}</div>
-        <div style="position: absolute; top: 10px; right: 15px; font-size: 11px;">
-          <div style="margin: 3px 0; display: flex; align-items: center; gap: 5px;">
-            <span>Date:</span>
-            <div style="border: 1px solid #666; border-radius: 2px; background: white; padding: 2px 4px; width: 60px; height: 16px;"></div>
-          </div>
-          <div style="margin: 3px 0; display: flex; align-items: center; gap: 5px;">
-            <span>No.</span>
-            <div style="border: 1px solid #666; border-radius: 2px; background: white; padding: 2px 4px; width: 60px; height: 16px;"></div>
-          </div>
-        </div>
-        <div style="padding: 15px; position: relative; min-height: 180px; border: 1px solid #ddd; border-radius: 0 0 4px 4px;">
-          ${gridTable}
-          ${labeledTable}
-        </div>
-      </div>
-    `;
-  };
-  
-  // Generate extra measurements section with inline styling
-  const generateExtraMeasurements = (measurements) => {
-    const extraValue = measurements.extra_measurements || '';
-    return `
-      <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border: 2px solid #4A90E2; border-radius: 5px;">
-        <h4 style="margin: 0 0 10px 0; color: #2c5282; font-size: 14px;">Additional Notes / Extra Measurements:</h4>
-        <div style="background: white; border: 1px solid #ddd; border-radius: 3px; padding: 10px; min-height: 30px; font-size: 13px; line-height: 1.4; color: #333;">${extraValue || 'No additional measurements specified.'}</div>
-      </div>
-    `;
-  };
-  
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Customer Measurement Sheet</title>
-      <style>
-        @page {
-          size: A4;
-          margin: 15mm;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-        
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          color-adjust: exact !important;
-        }
-        
-        body { 
-          font-family: Arial, sans-serif !important;
-          margin: 0;
-          padding: 15px;
-          background: white !important;
-          color: #333 !important;
-          line-height: 1.3;
-        }
-      </style>
-    </head>
-    <body>
-      <!-- Header with inline styling -->
-      <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #333333; padding-bottom: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-        <h2 style="margin: 0; font-size: 24px; color: #333333; font-weight: bold;">Yak's Men's Wear</h2>
-        <div style="font-size: 16px; color: #ff6600; margin: 8px 0 4px 0; font-weight: bold;">Customer Measurement Sheet</div>
-        <div style="font-size: 11px; color: #666666; margin-top: 4px;">Prop: Jaganath Sidda | Shop: 8660897168, 9448678033</div>
-      </div>
 
-      <!-- Customer Info with inline styling -->
-      <table style="width: 100%; margin: 15px 0; border-collapse: collapse; border: 2px solid #dddddd; background: #f9f9f9;">
-        <tr>
-          <td style="padding: 8px; border: 1px solid #dddddd; font-size: 13px; width: 25%;"><strong>Customer Name:</strong><br>${billData.customer_name || '___________________'}</td>
-          <td style="padding: 8px; border: 1px solid #dddddd; font-size: 13px; width: 25%;"><strong>Mobile Number:</strong><br>${billData.mobile_number || '___________________'}</td>
-          <td style="padding: 8px; border: 1px solid #dddddd; font-size: 13px; width: 25%;"><strong>Date:</strong><br>${billData.order_date || '___________'}</td>
-          <td style="padding: 8px; border: 1px solid #dddddd; font-size: 13px; width: 25%;"><strong>Delivery Date:</strong><br>${billData.due_date || '___________'}</td>
-        </tr>
-      </table>
-
-      <!-- Measurement Cards with inline styling -->
-      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-        <tr>
-          <td style="width: 50%; vertical-align: top; padding-right: 10px;">
-            ${generateMeasurementCard('pant', measurements)}
-          </td>
-          <td style="width: 50%; vertical-align: top; padding-left: 10px;">
-            ${generateMeasurementCard('shirt', measurements)}
-          </td>
-        </tr>
-      </table>
-
-      ${generateExtraMeasurements(measurements)}
-
-      <!-- Footer with inline styling -->
-      <div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 2px solid #dddddd; font-size: 14px; font-weight: bold; color: #333333;">
-        <div style="color: #ff6600; margin-bottom: 4px;">Thank You, Visit Again!</div>
-        <div style="font-size: 11px; color: #666666; margin-top: 8px;">Sunday Holiday</div>
-      </div>
-    </body>
-    </html>
-  `;
-};
 
 // IST Timezone Utility Functions
 const getISTTimestamp = () => {
@@ -1270,11 +682,7 @@ export default function NewBillScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [selectedDueDate, setSelectedDueDate] = useState(new Date());
-  const [measurementType, setMeasurementType] = useState({
-    pant: false,
-    shirt: false,
-    extra: false,
-  });
+  const [measurementType, setMeasurementType] = useState({ pant: false, shirt: false, suit: false, safari: false, nshirt: false, sadri: false, extra: false });
   
   const [billData, setBillData] = useState({
     customer_name: '',
@@ -1302,6 +710,7 @@ export default function NewBillScreen({ navigation }) {
     WP: '',
     
     // Shirt measurements
+    shirt_type: 'Shirt',
     shirt_length: 0,
     shirt_body: '',
     shirt_loose: '',
@@ -1317,6 +726,60 @@ export default function NewBillScreen({ navigation }) {
     
     // Extra measurements
     extra_measurements: '',
+    suit_length: 0,
+    suit_body: '',
+    suit_loose: '',
+    suit_shoulder: 0,
+    suit_astin: 0,
+    suit_collar: 0,
+    suit_aloose: 0,
+    suit_callar: '',
+    suit_cuff: '',
+    suit_pkt: '',
+    suit_looseshirt: '',
+    suit_dt_tt: '',
+    
+    // Safari/Jacket measurements
+    safari_length: 0,
+    safari_body: '',
+    safari_loose: '',
+    safari_shoulder: 0,
+    safari_astin: 0,
+    safari_collar: 0,
+    safari_aloose: 0,
+    safari_callar: '',
+    safari_cuff: '',
+    safari_pkt: '',
+    safari_looseshirt: '',
+    safari_dt_tt: '',
+
+    // N.Shirt measurements
+    nshirt_length: 0,
+    nshirt_body: '',
+    nshirt_loose: '',
+    nshirt_shoulder: 0,
+    nshirt_astin: 0,
+    nshirt_collar: 0,
+    nshirt_aloose: 0,
+    nshirt_callar: '',
+    nshirt_cuff: '',
+    nshirt_pkt: '',
+    nshirt_looseshirt: '',
+    nshirt_dt_tt: '',
+
+    // Sadri measurements
+    sadri_length: 0,
+    sadri_body: '',
+    sadri_loose: '',
+    sadri_shoulder: 0,
+    sadri_astin: 0,
+    sadri_collar: 0,
+    sadri_aloose: 0,
+    sadri_callar: '',
+    sadri_cuff: '',
+    sadri_pkt: '',
+    sadri_looseshirt: '',
+    sadri_dt_tt: '',
   });
 
   const [itemizedBill, setItemizedBill] = useState({
@@ -1328,6 +791,8 @@ export default function NewBillScreen({ navigation }) {
     pant_amount: '0',
     shirt_qty: '0',
     shirt_amount: '0',
+    nshirt_qty: '0',
+    nshirt_amount: '0',
     sadri_qty: '0',
     sadri_amount: '0',
     total_qty: '0',
@@ -1380,11 +845,13 @@ export default function NewBillScreen({ navigation }) {
     const pantAmt = parseFloat(itemizedBill.pant_amount) || 0;
     const shirtQty = parseFloat(itemizedBill.shirt_qty) || 0;
     const shirtAmt = parseFloat(itemizedBill.shirt_amount) || 0;
+    const nshirtQty = parseFloat(itemizedBill.nshirt_qty) || 0;
+    const nshirtAmt = parseFloat(itemizedBill.nshirt_amount) || 0;
     const sadriQty = parseFloat(itemizedBill.sadri_qty) || 0;
     const sadriAmt = parseFloat(itemizedBill.sadri_amount) || 0;
 
-    const totalQty = suitQty + safariQty + pantQty + shirtQty + sadriQty;
-    const totalAmt = suitAmt + safariAmt + pantAmt + shirtAmt + sadriAmt;
+    const totalQty = suitQty + safariQty + pantQty + shirtQty + nshirtQty + sadriQty;
+    const totalAmt = suitAmt + safariAmt + pantAmt + shirtAmt + nshirtAmt + sadriAmt;
 
     return {
       total_qty: totalQty.toString(),
@@ -1447,6 +914,54 @@ export default function NewBillScreen({ navigation }) {
             LooseShirt: '',
             DT_TT: '',
             extra_measurements: '',
+            suit_length: 0,
+            suit_body: '',
+            suit_loose: '',
+            suit_shoulder: 0,
+            suit_astin: 0,
+            suit_collar: 0,
+            suit_aloose: 0,
+            suit_callar: '',
+            suit_cuff: '',
+            suit_pkt: '',
+            suit_looseshirt: '',
+            suit_dt_tt: '',
+            safari_length: 0,
+            safari_body: '',
+            safari_loose: '',
+            safari_shoulder: 0,
+            safari_astin: 0,
+            safari_collar: 0,
+            safari_aloose: 0,
+            safari_callar: '',
+            safari_cuff: '',
+            safari_pkt: '',
+            safari_looseshirt: '',
+            safari_dt_tt: '',
+            nshirt_length: 0,
+            nshirt_body: '',
+            nshirt_loose: '',
+            nshirt_shoulder: 0,
+            nshirt_astin: 0,
+            nshirt_collar: 0,
+            nshirt_aloose: 0,
+            nshirt_callar: '',
+            nshirt_cuff: '',
+            nshirt_pkt: '',
+            nshirt_looseshirt: '',
+            nshirt_dt_tt: '',
+            sadri_length: 0,
+            sadri_body: '',
+            sadri_loose: '',
+            sadri_shoulder: 0,
+            sadri_astin: 0,
+            sadri_collar: 0,
+            sadri_aloose: 0,
+            sadri_callar: '',
+            sadri_cuff: '',
+            sadri_pkt: '',
+            sadri_looseshirt: '',
+            sadri_dt_tt: '',
           });
         }
 
@@ -1582,6 +1097,7 @@ export default function NewBillScreen({ navigation }) {
         safari_qty: parseInt(itemizedBill.safari_qty) || 0,
         pant_qty: parseInt(itemizedBill.pant_qty) || 0,
         shirt_qty: parseInt(itemizedBill.shirt_qty) || 0,
+        nshirt_qty: parseInt(itemizedBill.nshirt_qty) || 0,
         sadri_qty: parseInt(itemizedBill.sadri_qty) || 0,
       };
       
@@ -1733,6 +1249,7 @@ Total: ${orderResults.length} garment orders`,
       { type: 'Safari/Jacket', qty: parseInt(itemizedBill.safari_qty) || 0 },
       { type: 'Pant', qty: parseInt(itemizedBill.pant_qty) || 0 },
       { type: 'Shirt', qty: parseInt(itemizedBill.shirt_qty) || 0 },
+      { type: 'N.Shirt', qty: parseInt(itemizedBill.nshirt_qty) || 0 },
       { type: 'Sadri', qty: parseInt(itemizedBill.sadri_qty) || 0 }
     ];
     
@@ -1779,6 +1296,7 @@ Total: ${orderResults.length} garment orders`,
     if (parseFloat(itemizedBill.safari_qty) > 0) types.push('Safari/Jacket');
     if (parseFloat(itemizedBill.pant_qty) > 0) types.push('Pant');
     if (parseFloat(itemizedBill.shirt_qty) > 0) types.push('Shirt');
+    if (parseFloat(itemizedBill.nshirt_qty) > 0) types.push('N.Shirt');
     if (parseFloat(itemizedBill.sadri_qty) > 0) types.push('Sadri');
     return types.join(', ');
   };
@@ -1819,6 +1337,54 @@ Total: ${orderResults.length} garment orders`,
       LooseShirt: '',
       DT_TT: '',
       extra_measurements: '',
+      suit_length: 0,
+      suit_body: '',
+      suit_loose: '',
+      suit_shoulder: 0,
+      suit_astin: 0,
+      suit_collar: 0,
+      suit_aloose: 0,
+      suit_callar: '',
+      suit_cuff: '',
+      suit_pkt: '',
+      suit_looseshirt: '',
+      suit_dt_tt: '',
+      safari_length: 0,
+      safari_body: '',
+      safari_loose: '',
+      safari_shoulder: 0,
+      safari_astin: 0,
+      safari_collar: 0,
+      safari_aloose: 0,
+      safari_callar: '',
+      safari_cuff: '',
+      safari_pkt: '',
+      safari_looseshirt: '',
+      safari_dt_tt: '',
+      nshirt_length: 0,
+      nshirt_body: '',
+      nshirt_loose: '',
+      nshirt_shoulder: 0,
+      nshirt_astin: 0,
+      nshirt_collar: 0,
+      nshirt_aloose: 0,
+      nshirt_callar: '',
+      nshirt_cuff: '',
+      nshirt_pkt: '',
+      nshirt_looseshirt: '',
+      nshirt_dt_tt: '',
+      sadri_length: 0,
+      sadri_body: '',
+      sadri_loose: '',
+      sadri_shoulder: 0,
+      sadri_astin: 0,
+      sadri_collar: 0,
+      sadri_aloose: 0,
+      sadri_callar: '',
+      sadri_cuff: '',
+      sadri_pkt: '',
+      sadri_looseshirt: '',
+      sadri_dt_tt: '',
     });
     setItemizedBill({
       suit_qty: '0',
@@ -1829,12 +1395,14 @@ Total: ${orderResults.length} garment orders`,
       pant_amount: '0',
       shirt_qty: '0',
       shirt_amount: '0',
+      nshirt_qty: '0',
+      nshirt_amount: '0',
       sadri_qty: '0',
       sadri_amount: '0',
       total_qty: '0',
       total_amt: '0',
     });
-    setMeasurementType({ pant: false, shirt: false, extra: false });
+    setMeasurementType({ pant: false, shirt: false, suit: false, safari: false, nshirt: false, sadri: false, extra: false });
     
     // Generate new bill number after reset
     generateBillNumber();
@@ -2297,6 +1865,30 @@ Total: ${orderResults.length} garment orders`,
               >
                 <Text style={styles.checkboxText}>Shirt</Text>
               </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('suit')}
+              >
+                <Text style={styles.checkboxText}>Suit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.safari && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('safari')}
+              >
+                <Text style={styles.checkboxText}>Safari/Jacket</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.nshirt && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('nshirt')}
+              >
+                <Text style={styles.checkboxText}>N.Shirt</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.sadri && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('sadri')}
+              >
+                <Text style={styles.checkboxText}>Sadri</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
                 onPress={() => toggleMeasurementType('extra')}
@@ -2314,7 +1906,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_length}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
                     keyboardType="default"
@@ -2323,7 +1915,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Kamar:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_kamar}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
 
@@ -2333,7 +1925,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Hips:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_hips}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
 
@@ -2343,7 +1935,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ran:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_waist}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
 
@@ -2353,7 +1945,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ghutna:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_ghutna}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
 
@@ -2363,7 +1955,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Bottom:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_bottom}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
 
@@ -2373,7 +1965,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Seat:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_seat}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
 
@@ -2389,7 +1981,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>SideP/Cross:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.SideP_Cross}
                       onChangeValue={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
 
@@ -2399,7 +1991,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Plates:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Plates}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
 
@@ -2409,7 +2001,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Belt:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Belt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
 
@@ -2419,7 +2011,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Back P:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Back_P}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
 
@@ -2429,7 +2021,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>WP:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.WP}
                       onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
 
@@ -2449,7 +2041,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_length}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
 
@@ -2460,7 +2052,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Body:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_body}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
 
@@ -2470,7 +2062,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Loose:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_loose}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
 
@@ -2480,7 +2072,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Shoulder:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_shoulder}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
 
@@ -2490,7 +2082,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Astin:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_astin}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
 
@@ -2498,21 +2090,21 @@ Total: ${orderResults.length} garment orders`,
                   />
                 </View>
                 <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
-                    value={measurements.shirt_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.shirt_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
 
                     keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
-                    value={measurements.shirt_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.shirt_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
 
                     keyboardType="default"
                   />
@@ -2526,7 +2118,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Collar:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Callar}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
 
@@ -2536,7 +2128,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Cuff:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Cuff}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
 
@@ -2546,7 +2138,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Pkt:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Pkt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
 
@@ -2556,7 +2148,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Loose:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.LooseShirt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
 
@@ -2566,10 +2158,519 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>DT/TT:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.DT_TT}
                       onChangeValue={(value) => setMeasurements({ ...measurements, DT_TT: value })}
 
+                      allowText={true}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Suit Measurements */}
+          {measurementType.suit && (
+            <View style={styles.measurementSection}>
+              <Text style={styles.measurementTitle}>Suit Measurements</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_length: value })}
+
+                    keyboardType="default"
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_body}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_body: value })}
+
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_loose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_loose: value })}
+
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_shoulder: value })}
+
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_astin: value })}
+
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_aloose: value })}
+
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_collar: value })}
+
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+              
+              {/* Suit Details */}
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>Suit Details</Text>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Collar:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_callar}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_callar: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Cuff:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_cuff}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_cuff: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Pkt:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_pkt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_pkt: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Loose:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_looseshirt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_looseshirt: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>DT/TT:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_dt_tt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_dt_tt: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Safari/Jacket Measurements */}
+          {measurementType.safari && (
+            <View style={styles.measurementSection}>
+              <Text style={styles.measurementTitle}>Safari/Jacket Measurements</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_length: value })}
+                    keyboardType="default"
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_body}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_body: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_loose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_loose: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_shoulder: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_astin: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_aloose: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_collar: value })}
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+              
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>Safari/Jacket Details</Text>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Collar:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_callar}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_callar: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Cuff:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_cuff}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_cuff: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Pkt:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_pkt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_pkt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Loose:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_looseshirt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_looseshirt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>DT/TT:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_dt_tt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_dt_tt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* N.Shirt Measurements */}
+          {measurementType.nshirt && (
+            <View style={styles.measurementSection}>
+              <Text style={styles.measurementTitle}>N.Shirt Measurements</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_length: value })}
+                    keyboardType="default"
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_body}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_body: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_loose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_loose: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_shoulder: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_astin: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_aloose: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_collar: value })}
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+              
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>N.Shirt Details</Text>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Collar:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_callar}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_callar: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Cuff:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_cuff}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_cuff: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Pkt:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_pkt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_pkt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Loose:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_looseshirt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_looseshirt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>DT/TT:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_dt_tt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_dt_tt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Sadri Measurements */}
+          {measurementType.sadri && (
+            <View style={styles.measurementSection}>
+              <Text style={styles.measurementTitle}>Sadri Measurements</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_length: value })}
+                    keyboardType="default"
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_body}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_body: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_loose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_loose: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_shoulder: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_astin: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_aloose: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_collar: value })}
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+              
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>Sadri Details</Text>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Collar:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_callar}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_callar: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Cuff:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_cuff}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_cuff: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Pkt:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_pkt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_pkt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Loose:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_looseshirt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_looseshirt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>DT/TT:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_dt_tt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_dt_tt: value })}
                       allowText={true}
                     />
                   </View>
@@ -2676,6 +2777,25 @@ Total: ${orderResults.length} garment orders`,
                 style={styles.tableAmountInput}
                 value={itemizedBill.shirt_amount}
                 onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_amount: text })}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+            </View>
+            
+            {/* N.Shirt */}
+            <View style={styles.tableRow}>
+              <Text style={styles.tableItemText}>N.Shirt</Text>
+              <TextInput
+                style={styles.tableQtyInput}
+                value={itemizedBill.nshirt_qty}
+                onChangeText={(text) => setItemizedBill({ ...itemizedBill, nshirt_qty: text })}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+              <TextInput
+                style={styles.tableAmountInput}
+                value={itemizedBill.nshirt_amount}
+                onChangeText={(text) => setItemizedBill({ ...itemizedBill, nshirt_amount: text })}
                 keyboardType="numeric"
                 placeholder="0"
               />
@@ -3017,6 +3137,48 @@ Total: ${orderResults.length} garment orders`,
               >
                 <Text style={styles.checkboxText}>Shirt</Text>
               </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('suit')}
+              >
+                <Text style={styles.checkboxText}>Suit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.safari && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('safari')}
+              >
+                <Text style={styles.checkboxText}>Safari/Jacket</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.nshirt && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('nshirt')}
+              >
+                <Text style={styles.checkboxText}>N.Shirt</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.sadri && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('sadri')}
+              >
+                <Text style={styles.checkboxText}>Sadri</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
+                onPress={() => toggleMeasurementType('extra')}
+              >
+                <Text style={styles.checkboxText}>Extra</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
+                onPress={() => toggleMeasurementType('shirt')}
+              >
+                <Text style={styles.checkboxText}>Shirt</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]} 
+                onPress={() => toggleMeasurementType('suit')}
+              >
+                <Text style={styles.checkboxText}>Suit</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
                 onPress={() => toggleMeasurementType('extra')}
@@ -3034,7 +3196,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
             <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_length}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
                     placeholder="32, 1/2, 22/7/2"
@@ -3044,7 +3206,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Kamar:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_kamar}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
 
@@ -3054,7 +3216,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Hips:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_hips}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
 
@@ -3064,7 +3226,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ran:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_waist}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
 
@@ -3074,7 +3236,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Ghutna:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_ghutna}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
 
@@ -3084,7 +3246,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Bottom:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_bottom}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
 
@@ -3094,7 +3256,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Seat:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.pant_seat}
                     onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
 
@@ -3110,7 +3272,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>SideP/Cross:</Text>
             <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.SideP_Cross}
                       onChangeValue={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
 
@@ -3120,7 +3282,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Plates:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Plates}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
 
@@ -3130,7 +3292,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Belt:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Belt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
 
@@ -3140,7 +3302,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Back P:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Back_P}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
 
@@ -3150,7 +3312,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>WP:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.WP}
                       onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
 
@@ -3170,7 +3332,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Length:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_length}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
 
@@ -3181,7 +3343,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Body:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_body}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
 
@@ -3191,7 +3353,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Loose:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_loose}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
 
@@ -3201,7 +3363,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Shoulder:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_shoulder}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
 
@@ -3211,7 +3373,7 @@ Total: ${orderResults.length} garment orders`,
                 <View style={styles.measurementInput}>
                   <Text style={styles.measurementLabel}>Astin:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
+                    style={styles.measurementTextInput} disableCalculation={true}
                     value={measurements.shirt_astin}
                     onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
 
@@ -3219,21 +3381,21 @@ Total: ${orderResults.length} garment orders`,
                   />
                 </View>
                 <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
-                    value={measurements.shirt_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.shirt_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
 
                     keyboardType="default"
                   />
                 </View>
                 <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
                   <FractionalInput
-                    style={styles.measurementTextInput}
-                    value={measurements.shirt_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.shirt_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
 
                     keyboardType="default"
                   />
@@ -3247,7 +3409,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Collar:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Callar}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
 
@@ -3257,7 +3419,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Cuff:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Cuff}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
 
@@ -3267,7 +3429,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Pkt:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.Pkt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
 
@@ -3277,7 +3439,7 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>Loose:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.LooseShirt}
                       onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
 
@@ -3287,10 +3449,519 @@ Total: ${orderResults.length} garment orders`,
                   <View style={styles.detailInput}>
                     <Text style={styles.detailLabel}>DT/TT:</Text>
                     <FractionalInput
-                      style={styles.detailTextInput}
+                      style={styles.detailTextInput} disableCalculation={true}
                       value={measurements.DT_TT}
                       onChangeValue={(value) => setMeasurements({ ...measurements, DT_TT: value })}
 
+                      allowText={true}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Suit Measurements */}
+          {measurementType.suit && (
+            <View style={styles.measurementSection}>
+              <Text style={styles.measurementTitle}>Suit Measurements</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_length: value })}
+
+                    keyboardType="default"
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_body}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_body: value })}
+
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_loose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_loose: value })}
+
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_shoulder: value })}
+
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_astin: value })}
+
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_aloose: value })}
+
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.suit_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_collar: value })}
+
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+              
+              {/* Suit Details */}
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>Suit Details</Text>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Collar:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_callar}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_callar: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Cuff:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_cuff}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_cuff: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Pkt:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_pkt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_pkt: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Loose:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_looseshirt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_looseshirt: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>DT/TT:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.suit_dt_tt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_dt_tt: value })}
+
+                      allowText={true}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Safari/Jacket Measurements */}
+          {measurementType.safari && (
+            <View style={styles.measurementSection}>
+              <Text style={styles.measurementTitle}>Safari/Jacket Measurements</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_length: value })}
+                    keyboardType="default"
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_body}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_body: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_loose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_loose: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_shoulder: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_astin: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_aloose: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.safari_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_collar: value })}
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+              
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>Safari/Jacket Details</Text>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Collar:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_callar}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_callar: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Cuff:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_cuff}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_cuff: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Pkt:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_pkt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_pkt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Loose:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_looseshirt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_looseshirt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>DT/TT:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.safari_dt_tt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_dt_tt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* N.Shirt Measurements */}
+          {measurementType.nshirt && (
+            <View style={styles.measurementSection}>
+              <Text style={styles.measurementTitle}>N.Shirt Measurements</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_length: value })}
+                    keyboardType="default"
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_body}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_body: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_loose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_loose: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_shoulder: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_astin: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_aloose: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.nshirt_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_collar: value })}
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+              
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>N.Shirt Details</Text>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Collar:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_callar}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_callar: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Cuff:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_cuff}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_cuff: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Pkt:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_pkt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_pkt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Loose:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_looseshirt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_looseshirt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>DT/TT:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.nshirt_dt_tt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_dt_tt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Sadri Measurements */}
+          {measurementType.sadri && (
+            <View style={styles.measurementSection}>
+              <Text style={styles.measurementTitle}>Sadri Measurements</Text>
+              <View style={styles.measurementGrid}>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Length:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_length}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_length: value })}
+                    keyboardType="default"
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Body:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_body}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_body: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Loose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_loose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_loose: value })}
+                    allowText={true}
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Shoulder:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_shoulder}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_shoulder: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Astin:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_astin}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_astin: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Aloose:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_aloose}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_aloose: value })}
+                    keyboardType="default"
+                  />
+                </View>
+                <View style={styles.measurementInput}>
+                  <Text style={styles.measurementLabel}>Collar:</Text>
+                  <FractionalInput
+                    style={styles.measurementTextInput} disableCalculation={true}
+                    value={measurements.sadri_collar}
+                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_collar: value })}
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+              
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>Sadri Details</Text>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Collar:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_callar}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_callar: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Cuff:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_cuff}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_cuff: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Pkt:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_pkt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_pkt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>Loose:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_looseshirt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_looseshirt: value })}
+                      allowText={true}
+                    />
+                  </View>
+                  <View style={styles.detailInput}>
+                    <Text style={styles.detailLabel}>DT/TT:</Text>
+                    <FractionalInput
+                      style={styles.detailTextInput} disableCalculation={true}
+                      value={measurements.sadri_dt_tt}
+                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_dt_tt: value })}
                       allowText={true}
                     />
                   </View>

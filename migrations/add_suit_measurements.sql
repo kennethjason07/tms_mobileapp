@@ -1,0 +1,12 @@
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_length numeric DEFAULT 0;
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_body text DEFAULT '';
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_loose text DEFAULT '';
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_shoulder numeric DEFAULT 0;
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_astin numeric DEFAULT 0;
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_collar numeric DEFAULT 0;
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_aloose numeric DEFAULT 0;
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_callar text DEFAULT '';
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_cuff text DEFAULT '';
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_pkt text DEFAULT '';
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_looseshirt text DEFAULT '';
+ALTER TABLE measurements ADD COLUMN IF NOT EXISTS suit_dt_tt text DEFAULT '';

@@ -467,7 +467,16 @@ export const SupabaseAPI = {
       }
 
       // Calculate metadata
-      const totalAmount = customer_orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      // Use a Map to track unique bills for accurate total amount
+      const billsMap = new Map();
+      customer_orders.forEach(order => {
+        const billKey = order.bill_id || order.bill_number;
+        if (billKey && !billsMap.has(billKey)) {
+          billsMap.set(billKey, parseFloat(order.total_amount) || 0);
+        }
+      });
+      
+      const totalAmount = Array.from(billsMap.values()).reduce((sum, amount) => sum + amount, 0);
       const uniqueBillNumbers = [...new Set(customer_orders.map(order => order.bill_number).filter(Boolean))];
       
       const result = {
@@ -500,49 +509,18 @@ export const SupabaseAPI = {
   // Customer Management API (new functions for CustomerInfoScreen)
   async getAllCustomers() {
     try {
-      // Try different possible table names
-      let data, error;
-      
-      // First try 'customer_info'
-      const result1 = await supabase
-        .from('customer_info')
-        .select('*')
-        .order('name', { ascending: true })
-      
-      if (!result1.error && result1.data) {
-        return result1.data
-      }
-      
-      // Try 'customers'
-      const result2 = await supabase
-        .from('customers')
-        .select('*')
-        .order('name', { ascending: true })
-      
-      if (!result2.error && result2.data) {
-        return result2.data
-      }
-      
-      // Try 'customer'
-      const result3 = await supabase
-        .from('customer')
-        .select('*')
-        .order('name', { ascending: true })
-      
-      if (!result3.error && result3.data) {
-        return result3.data
-      }
-      
-      // Fallback: Get unique customers from bills table
-      const fallbackResult = await supabase
+      // Get unique customers from bills table
+      const { data, error } = await supabase
         .from('bills')
         .select('customer_name, mobile_number')
         .not('customer_name', 'is', null)
         .not('mobile_number', 'is', null)
       
-      if (!fallbackResult.error && fallbackResult.data) {
+      if (error) throw error
+      
+      if (data) {
         // Convert bills data to customer format
-        const uniqueCustomers = fallbackResult.data.reduce((acc, bill) => {
+        const uniqueCustomers = data.reduce((acc, bill) => {
           const existing = acc.find(c => c.phone === bill.mobile_number)
           if (!existing) {
             acc.push({
@@ -560,51 +538,17 @@ export const SupabaseAPI = {
         return uniqueCustomers.sort((a, b) => a.name.localeCompare(b.name))
       }
       
-      // If none work, throw the first error
-      throw result1.error || result2.error || result3.error || fallbackResult.error || new Error('No customer data found')
-      
+      return []
     } catch (error) {
-      throw error
+      console.error('Error fetching customers:', error) // Log error nicely
+      return [] // Return empty array on error to prevent crashing
     }
   },
 
   async addCustomerInfo(customerData) {
     try {
-      // Try different possible table names
-      let data, error;
-      
-      // First try 'customer_info'
-      const result1 = await supabase
-        .from('customer_info')
-        .insert(customerData)
-        .select()
-      
-      if (!result1.error && result1.data) {
-        return result1.data
-      }
-      
-      // Try 'customers'
-      const result2 = await supabase
-        .from('customers')
-        .insert(customerData)
-        .select()
-      
-      if (!result2.error && result2.data) {
-        return result2.data
-      }
-      
-      // Try 'customer'
-      const result3 = await supabase
-        .from('customer')
-        .insert(customerData)
-        .select()
-      
-      if (!result3.error && result3.data) {
-        return result3.data
-      }
-      
-      // Fallback: Add to bills table as a placeholder bill
-      const fallbackResult = await supabase
+      // Add to bills table as a placeholder bill
+      const { data, error } = await supabase
         .from('bills')
         .insert({
           customer_name: customerData.name,
@@ -617,7 +561,9 @@ export const SupabaseAPI = {
         })
         .select()
       
-      if (!fallbackResult.error && fallbackResult.data) {
+      if (error) throw error
+
+      if (data) {
         // Return in the expected format
         return [{
           id: customerData.phone,
@@ -629,9 +575,7 @@ export const SupabaseAPI = {
         }]
       }
       
-      // If none work, throw the first error
-      throw result1.error || result2.error || result3.error || fallbackResult.error || new Error('No customer table found')
-      
+      throw new Error('Failed to add customer')
     } catch (error) {
       throw error
     }
@@ -639,53 +583,16 @@ export const SupabaseAPI = {
 
   async deleteCustomerInfo(customerId) {
     try {
-      // Try different possible table names
-      let error;
-      
-      // First try 'customer_info'
-      const result1 = await supabase
-        .from('customer_info')
-        .delete()
-        .eq('id', customerId)
-      
-      if (!result1.error) {
-        return true
-      }
-      
-      // Try 'customers'
-      const result2 = await supabase
-        .from('customers')
-        .delete()
-        .eq('id', customerId)
-      
-      if (!result2.error) {
-        return true
-      }
-      
-      // Try 'customer'
-      const result3 = await supabase
-        .from('customer')
-        .delete()
-        .eq('id', customerId)
-      
-      if (!result3.error) {
-        return true
-      }
-      
-      // Fallback: Delete from bills table (if customerId is a phone number)
-      const fallbackResult = await supabase
+      // Delete from bills table (customerId is a phone number)
+      const { error } = await supabase
         .from('bills')
         .delete()
         .eq('mobile_number', customerId)
       
-      if (!fallbackResult.error) {
-        return true
-      }
-      
-      // If none work, throw the first error
-      throw result1.error || result2.error || result3.error || fallbackResult.error || new Error('No customer table found')
-      
+      if (error) throw error
+      return true
     } catch (error) {
+      console.error('Error deleting customer:', error)
       throw error
     }
   },
@@ -714,7 +621,15 @@ export const SupabaseAPI = {
       'pant_length', 'pant_kamar', 'pant_hips', 'pant_waist', 'pant_ghutna', 'pant_bottom', 'pant_seat',
       'SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP',
       'shirt_length', 'shirt_body', 'shirt_loose', 'shirt_shoulder', 'shirt_astin', 'shirt_collar', 'shirt_aloose',
-      'Callar', 'Cuff', 'Pkt', 'LooseShirt', 'DT_TT', 'extra_measurements'
+      'Callar', 'Cuff', 'Pkt', 'LooseShirt', 'DT_TT', 'extra_measurements', 'shirt_type',
+      'suit_length', 'suit_body', 'suit_loose', 'suit_shoulder', 'suit_astin', 'suit_collar', 'suit_aloose',
+      'suit_callar', 'suit_cuff', 'suit_pkt', 'suit_looseshirt', 'suit_dt_tt',
+      'safari_length', 'safari_body', 'safari_loose', 'safari_shoulder', 'safari_astin', 'safari_collar', 'safari_aloose',
+      'safari_callar', 'safari_cuff', 'safari_pkt', 'safari_looseshirt', 'safari_dt_tt',
+      'nshirt_length', 'nshirt_body', 'nshirt_loose', 'nshirt_shoulder', 'nshirt_astin', 'nshirt_collar', 'nshirt_aloose',
+      'nshirt_callar', 'nshirt_cuff', 'nshirt_pkt', 'nshirt_looseshirt', 'nshirt_dt_tt',
+      'sadri_length', 'sadri_body', 'sadri_loose', 'sadri_shoulder', 'sadri_astin', 'sadri_collar', 'sadri_aloose',
+      'sadri_callar', 'sadri_cuff', 'sadri_pkt', 'sadri_looseshirt', 'sadri_dt_tt'
     ];
 
     const payload = { phone_number: phone };
@@ -1367,6 +1282,21 @@ export const SupabaseAPI = {
     const { data, error } = await supabase
       .from('orders')
       .update({ payment_amount: paymentAmount })
+      .eq('id', orderId)
+      .select()
+    
+    if (error) throw error
+    return data
+  },
+
+  // Update Order Status API (for order completion tracking and WhatsApp integration)
+  async updateOrderStatus(orderId, orderStatus) {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ 
+        order_status: orderStatus,
+        updated_at: new Date().toISOString().split('T')[0]
+      })
       .eq('id', orderId)
       .select()
     

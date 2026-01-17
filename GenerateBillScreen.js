@@ -28,6 +28,8 @@ import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
+import { generateProfessionalBillHTML, generateMeasurementHTML } from './utils/billGenerator';
+
 const { width } = Dimensions.get('window');
 
 // Function to split comma-separated garment types into individual rows
@@ -100,314 +102,12 @@ const splitCommaGarmentsIntoRows = (orders) => {
 };
 
 // Generate measurements table for printing
-function generateAllMeasurementsTable(measurements) {
-  const labelize = (key) =>
-    key
-      .replace(/_/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/\b\w/g, (l) => l.toUpperCase());
-  const entries = Object.entries(measurements).filter(
-    ([, value]) => value !== '' && value !== null && value !== undefined
-  );
-  if (entries.length === 0) return '<tr><td colspan="2">No measurements entered.</td></tr>';
-  return entries
-    .map(
-      ([key, value]) =>
-        `<tr><td>${labelize(key)}</td><td>${value}</td></tr>`
-    )
-    .join('');
-}
 
-// Generate bill items table for printing
-function generateBillItemsTable(orders) {
-  if (!orders || orders.length === 0) {
-    return '<tr><td colspan="3" style="text-align: center;">No items found</td></tr>';
-  }
-  
-  const rows = orders.map(order => `
-    <tr>
-      <td style="text-align: left;">${order.garment_type || 'Unknown'}</td>
-      <td style="text-align: center;">1</td>
-      <td style="text-align: right;">₹${parseFloat(order.total_amt || 0).toFixed(2)}</td>
-    </tr>
-  `).join('');
-    
-  return rows || '<tr><td colspan="3" style="text-align: center;">No items found</td></tr>';
-}
 
 // Generate measurement HTML for printing
-const generateMeasurementHTML = (billData, measurements) => `
-  <html>
-    <head>
-      <style>
-        body { font-family: Arial, sans-serif; }
-        .header { text-align: center; }
-        .info-table, .measure-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        .info-table td { padding: 4px 8px; }
-        .measure-table th, .measure-table td { border: 1px solid #333; padding: 8px; text-align: left; }
-        .measure-table th { background: #eee; }
-        .footer { text-align: center; margin-top: 24px; font-size: 14px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h2>Yak's Men's Wear</h2>
-        <div>Customer Measurement Sheet</div>
-      </div>
-      <table class="info-table">
-        <tr>
-          <td><b>Customer Name:</b> ${billData.customer_name}</td>
-          <td><b>Mobile Number:</b> ${billData.mobile_number}</td>
-        </tr>
-        <tr>
-          <td><b>Bill Number:</b> ${billData.billnumberinput2}</td>
-          <td><b>Date:</b> ${billData.created_at ? new Date(billData.created_at).toLocaleDateString() : 'N/A'}</td>
-        </tr>
-      </table>
-      <h3>All Measurements</h3>
-      <table class="measure-table">
-        <tr>
-          <th>Measurement</th>
-          <th>Value</th>
-        </tr>
-        ${generateAllMeasurementsTable(measurements)}
-      </table>
-      <div class="footer">
-        Thank You, Visit Again!
-      </div>
-    </body>
-  </html>
-`;
 
-// Professional bill HTML generator using the same format as NewBillScreen
-const generateProfessionalBillHTML = (billData, orders) => {
-  // Calculate totals and organize data
-  const garmentTotals = {};
-  let totalAmount = 0;
-  let totalQuantity = 0;
-  
-  // Process orders data to create garment totals
-  orders.forEach(order => {
-    const garmentType = order.garment_type || 'Unknown';
-    const amount = parseFloat(order.total_amt || 0);
-    
-    if (!garmentTotals[garmentType]) {
-      garmentTotals[garmentType] = { qty: 0, amount: 0 };
-    }
-    
-    garmentTotals[garmentType].qty += 1;
-    garmentTotals[garmentType].amount += amount;
-    totalAmount += amount;
-    totalQuantity += 1;
-  });
-  
-  const advanceAmount = parseFloat(billData.payment_amount || 0);
-  const remainingAmount = totalAmount - advanceAmount;
-  
-  // Format dates
-  const orderDate = billData.order_date ? 
-    new Date(billData.order_date).toLocaleDateString('en-GB', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    }).replace(/\//g, '-') : '';
-    
-  const dueDate = billData.due_date ? 
-    new Date(billData.due_date).toLocaleDateString('en-GB', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    }).replace(/\//g, '-') : '';
-  
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Bill</title>
-  <style>
-    @page {
-      size: A4;
-      margin: 20mm;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    .bill-container {
-      width: 100%;
-      max-width: 210mm;
-      margin: auto;
-      padding: 20px;
-      padding-top: 200px;
-      box-sizing: border-box;
-    }
-    .section-title {
-      text-align: center;
-      font-weight: bold;
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-    .info-box {
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    .info-box label {
-      display: block;
-      font-size: 14px;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-    .info-row div {
-      flex: 1;
-      margin-right: 10px;
-    }
-    .info-row div:last-child {
-      margin-right: 0;
-    }
-    input {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #000;
-      box-sizing: border-box;
-      font-family: inherit;
-      font-size: 14px;
-    }
-    .table-section {
-      display: flex;
-      justify-content: space-between;
-    }
-    .items-box {
-      flex: 1;
-      border: 1px solid #000;
-      margin-right: 15px;
-    }
-    .items-box table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .items-box th, .items-box td {
-      border: 1px solid #000;
-      padding: 8px;
-      text-align: center;
-    }
-    .items-box input {
-      width: 90%;
-      border: none;
-      text-align: center;
-      background: transparent;
-    }
-    .footer-box {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 13px;
-    }
-    .footer-box span {
-      display: block;
-      margin-top: 5px;
-      color: blue;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div class="bill-container">
 
-    <div class="section-title">Customer Information</div>
 
-    <div class="info-box">
-      <label>Order Number:</label>
-      <input type="text" value="${billData.billnumberinput2 || ''}" readonly>
-
-      <div class="info-row">
-        <div>
-          <label>Customer Name:</label>
-          <input type="text" value="${billData.customer_name || ''}" readonly>
-        </div>
-        <div>
-          <label>Mobile Number:</label>
-          <input type="text" value="${billData.mobile_number || ''}" readonly>
-        </div>
-      </div>
-
-      <div class="info-row">
-        <div>
-          <label>Date:</label>
-          <input type="text" value="${orderDate}" readonly>
-        </div>
-        <div>
-          <label>Delivery Date:</label>
-          <input type="text" value="${dueDate}" readonly>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-section">
-      <div class="items-box">
-        <table>
-          <tr>
-            <th>Particulars</th>
-            <th>Qty</th>
-            <th>Amount</th>
-          </tr>
-          <tr>
-            <td>Suit</td>
-            <td><input type="text" value="${garmentTotals['Suit']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Suit']?.amount ? garmentTotals['Suit'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Safari/Jacket</td>
-            <td><input type="text" value="${garmentTotals['Safari/Jacket']?.qty || garmentTotals['Safari']?.qty || garmentTotals['Jacket']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${(garmentTotals['Safari/Jacket']?.amount || garmentTotals['Safari']?.amount || garmentTotals['Jacket']?.amount || 0) > 0 ? (garmentTotals['Safari/Jacket']?.amount || garmentTotals['Safari']?.amount || garmentTotals['Jacket']?.amount || 0).toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Pant</td>
-            <td><input type="text" value="${garmentTotals['Pant']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Pant']?.amount ? garmentTotals['Pant'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Shirt</td>
-            <td><input type="text" value="${garmentTotals['Shirt']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Shirt']?.amount ? garmentTotals['Shirt'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td>Sadri</td>
-            <td><input type="text" value="${garmentTotals['Sadri']?.qty || ''}" readonly></td>
-            <td><input type="text" value="${garmentTotals['Sadri']?.amount ? garmentTotals['Sadri'].amount.toFixed(2) : ''}" readonly></td>
-          </tr>
-          <tr>
-            <td><b>Total</b></td>
-            <td><input type="text" value="${totalQuantity}" readonly></td>
-            <td><input type="text" value="${totalAmount.toFixed(2)}" readonly></td>
-          </tr>
-        </table>
-      </div>
-
-      <div class="image-box">
-        <img src="https://oeqlxurzbdvliuqutqyo.supabase.co/storage/v1/object/public/suit-images/suit-icon.jpg" 
-             alt="Terms and Conditions" 
-             style="width: 220px; height: auto; max-height: 280px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background: white;"
-             onerror="this.style.display='none';">
-      </div>
-    </div>
-
-    <div class="footer-box">
-      Thank You, Visit Again!
-      <span>Sunday Holiday</span>
-    </div>
-
-  </div>
-</body>
-</html>
-    `;
-};
 
 // Legacy function - keeping for backward compatibility
 const generateBillHTML = (billData, orders) => {
@@ -703,6 +403,8 @@ export default function GenerateBillScreen({ navigation }) {
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
   const [activeDateField, setActiveDateField] = useState(null); // 'order' or 'due'
   const [selectedOrderDate, setSelectedOrderDate] = useState(new Date());
+  const [measurementSelectionVisible, setMeasurementSelectionVisible] = useState(false);
+  const [availableMeasurements, setAvailableMeasurements] = useState({ pant: false, shirt: false, suit: false });
   
   // Use IST timezone for initial date
   const getISTDateString = () => {
@@ -735,6 +437,7 @@ export default function GenerateBillScreen({ navigation }) {
     Belt: '',
     Back_P: '',
     WP: '',
+    shirt_type: 'Shirt',
     shirt_length: 0,
     shirt_body: '',
     shirt_loose: '',
@@ -748,6 +451,18 @@ export default function GenerateBillScreen({ navigation }) {
     LooseShirt: '',
     DT_TT: '',
     extra_measurements: '',
+    suit_length: 0,
+    suit_body: '',
+    suit_loose: '',
+    suit_shoulder: 0,
+    suit_astin: 0,
+    suit_collar: 0,
+    suit_aloose: 0,
+    suit_callar: '',
+    suit_cuff: '',
+    suit_pkt: '',
+    suit_looseshirt: '',
+    suit_dt_tt: '',
   });
   const [itemizedBill, setItemizedBill] = useState({
     suit_qty: '0',
@@ -763,7 +478,7 @@ export default function GenerateBillScreen({ navigation }) {
     total_qty: '0',
     total_amt: '0',
   });
-  const [measurementType, setMeasurementType] = useState({ pant: false, shirt: false, extra: false });
+  const [measurementType, setMeasurementType] = useState({ pant: false, shirt: false, suit: false, extra: false });
   const [billFound, setBillFound] = useState(false);
   
   // Scroll refs for both web and mobile
@@ -864,11 +579,13 @@ export default function GenerateBillScreen({ navigation }) {
     const pantAmt = parseFloat(itemizedBill.pant_amount) || 0;
     const shirtQty = parseFloat(itemizedBill.shirt_qty) || 0;
     const shirtAmt = parseFloat(itemizedBill.shirt_amount) || 0;
+    const nshirtQty = parseFloat(itemizedBill.nshirt_qty) || 0;
+    const nshirtAmt = parseFloat(itemizedBill.nshirt_amount) || 0;
     const sadriQty = parseFloat(itemizedBill.sadri_qty) || 0;
     const sadriAmt = parseFloat(itemizedBill.sadri_amount) || 0;
 
-    const totalQty = suitQty + safariQty + pantQty + shirtQty + sadriQty;
-    const totalAmt = suitAmt + safariAmt + pantAmt + shirtAmt + sadriAmt;
+    const totalQty = suitQty + safariQty + pantQty + shirtQty + nshirtQty + sadriQty;
+    const totalAmt = suitAmt + safariAmt + pantAmt + shirtAmt + nshirtAmt + sadriAmt;
 
     return {
       total_qty: totalQty.toString(),
@@ -953,16 +670,18 @@ export default function GenerateBillScreen({ navigation }) {
             
             // Calculate itemized bill from orders
             const itemized = {
-              suit_qty: '0',
-              suit_amount: '0',
-              safari_qty: '0',
-              safari_amount: '0',
-              pant_qty: '0',
-              pant_amount: '0',
-              shirt_qty: '0',
-              shirt_amount: '0',
-              sadri_qty: '0',
-              sadri_amount: '0',
+              suit_qty: (bill.suit_qty || 0).toString(),
+              suit_amount: (bill.suit_amount || 0).toString(),
+              safari_qty: (bill.safari_qty || 0).toString(),
+              safari_amount: (bill.safari_amount || 0).toString(),
+              pant_qty: (bill.pant_qty || 0).toString(),
+              pant_amount: (bill.pant_amount || 0).toString(),
+              shirt_qty: (bill.shirt_qty || 0).toString(),
+              shirt_amount: (bill.shirt_amount || 0).toString(),
+              nshirt_qty: (bill.nshirt_qty || 0).toString(),
+              nshirt_amount: (bill.nshirt_amount || 0).toString(),
+              sadri_qty: (bill.sadri_qty || 0).toString(),
+              sadri_amount: (bill.sadri_amount || 0).toString(),
               total_qty: '0',
               total_amt: '0',
             };
@@ -985,9 +704,12 @@ export default function GenerateBillScreen({ navigation }) {
               } else if (garmentType?.includes('pant')) {
                 itemized.pant_qty = (parseInt(itemized.pant_qty) + 1).toString();
                 itemized.pant_amount = (parseFloat(itemized.pant_amount) + amount).toString();
-              } else if (garmentType?.includes('shirt')) {
+              } else if (garmentType?.includes('shirt') && !garmentType?.includes('n.shirt')) {
                 itemized.shirt_qty = (parseInt(itemized.shirt_qty) + 1).toString();
                 itemized.shirt_amount = (parseFloat(itemized.shirt_amount) + amount).toString();
+              } else if (garmentType?.includes('n.shirt')) {
+                itemized.nshirt_qty = (parseInt(itemized.nshirt_qty) + 1).toString();
+                itemized.nshirt_amount = (parseFloat(itemized.nshirt_amount) + amount).toString();
               } else if (garmentType?.includes('sadri')) {
                 itemized.sadri_qty = (parseInt(itemized.sadri_qty) + 1).toString();
                 itemized.sadri_amount = (parseFloat(itemized.sadri_amount) + amount).toString();
@@ -1007,8 +729,20 @@ export default function GenerateBillScreen({ navigation }) {
                   // Set measurement types based on found measurements
                   const hasShirt = Object.keys(customerMeasurements).some(key => key.includes('shirt'));
                   const hasPant = Object.keys(customerMeasurements).some(key => key.includes('pant'));
+                  const hasSuit = Object.keys(customerMeasurements).some(key => key.includes('suit'));
+                  const hasSafari = Object.keys(customerMeasurements).some(key => key.includes('safari'));
+                  const hasNShirt = Object.keys(customerMeasurements).some(key => key.includes('nshirt'));
+                  const hasSadri = Object.keys(customerMeasurements).some(key => key.includes('sadri'));
                   const hasExtra = customerMeasurements.extra_measurements;
-                  setMeasurementType({ pant: hasPant, shirt: hasShirt, extra: !!hasExtra });
+                  setMeasurementType({ 
+                    pant: hasPant, 
+                    shirt: hasShirt, 
+                    suit: hasSuit, 
+                    safari: hasSafari, 
+                    nshirt: hasNShirt, 
+                    sadri: hasSadri, 
+                    extra: !!hasExtra 
+                  });
                 }
               } catch (measurementError) {
                 console.log('No measurements found for customer:', measurementError);
@@ -1064,6 +798,7 @@ export default function GenerateBillScreen({ navigation }) {
       Belt: '',
       Back_P: '',
       WP: '',
+      shirt_type: 'Shirt',
       shirt_length: 0,
       shirt_body: '',
       shirt_loose: '',
@@ -1077,6 +812,57 @@ export default function GenerateBillScreen({ navigation }) {
       LooseShirt: '',
       DT_TT: '',
       extra_measurements: '',
+      suit_length: 0,
+      suit_body: '',
+      suit_loose: '',
+      suit_shoulder: 0,
+      suit_astin: 0,
+      suit_collar: 0,
+      suit_aloose: 0,
+      suit_callar: '',
+      suit_cuff: '',
+      suit_pkt: '',
+      suit_looseshirt: '',
+      suit_dt_tt: '',
+      // Safari/Jacket measurements
+      safari_length: 0,
+      safari_body: '',
+      safari_loose: '',
+      safari_shoulder: 0,
+      safari_astin: 0,
+      safari_collar: 0,
+      safari_aloose: 0,
+      safari_callar: '',
+      safari_cuff: '',
+      safari_pkt: '',
+      safari_looseshirt: '',
+      safari_dt_tt: '',
+      // N.Shirt measurements
+      nshirt_length: 0,
+      nshirt_body: '',
+      nshirt_loose: '',
+      nshirt_shoulder: 0,
+      nshirt_astin: 0,
+      nshirt_collar: 0,
+      nshirt_aloose: 0,
+      nshirt_callar: '',
+      nshirt_cuff: '',
+      nshirt_pkt: '',
+      nshirt_looseshirt: '',
+      nshirt_dt_tt: '',
+      // Sadri measurements
+      sadri_length: 0,
+      sadri_body: '',
+      sadri_loose: '',
+      sadri_shoulder: 0,
+      sadri_astin: 0,
+      sadri_collar: 0,
+      sadri_aloose: 0,
+      sadri_callar: '',
+      sadri_cuff: '',
+      sadri_pkt: '',
+      sadri_looseshirt: '',
+      sadri_dt_tt: '',
     });
     setItemizedBill({
       suit_qty: '0',
@@ -1087,12 +873,14 @@ export default function GenerateBillScreen({ navigation }) {
       pant_amount: '0',
       shirt_qty: '0',
       shirt_amount: '0',
+      nshirt_qty: '0',
+      nshirt_amount: '0',
       sadri_qty: '0',
       sadri_amount: '0',
       total_qty: '0',
       total_amt: '0',
     });
-    setMeasurementType({ pant: false, shirt: false, extra: false });
+    setMeasurementType({ pant: false, shirt: false, suit: false, safari: false, nshirt: false, sadri: false, extra: false });
     setBillFound(false);
   };
 
@@ -1108,7 +896,44 @@ export default function GenerateBillScreen({ navigation }) {
 
     try {
       console.log('📄 Generating professional bill HTML...');
-      const html = generateProfessionalBillHTML(billData, orders);
+      
+      // Transform orders to itemizedBill format expected by shared utility
+      const itemizedBill = {
+        suit_qty: 0, suit_amount: 0,
+        safari_qty: 0, safari_amount: 0,
+        pant_qty: 0, pant_amount: 0,
+        shirt_qty: 0, shirt_amount: 0,
+        nshirt_qty: 0, nshirt_amount: 0,
+        sadri_qty: 0, sadri_amount: 0,
+      };
+      
+      orders.forEach(order => {
+        const type = (order.garment_type || '').toLowerCase();
+        const amount = parseFloat(order.total_amt || 0);
+        
+        if (type.includes('suit')) {
+          itemizedBill.suit_qty++;
+          itemizedBill.suit_amount += amount;
+        } else if (type.includes('safari') || type.includes('jacket')) {
+          itemizedBill.safari_qty++;
+          itemizedBill.safari_amount += amount;
+        } else if (type.includes('pant')) {
+          itemizedBill.pant_qty++;
+          itemizedBill.pant_amount += amount;
+        } else if (type.includes('shirt') && !type.includes('n.shirt')) {
+          itemizedBill.shirt_qty++;
+          itemizedBill.shirt_amount += amount;
+        } else if (type.includes('n.shirt')) {
+          itemizedBill.nshirt_qty++;
+          itemizedBill.nshirt_amount += amount;
+        } else if (type.includes('sadri')) {
+          itemizedBill.sadri_qty++;
+          itemizedBill.sadri_amount += amount;
+        }
+      });
+      
+      const orderNumber = billData.billnumberinput2;
+      const html = generateProfessionalBillHTML(billData, itemizedBill, orderNumber, true);
       console.log('✅ HTML generated, length:', html.length);
       
       if (Platform.OS === 'web') {
@@ -1202,23 +1027,57 @@ export default function GenerateBillScreen({ navigation }) {
     }
   };
 
-  const handlePrintMeasurements = async () => {
+  const executePrintMeasurements = async (selection) => {
+    setMeasurementSelectionVisible(false);
+
     if (!billData || !measurements) {
       Alert.alert('Error', 'No measurements data to print');
       return;
     }
 
     try {
-      const html = generateMeasurementHTML(billData, measurements);
+      // Filter measurements based on selection
+      if (selection === 'both') {
+         measurementsToPrint = { ...measurements };
+      } else {
+         measurementsToPrint = { extra_measurements: measurements.extra_measurements }; // Always keep extra
+         
+         Object.keys(measurements).forEach(key => {
+            if (key === 'extra_measurements') return;
+            
+            const lowerKey = key.toLowerCase();
+            let include = false;
+            
+            if (selection === 'pant') {
+               include = lowerKey.includes('pant') || ['sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(lowerKey);
+            } else if (selection === 'shirt') {
+               include = (lowerKey.includes('shirt') && !lowerKey.includes('nshirt') && !lowerKey.includes('looseshirt') && !lowerKey.includes('looseshirt')) || 
+                        ['callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(lowerKey);
+            } else if (selection === 'suit') {
+               include = lowerKey.startsWith('suit');
+            } else if (selection === 'safari') {
+               include = lowerKey.startsWith('safari');
+            } else if (selection === 'nshirt') {
+               include = lowerKey.startsWith('nshirt');
+            } else if (selection === 'sadri') {
+               include = lowerKey.startsWith('sadri');
+            }
+            
+            if (include) {
+               measurementsToPrint[key] = measurements[key];
+            }
+         });
+      }
+
+      console.log('📄 Generating measurements HTML for selection:', selection);
+      const html = generateMeasurementHTML(billData, measurementsToPrint);
       
       if (Platform.OS === 'web') {
-        // For web, create a new window and print
         const printWindow = window.open('', '_blank');
         printWindow.document.write(html);
         printWindow.document.close();
-        printWindow.print();
+        setTimeout(() => printWindow.print(), 500); 
       } else {
-        // For mobile, use Expo Print
         const { uri } = await Print.printToFileAsync({
           html,
           base64: false,
@@ -1233,6 +1092,51 @@ export default function GenerateBillScreen({ navigation }) {
     } catch (error) {
       console.error('Print measurements error:', error);
       Alert.alert('Error', `Failed to generate measurements: ${error.message}`);
+    }
+  };
+
+  const handlePrintMeasurements = async () => {
+    if (!billData || !measurements) {
+      Alert.alert('Error', 'No measurements data to print');
+      return;
+    }
+    
+    // Check available measurements
+    const pantKeys = ['pant_length', 'pant_kamar', 'pant_hips', 'pant_waist', 'pant_ghutna', 'pant_bottom', 'pant_seat', 'SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP'];
+    const hasPant = pantKeys.some(key => measurements[key] && measurements[key] !== '0' && measurements[key] !== 0);
+    
+    const shirtKeys = ['shirt_length', 'shirt_body', 'shirt_loose', 'shirt_shoulder', 'shirt_astin', 'shirt_collar', 'shirt_aloose', 'Callar', 'Cuff', 'Pkt', 'LooseShirt', 'DT_TT'];
+    const hasShirt = shirtKeys.some(key => measurements[key] && measurements[key] !== '0' && measurements[key] !== 0);
+
+    const hasSuit = measurements.suit_length && measurements.suit_length !== '0';
+    const hasSafari = measurements.safari_length && measurements.safari_length !== '0';
+    const hasNShirt = measurements.nshirt_length && measurements.nshirt_length !== '0';
+    const hasSadri = measurements.sadri_length && measurements.sadri_length !== '0';
+    
+    const activeTypes = [
+      hasPant && 'pant', 
+      hasShirt && 'shirt', 
+      hasSuit && 'suit',
+      hasSafari && 'safari',
+      hasNShirt && 'nshirt',
+      hasSadri && 'sadri'
+    ].filter(Boolean);
+    
+    setAvailableMeasurements({ 
+      pant: hasPant, 
+      shirt: hasShirt, 
+      suit: hasSuit,
+      safari: hasSafari,
+      nshirt: hasNShirt,
+      sadri: hasSadri
+    });
+    
+    if (activeTypes.length > 1) {
+      setMeasurementSelectionVisible(true);
+    } else if (activeTypes.length === 1) {
+      executePrintMeasurements(activeTypes[0]);
+    } else {
+      executePrintMeasurements('both');
     }
   };
 
@@ -1493,6 +1397,30 @@ export default function GenerateBillScreen({ navigation }) {
                     <Text style={styles.checkboxText}>Shirt</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
+                    style={[dynamicStyles.checkbox, measurementType.suit && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('suit')}
+                  >
+                    <Text style={styles.checkboxText}>Suit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[dynamicStyles.checkbox, measurementType.safari && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('safari')}
+                  >
+                    <Text style={styles.checkboxText}>Safari/Jacket</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[dynamicStyles.checkbox, measurementType.nshirt && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('nshirt')}
+                  >
+                    <Text style={styles.checkboxText}>N.Shirt</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[dynamicStyles.checkbox, measurementType.sadri && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('sadri')}
+                  >
+                    <Text style={styles.checkboxText}>Sadri</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[dynamicStyles.checkbox, measurementType.extra && styles.checkboxSelected]}
                     onPress={() => toggleMeasurementType('extra')}
                   >
@@ -1623,9 +1551,513 @@ export default function GenerateBillScreen({ navigation }) {
                         keyboardType="numeric"
                       />
                     </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Astin:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.shirt_astin.toString()}
+                        onChangeText={(text) => setMeasurements({ ...measurements, shirt_astin: parseFloat(text) || 0 })}
+                        placeholder="Astin"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Aloose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.shirt_aloose.toString()}
+                        onChangeText={(text) => setMeasurements({ ...measurements, shirt_aloose: parseFloat(text) || 0 })}
+                        placeholder="Aloose"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.shirt_collar.toString()}
+                        onChangeText={(text) => setMeasurements({ ...measurements, shirt_collar: parseFloat(text) || 0 })}
+                        placeholder="Collar"
+                        keyboardType="numeric"
+                      />
+                    </View>
                   </View>
                 </View>
               )}
+
+              {/* Suit Measurements */}
+              {measurementType.suit && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Suit Measurements</Text>
+                  <View style={dynamicStyles.measurementGrid}>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Length:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_length.toString()}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_length: parseFloat(text) || 0 })}
+                        placeholder="Length"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Body:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_body}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_body: text })}
+                        placeholder="Body"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Loose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_loose}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_loose: text })}
+                        placeholder="Loose"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Shoulder:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_shoulder.toString()}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_shoulder: parseFloat(text) || 0 })}
+                        placeholder="Shoulder"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Astin:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_astin.toString()}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_astin: parseFloat(text) || 0 })}
+                        placeholder="Astin"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Aloose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_aloose.toString()}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_aloose: parseFloat(text) || 0 })}
+                        placeholder="Aloose"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_collar.toString()}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_collar: parseFloat(text) || 0 })}
+                        placeholder="Collar"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                     <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar (Detail):</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_callar}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_callar: text })}
+                        placeholder="Collar Detail"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Cuff:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_cuff}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_cuff: text })}
+                        placeholder="Cuff"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Pkt:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_pkt}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_pkt: text })}
+                        placeholder="Pkt"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Loose Shirt:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_looseshirt}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_looseshirt: text })}
+                        placeholder="Loose Shirt"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>DT/TT:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.suit_dt_tt}
+                        onChangeText={(text) => setMeasurements({ ...measurements, suit_dt_tt: text })}
+                        placeholder="DT/TT"
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Safari/Jacket Measurements */}
+              {measurementType.safari && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Safari/Jacket Measurements</Text>
+                  <View style={dynamicStyles.measurementGrid}>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Length:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_length ? measurements.safari_length.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_length: text })}
+                        placeholder="Length"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Body:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_body || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_body: text })}
+                        placeholder="Body"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Loose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_loose || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_loose: text })}
+                        placeholder="Loose"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Shoulder:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_shoulder ? measurements.safari_shoulder.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_shoulder: text })}
+                        placeholder="Shoulder"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Astin:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_astin ? measurements.safari_astin.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_astin: text })}
+                        placeholder="Astin"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Aloose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_aloose ? measurements.safari_aloose.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_aloose: text })}
+                        placeholder="Aloose"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_collar ? measurements.safari_collar.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_collar: text })}
+                        placeholder="Collar"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar (Detail):</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_callar || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_callar: text })}
+                        placeholder="Collar Detail"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Cuff:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_cuff || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_cuff: text })}
+                        placeholder="Cuff"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Pkt:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_pkt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_pkt: text })}
+                        placeholder="Pkt"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Loose Shirt:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_looseshirt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_looseshirt: text })}
+                        placeholder="Loose Shirt"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>DT/TT:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.safari_dt_tt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, safari_dt_tt: text })}
+                        placeholder="DT/TT"
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* N.Shirt Measurements */}
+              {measurementType.nshirt && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>N.Shirt Measurements</Text>
+                  <View style={dynamicStyles.measurementGrid}>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Length:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_length ? measurements.nshirt_length.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_length: text })}
+                        placeholder="Length"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Body:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_body || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_body: text })}
+                        placeholder="Body"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Loose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_loose || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_loose: text })}
+                        placeholder="Loose"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Shoulder:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_shoulder ? measurements.nshirt_shoulder.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_shoulder: text })}
+                        placeholder="Shoulder"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Astin:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_astin ? measurements.nshirt_astin.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_astin: text })}
+                        placeholder="Astin"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Aloose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_aloose ? measurements.nshirt_aloose.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_aloose: text })}
+                        placeholder="Aloose"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_collar ? measurements.nshirt_collar.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_collar: text })}
+                        placeholder="Collar"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar (Detail):</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_callar || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_callar: text })}
+                        placeholder="Collar Detail"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Cuff:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_cuff || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_cuff: text })}
+                        placeholder="Cuff"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Pkt:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_pkt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_pkt: text })}
+                        placeholder="Pkt"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Loose Shirt:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_looseshirt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_looseshirt: text })}
+                        placeholder="Loose Shirt"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>DT/TT:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.nshirt_dt_tt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_dt_tt: text })}
+                        placeholder="DT/TT"
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Sadri Measurements */}
+              {measurementType.sadri && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Sadri Measurements</Text>
+                  <View style={dynamicStyles.measurementGrid}>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Length:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_length ? measurements.sadri_length.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_length: text })}
+                        placeholder="Length"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Body:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_body || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_body: text })}
+                        placeholder="Body"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Loose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_loose || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_loose: text })}
+                        placeholder="Loose"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Shoulder:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_shoulder ? measurements.sadri_shoulder.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_shoulder: text })}
+                        placeholder="Shoulder"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Astin:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_astin ? measurements.sadri_astin.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_astin: text })}
+                        placeholder="Astin"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Aloose:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_aloose ? measurements.sadri_aloose.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_aloose: text })}
+                        placeholder="Aloose"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_collar ? measurements.sadri_collar.toString() : ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_collar: text })}
+                        placeholder="Collar"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Collar (Detail):</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_callar || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_callar: text })}
+                        placeholder="Collar Detail"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Cuff:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_cuff || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_cuff: text })}
+                        placeholder="Cuff"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Pkt:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_pkt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_pkt: text })}
+                        placeholder="Pkt"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>Loose Shirt:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_looseshirt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_looseshirt: text })}
+                        placeholder="Loose Shirt"
+                      />
+                    </View>
+                    <View style={dynamicStyles.measurementInput}>
+                      <Text style={dynamicStyles.measurementLabel}>DT/TT:</Text>
+                      <TextInput
+                        style={dynamicStyles.measurementTextInput}
+                        value={measurements.sadri_dt_tt || ''}
+                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_dt_tt: text })}
+                        placeholder="DT/TT"
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
+
 
               {/* Extra Measurements */}
               {measurementType.extra && (
@@ -1727,6 +2159,25 @@ export default function GenerateBillScreen({ navigation }) {
                     style={styles.tableAmountInput}
                     value={itemizedBill.shirt_amount}
                     onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+                
+                {/* N.Shirt */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>N.Shirt</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.nshirt_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, nshirt_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.nshirt_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, nshirt_amount: text })}
                     keyboardType="numeric"
                     placeholder="0"
                   />
@@ -2109,6 +2560,77 @@ export default function GenerateBillScreen({ navigation }) {
           onChange={handleDateChange}
         />
       )}
+      
+      <Modal
+        visible={measurementSelectionVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMeasurementSelectionVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '80%', maxWidth: 400, alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#2c3e50' }}>
+              Select Measurements to Print
+            </Text>
+            
+            <TouchableOpacity 
+              style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
+              onPress={() => executePrintMeasurements('shirt')}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Shirt Only</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
+              onPress={() => executePrintMeasurements('pant')}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Pant Only</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
+              onPress={() => executePrintMeasurements('suit')}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Suit Only</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
+              onPress={() => executePrintMeasurements('safari')}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Safari/Jacket Only</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
+              onPress={() => executePrintMeasurements('nshirt')}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print N.Shirt Only</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
+              onPress={() => executePrintMeasurements('sadri')}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Sadri Only</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={{ backgroundColor: '#27ae60', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
+              onPress={() => executePrintMeasurements('both')}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print All Available</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={{ marginTop: 10, padding: 10 }}
+              onPress={() => setMeasurementSelectionVisible(false)}
+            >
+              <Text style={{ color: '#95a5a6', fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       
       <SafeAreaView style={{ height: 32 }} />
     </View>

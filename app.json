@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MyApp",
+    "name": "Yak's Men's Wear",
     "slug": "MyApp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -25,7 +25,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.yourcompany.myapp"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,9 +34,10 @@
         "viewport": "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
       }
     },
+    "owner": "nikhil850723",
     "extra": {
       "eas": {
-        "projectId": "65f18a6e-4b58-4785-bd02-fbc02d4d1f5b"
+        "projectId": "dee471c9-5d2e-4196-b087-bd81345454d2"
       }
     }
   }

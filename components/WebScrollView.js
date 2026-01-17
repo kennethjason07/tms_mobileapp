@@ -11,6 +11,7 @@ const injectScrollbarStyles = () => {
       style.textContent = `
         .custom-scrollview::-webkit-scrollbar {
           width: 8px;
+          height: 8px;
         }
         .custom-scrollview::-webkit-scrollbar-track {
           background: #f1f1f1;
@@ -22,6 +23,16 @@ const injectScrollbarStyles = () => {
         }
         .custom-scrollview::-webkit-scrollbar-thumb:hover {
           background: #a1a1a1;
+        }
+        .custom-scrollview {
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
+        @media (max-width: 768px) {
+          .custom-scrollview::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+          }
         }
       `;
       document.head.appendChild(style);
@@ -64,19 +75,24 @@ const WebScrollView = ({ children, style = {}, contentContainerStyle = {}, shows
       flex: 1,
       height: getResponsiveHeight(),
       maxHeight: screenData.height,
-      overflow: 'auto',
+      overflow: horizontal ? 'auto' : 'auto',
+      overflowX: horizontal ? 'auto' : 'hidden',
+      overflowY: horizontal ? 'hidden' : 'auto',
       position: 'relative',
+      WebkitOverflowScrolling: 'touch',
+      touchAction: 'pan-y pan-x',
     };
 
     // Responsive content styling
     const webContentStyle = {
       ...contentContainerStyle,
       minHeight: 'max-content',
+      minWidth: horizontal ? 'max-content' : '100%',
       paddingBottom: isSmallScreen ? '40px' : isMediumScreen ? '60px' : '80px',
     };
 
     return (
-      <View style={webStyle}>
+      <View style={webStyle} className="custom-scrollview">
         <View style={webContentStyle}>
           {children}
         </View>

@@ -64,7 +64,7 @@ Please visit our shop to collect your order.
 Thank you for choosing our services!
 
 Best regards,
-Your Tailor Shop`;
+Yak's Men's Wear`;
 
     return message;
   },

@@ -1,0 +1,124 @@
+/* Global responsive styles for web */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+/* Mobile-friendly touch targets */
+@media (max-width: 768px) {
+  button, a, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Smooth scrolling for all scrollable elements */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Better touch handling for tables */
+table, .table-container {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+/* Responsive table wrapper */
+.responsive-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+/* Ensure horizontal scrolling works on mobile */
+@media (max-width: 768px) {
+  .responsive-table-wrapper {
+    overflow-x: scroll;
+  }
+
+  table {
+    min-width: 100%;
+  }
+}
+
+/* Custom scrollbar for better UX */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Mobile scrollbar */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* Prevent rubber banding on iOS */
+@supports (-webkit-overflow-scrolling: touch) {
+  body {
+    position: fixed;
+    overflow: hidden;
+  }
+}
+
+/* Fix for nested scrolling */
+.nested-scroll {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Enable horizontal scrolling for tables */
+.horizontal-scroll-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 500px;
+}
+
+/* FlatList scrolling support */
+div[data-focusable="true"] {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure touch events work properly */
+input, textarea, button, select, a {
+  touch-action: manipulation;
+}
+
+/* Mobile viewport handling */
+@media (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
