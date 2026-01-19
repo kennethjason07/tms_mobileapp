@@ -753,19 +753,19 @@ export const generateMeasurementHTML = (billData, measurements) => {
         }
         
         .shop-name {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: bold;
           margin: 0 0 2mm 0;
         }
         
         .subtitle {
-          font-size: 12px;
+          font-size: 14px;
           margin: 0;
           font-weight: bold;
         }
         
         .customer-info {
-          font-size: 13px;
+          font-size: 15px;
           margin-bottom: 3mm;
           padding-bottom: 2mm;
           border-bottom: 1px dashed #000;
@@ -786,7 +786,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         }
         
         .section-title {
-          font-size: 14px;
+          font-size: 16px;
           font-weight: bold;
           text-align: center;
           background: #000;
@@ -800,7 +800,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         .measurement-item {
           display: flex;
           justify-content: space-between;
-          font-size: 13px;
+          font-size: 15px;
           padding: 1.5mm 0;
           border-bottom: 1px dotted #ccc;
         }
@@ -811,7 +811,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         
         .measurement-value {
           text-align: right;
-          font-size: 16px;
+          font-size: 18px;
           font-weight: bold;
         }
         
@@ -820,7 +820,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
           border: 1px solid #000;
           padding: 1mm 2mm;
           margin: 0.5mm;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: bold;
           background: #f0f0f0;
           -webkit-print-color-adjust: exact;
@@ -836,7 +836,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
           margin-top: 3mm;
           padding-top: 2mm;
           border-top: 1px dashed #000;
-          font-size: 11px;
+          font-size: 13px;
         }
         
         .footer {
@@ -844,7 +844,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
           margin-top: 3mm;
           padding-top: 2mm;
           border-top: 2px dashed #000;
-          font-size: 11px;
+          font-size: 13px;
           font-weight: bold;
         }
       </style>
@@ -872,6 +872,20 @@ export const generateMeasurementHTML = (billData, measurements) => {
       
       <!-- SUIT Measurements -->
       ${measurements.suit_length || measurements.suit_body || measurements.suit_loose || measurements.suit_shoulder || measurements.suit_astin || measurements.suit_collar || measurements.suit_aloose ? `
+      <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
+        <div class="info-row">
+          <span>Order No:</span>
+          <span>${billData.billnumberinput2 || 'N/A'}</span>
+        </div>
+        <div class="info-row">
+          <span>Number:</span>
+          <span></span>
+        </div>
+        <div class="info-row">
+          <span>Delivery:</span>
+          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
+        </div>
+      </div>
       <div class="section-title">SUIT</div>
       ${measurements.suit_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.suit_length}</span></div>` : ''}
       ${measurements.suit_body ? `<div class="measurement-item"><span class="measurement-label">Body:</span><span class="measurement-value">${measurements.suit_body}</span></div>` : ''}
@@ -893,6 +907,20 @@ export const generateMeasurementHTML = (billData, measurements) => {
 
       <!-- PANT Measurements -->
       ${measurements.pant_length || measurements.pant_kamar || measurements.pant_hips || measurements.pant_waist || measurements.pant_ghutna || measurements.pant_bottom || measurements.pant_seat ? `
+      <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
+        <div class="info-row">
+          <span>Order No:</span>
+          <span>${billData.billnumberinput2 || 'N/A'}</span>
+        </div>
+        <div class="info-row">
+          <span>Number:</span>
+          <span></span>
+        </div>
+        <div class="info-row">
+          <span>Delivery:</span>
+          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
+        </div>
+      </div>
       <div class="section-title">PANT</div>
       ${measurements.pant_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.pant_length}</span></div>` : ''}
       ${measurements.pant_kamar ? `<div class="measurement-item"><span class="measurement-label">Kamar:</span><span class="measurement-value">${measurements.pant_kamar}</span></div>` : ''}
@@ -920,6 +948,20 @@ export const generateMeasurementHTML = (billData, measurements) => {
       <!-- SHIRT Measurements -->
       ${(measurements.shirt_length || measurements.shirt_body || measurements.shirt_loose || measurements.shirt_shoulder || measurements.shirt_astin || measurements.shirt_collar || measurements.shirt_aloose ||
       measurements.Callar || measurements.Cuff || measurements.Pkt || measurements.LooseShirt || measurements.DT_TT) ? `
+      <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
+        <div class="info-row">
+          <span>Order No:</span>
+          <span>${billData.billnumberinput2 || 'N/A'}</span>
+        </div>
+        <div class="info-row">
+          <span>Number:</span>
+          <span></span>
+        </div>
+        <div class="info-row">
+          <span>Delivery:</span>
+          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
+        </div>
+      </div>
       <div class="section-title">${(measurements.shirt_type || 'SHIRT').toUpperCase()}</div>
       ${measurements.shirt_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.shirt_length}</span></div>` : ''}
       ${(measurements.shirt_loose || measurements.LooseShirt) ? `<div class="measurement-item"><span class="measurement-label">Loose:</span><span class="measurement-value">${measurements.shirt_loose || measurements.LooseShirt}</span></div>` : ''}
@@ -941,6 +983,20 @@ export const generateMeasurementHTML = (billData, measurements) => {
 
       <!-- SAFARI Measurements -->
       ${measurements.safari_length || measurements.safari_body || measurements.safari_loose || measurements.safari_shoulder || measurements.safari_astin || measurements.safari_collar || measurements.safari_aloose ? `
+      <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
+        <div class="info-row">
+          <span>Order No:</span>
+          <span>${billData.billnumberinput2 || 'N/A'}</span>
+        </div>
+        <div class="info-row">
+          <span>Number:</span>
+          <span></span>
+        </div>
+        <div class="info-row">
+          <span>Delivery:</span>
+          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
+        </div>
+      </div>
       <div class="section-title">SAFARI/JACKET</div>
       ${measurements.safari_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.safari_length}</span></div>` : ''}
       ${measurements.safari_body ? `<div class="measurement-item"><span class="measurement-label">Body:</span><span class="measurement-value">${measurements.safari_body}</span></div>` : ''}
@@ -983,6 +1039,20 @@ export const generateMeasurementHTML = (billData, measurements) => {
 
       <!-- SADRI Measurements -->
       ${measurements.sadri_length || measurements.sadri_body || measurements.sadri_loose || measurements.sadri_shoulder || measurements.sadri_astin || measurements.sadri_collar || measurements.sadri_aloose ? `
+      <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
+        <div class="info-row">
+          <span>Order No:</span>
+          <span>${billData.billnumberinput2 || 'N/A'}</span>
+        </div>
+        <div class="info-row">
+          <span>Number:</span>
+          <span></span>
+        </div>
+        <div class="info-row">
+          <span>Delivery:</span>
+          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
+        </div>
+      </div>
       <div class="section-title">SADRI</div>
       ${measurements.sadri_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.sadri_length}</span></div>` : ''}
       ${measurements.sadri_body ? `<div class="measurement-item"><span class="measurement-label">Body:</span><span class="measurement-value">${measurements.sadri_body}</span></div>` : ''}
