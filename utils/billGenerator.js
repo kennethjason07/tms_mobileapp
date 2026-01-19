@@ -861,8 +861,8 @@ export const generateMeasurementHTML = (billData, measurements) => {
           <span>${billData.billnumberinput2 || 'N/A'}</span>
         </div>
         <div class="info-row">
-          <span>Date:</span>
-          <span>${formatDateForReceipt(billData.order_date)}</span>
+          <span>Number:</span>
+          <span></span>
         </div>
         <div class="info-row">
           <span>Delivery:</span>
@@ -911,9 +911,15 @@ export const generateMeasurementHTML = (billData, measurements) => {
       </div>
       ` : ''}
       ` : ''}
-      
+
+      <!-- Space for illustrations -->
+      <div style="height: 35mm; border: 1px dashed #ccc; margin: 3mm 0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; background: #fff;">
+        Draw Illustrations / Notes Here
+      </div>
+
       <!-- SHIRT Measurements -->
-      ${measurements.shirt_length || measurements.shirt_body || measurements.shirt_loose || measurements.shirt_shoulder || measurements.shirt_astin || measurements.shirt_collar || measurements.shirt_aloose ? `
+      ${(measurements.shirt_length || measurements.shirt_body || measurements.shirt_loose || measurements.shirt_shoulder || measurements.shirt_astin || measurements.shirt_collar || measurements.shirt_aloose ||
+      measurements.Callar || measurements.Cuff || measurements.Pkt || measurements.LooseShirt || measurements.DT_TT) ? `
       <div class="section-title">${(measurements.shirt_type || 'SHIRT').toUpperCase()}</div>
       ${measurements.shirt_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.shirt_length}</span></div>` : ''}
       ${(measurements.shirt_loose || measurements.LooseShirt) ? `<div class="measurement-item"><span class="measurement-label">Loose:</span><span class="measurement-value">${measurements.shirt_loose || measurements.LooseShirt}</span></div>` : ''}
