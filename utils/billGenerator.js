@@ -854,24 +854,12 @@ export const generateMeasurementHTML = (billData, measurements) => {
       <div class="header">
       </div>
       
-      <!-- Customer Info -->
-      <div class="customer-info">
-        <div class="info-row">
-          <span>Order No:</span>
-          <span>${billData.billnumberinput2 || 'N/A'}</span>
-        </div>
-        <div class="info-row">
-          <span>Number:</span>
-          <span></span>
-        </div>
-        <div class="info-row">
-          <span>Delivery:</span>
-          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
-        </div>
-      </div>
+      
+      <!-- Measurements sections will provide their own headers -->
       
       <!-- SUIT Measurements -->
-      ${measurements.suit_length || measurements.suit_body || measurements.suit_loose || measurements.suit_shoulder || measurements.suit_astin || measurements.suit_collar || measurements.suit_aloose ? `
+      ${(measurements.suit_length || measurements.suit_body || measurements.suit_loose || measurements.suit_shoulder || measurements.suit_astin || measurements.suit_collar || measurements.suit_aloose ||
+      measurements.suit_callar || measurements.suit_cuff || measurements.suit_pkt || measurements.suit_looseshirt || measurements.suit_dt_tt) ? `
       <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
         <div class="info-row">
           <span>Order No:</span>
@@ -903,10 +891,16 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.suit_dt_tt ? `<span class="special-box">DT/TT: ${measurements.suit_dt_tt}</span>` : ''}
       </div>
       ` : ''}
+      
+      <!-- Space for illustrations -->
+      <div style="height: 35mm; border: 1px dashed #ccc; margin: 3mm 0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; background: #fff;">
+        Draw Illustrations / Notes Here
+      </div>
       ` : ''}
 
       <!-- PANT Measurements -->
-      ${measurements.pant_length || measurements.pant_kamar || measurements.pant_hips || measurements.pant_waist || measurements.pant_ghutna || measurements.pant_bottom || measurements.pant_seat ? `
+      ${(measurements.pant_length || measurements.pant_kamar || measurements.pant_hips || measurements.pant_waist || measurements.pant_ghutna || measurements.pant_bottom || measurements.pant_seat ||
+      measurements.SideP_Cross || measurements.Plates || measurements.Belt || measurements.Back_P || measurements.WP) ? `
       <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
         <div class="info-row">
           <span>Order No:</span>
@@ -938,12 +932,12 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.WP ? `<span class="special-box">WP: ${measurements.WP}</span>` : ''}
       </div>
       ` : ''}
-      ` : ''}
-
+      
       <!-- Space for illustrations -->
       <div style="height: 35mm; border: 1px dashed #ccc; margin: 3mm 0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; background: #fff;">
         Draw Illustrations / Notes Here
       </div>
+      ` : ''}
 
       <!-- SHIRT Measurements -->
       ${(measurements.shirt_length || measurements.shirt_body || measurements.shirt_loose || measurements.shirt_shoulder || measurements.shirt_astin || measurements.shirt_collar || measurements.shirt_aloose ||
@@ -979,10 +973,16 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.DT_TT ? `<span class="special-box">DT/TT: ${measurements.DT_TT}</span>` : ''}
       </div>
       ` : ''}
+      
+      <!-- Space for illustrations -->
+      <div style="height: 35mm; border: 1px dashed #ccc; margin: 3mm 0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; background: #fff;">
+        Draw Illustrations / Notes Here
+      </div>
       ` : ''}
 
       <!-- SAFARI Measurements -->
-      ${measurements.safari_length || measurements.safari_body || measurements.safari_loose || measurements.safari_shoulder || measurements.safari_astin || measurements.safari_collar || measurements.safari_aloose ? `
+      ${(measurements.safari_length || measurements.safari_body || measurements.safari_loose || measurements.safari_shoulder || measurements.safari_astin || measurements.safari_collar || measurements.safari_aloose ||
+      measurements.safari_callar || measurements.safari_cuff || measurements.safari_pkt || measurements.safari_looseshirt || measurements.safari_dt_tt) ? `
       <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
         <div class="info-row">
           <span>Order No:</span>
@@ -1014,10 +1014,30 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.safari_dt_tt ? `<span class="special-box">DT/TT: ${measurements.safari_dt_tt}</span>` : ''}
       </div>
       ` : ''}
+      
+      <!-- Space for illustrations -->
+      <div style="height: 35mm; border: 1px dashed #ccc; margin: 3mm 0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; background: #fff;">
+        Draw Illustrations / Notes Here
+      </div>
       ` : ''}
 
       <!-- N.SHIRT Measurements -->
-      ${measurements.nshirt_length || measurements.nshirt_body || measurements.nshirt_loose || measurements.nshirt_shoulder || measurements.nshirt_astin || measurements.nshirt_collar || measurements.nshirt_aloose ? `
+      ${(measurements.nshirt_length || measurements.nshirt_body || measurements.nshirt_loose || measurements.nshirt_shoulder || measurements.nshirt_astin || measurements.nshirt_collar || measurements.nshirt_aloose ||
+      measurements.nshirt_callar || measurements.nshirt_cuff || measurements.nshirt_pkt || measurements.nshirt_looseshirt || measurements.nshirt_dt_tt) ? `
+      <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
+        <div class="info-row">
+          <span>Order No:</span>
+          <span>${billData.billnumberinput2 || 'N/A'}</span>
+        </div>
+        <div class="info-row">
+          <span>Number:</span>
+          <span></span>
+        </div>
+        <div class="info-row">
+          <span>Delivery:</span>
+          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
+        </div>
+      </div>
       <div class="section-title">N.SHIRT</div>
       ${measurements.nshirt_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.nshirt_length}</span></div>` : ''}
       ${measurements.nshirt_body ? `<div class="measurement-item"><span class="measurement-label">Body:</span><span class="measurement-value">${measurements.nshirt_body}</span></div>` : ''}
@@ -1035,10 +1055,16 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.nshirt_dt_tt ? `<span class="special-box">DT/TT: ${measurements.nshirt_dt_tt}</span>` : ''}
       </div>
       ` : ''}
+      
+      <!-- Space for illustrations -->
+      <div style="height: 35mm; border: 1px dashed #ccc; margin: 3mm 0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; background: #fff;">
+        Draw Illustrations / Notes Here
+      </div>
       ` : ''}
 
       <!-- SADRI Measurements -->
-      ${measurements.sadri_length || measurements.sadri_body || measurements.sadri_loose || measurements.sadri_shoulder || measurements.sadri_astin || measurements.sadri_collar || measurements.sadri_aloose ? `
+      ${(measurements.sadri_length || measurements.sadri_body || measurements.sadri_loose || measurements.sadri_shoulder || measurements.sadri_astin || measurements.sadri_collar || measurements.sadri_aloose ||
+      measurements.sadri_callar || measurements.sadri_cuff || measurements.sadri_pkt || measurements.sadri_looseshirt || measurements.sadri_dt_tt) ? `
       <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
         <div class="info-row">
           <span>Order No:</span>
@@ -1070,10 +1096,36 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.sadri_dt_tt ? `<span class="special-box">DT/TT: ${measurements.sadri_dt_tt}</span>` : ''}
       </div>
       ` : ''}
+      
+      <!-- Space for illustrations -->
+      <div style="height: 35mm; border: 1px dashed #ccc; margin: 3mm 0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; background: #fff;">
+        Draw Illustrations / Notes Here
+      </div>
       ` : ''}
       
       <!-- Extra Measurements -->
       ${measurements.extra_measurements ? `
+      ${!(measurements.suit_length || measurements.suit_body || measurements.suit_loose || measurements.suit_shoulder || measurements.suit_astin || measurements.suit_collar || measurements.suit_aloose || measurements.suit_callar || measurements.suit_cuff || measurements.suit_pkt || measurements.suit_looseshirt || measurements.suit_dt_tt ||
+        measurements.pant_length || measurements.pant_kamar || measurements.pant_hips || measurements.pant_waist || measurements.pant_ghutna || measurements.pant_bottom || measurements.pant_seat || measurements.SideP_Cross || measurements.Plates || measurements.Belt || measurements.Back_P || measurements.WP ||
+        measurements.shirt_length || measurements.shirt_body || measurements.shirt_loose || measurements.shirt_shoulder || measurements.shirt_astin || measurements.shirt_collar || measurements.shirt_aloose || measurements.Callar || measurements.Cuff || measurements.Pkt || measurements.LooseShirt || measurements.DT_TT ||
+        measurements.safari_length || measurements.safari_body || measurements.safari_loose || measurements.safari_shoulder || measurements.safari_astin || measurements.safari_collar || measurements.safari_aloose || measurements.safari_callar || measurements.safari_cuff || measurements.safari_pkt || measurements.safari_looseshirt || measurements.safari_dt_tt ||
+        measurements.nshirt_length || measurements.nshirt_body || measurements.nshirt_loose || measurements.nshirt_shoulder || measurements.nshirt_astin || measurements.nshirt_collar || measurements.nshirt_aloose || measurements.nshirt_callar || measurements.nshirt_cuff || measurements.nshirt_pkt || measurements.nshirt_looseshirt || measurements.nshirt_dt_tt ||
+        measurements.sadri_length || measurements.sadri_body || measurements.sadri_loose || measurements.sadri_shoulder || measurements.sadri_astin || measurements.sadri_collar || measurements.sadri_aloose || measurements.sadri_callar || measurements.sadri_cuff || measurements.sadri_pkt || measurements.sadri_looseshirt || measurements.sadri_dt_tt) ? `
+      <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
+        <div class="info-row">
+          <span>Order No:</span>
+          <span>${billData.billnumberinput2 || 'N/A'}</span>
+        </div>
+        <div class="info-row">
+          <span>Number:</span>
+          <span></span>
+        </div>
+        <div class="info-row">
+          <span>Delivery:</span>
+          <span>${formatDateForReceipt(billData.due_date, -1)}</span>
+        </div>
+      </div>
+      ` : ''}
       <div class="extra-notes">
         <div style="font-weight: bold; margin-bottom: 1mm;">Extra Notes:</div>
         <div>${measurements.extra_measurements}</div>
