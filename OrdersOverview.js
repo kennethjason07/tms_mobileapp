@@ -278,32 +278,33 @@ function renderPagination(pageNumber) {
 </td>
                     <td>${order.due_date}</td>
                     <td>
-                        <select onchange="updatePaymentMode(${order.id}, this.value)">
+                        <select id="payment-mode-${order.id}" onchange="updatePaymentMode(${order.id}, this.value)">
                             <option value="UPI" ${order.payment_mode === "UPI" ? "selected" : ""}>UPI</option>
                             <option value="Cash" ${order.payment_mode === "Cash" ? "selected" : ""}>Cash</option>
                         </select>
                     </td>
                     <td>${order.payment_status}</td>
                     <td>
-                        <select onchange="updatePaymentStatus(${order.id}, this.value)">
+                        <select id="payment-status-${order.id}" onchange="updatePaymentStatus(${order.id}, this.value)">
                             <option value="pending" ${order.payment_status === "pending" ? "selected" : ""}>Pending</option>
                             <option value="paid" ${order.payment_status === "paid" ? "selected" : ""}>Paid</option>
                             <option value="cancelled" ${order.payment_status === "cancelled" ? "selected" : ""}>Cancelled</option>
                         </select>
                     </td>
                     <td>
-                        <input type="number" value="${order.total_amt}" 
+                        <input id="total-amount-${order.id}" type="number" value="${order.total_amt}" 
                                onchange="updateTotalAmount(${order.id}, this.value)" />
                     </td>
                     
                     <td>
-    <input type="number" value="${order.payment_amount}" 
+    <input id="advance-amount-${order.id}" type="number" value="${order.payment_amount}" 
            onchange="updateAdvanceAmount(${order.id}, this.value)" />
 </td>
 
 
 
-                    <td>${order.total_amt - order.payment_amount}</td>
+
+                    <td id="pending-amount-${order.id}">${order.total_amt - order.payment_amount}</td>
                     <td>${order.customer_mobile || "N/A"}</td>
                     <td>${order.bill_id}</td>
                     <td>${workerDropdownHTML}</td>
@@ -340,34 +341,62 @@ function renderPaginationControls() {
 
 
 
+// Function to update total amount
 function updateTotalAmount(orderId, newAmount) {
-    // Validate the input
     if (isNaN(newAmount) || newAmount < 0) {
         alert('Please enter a valid amount.');
         return;
     }
 
-    // Optionally send the update to the server
-    fetch(`http://127.0.0.1:5000/api/orders/${orderId}/update-total-amount`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ total_amt: parseFloat(newAmount) })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to update the total amount.');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Total amount updated successfully:', data);
-        alert('Total amount updated successfully!');
-    })
-    .catch(error => {
-        console.error('Error updating total amount:', error);
-        alert('Failed to update the total amount.');
+    const order = allOrders.find(o => o.id == orderId);
+    if (!order) return;
+
+    // Use Bill Number grouping (primary) or Bill ID (secondary)
+    const billNum = order.billnumberinput2;
+    const billId = order.bill_id;
+    let ordersToUpdate = [];
+
+    if (billNum) {
+        // Use loose equality or string conversion to match numbers and strings safely
+        ordersToUpdate = allOrders.filter(o => o.billnumberinput2 == billNum);
+    } else if (billId) {
+        ordersToUpdate = allOrders.filter(o => o.bill_id == billId);
+    } else {
+        ordersToUpdate = [order];
+    }
+    
+    // Debugging: Verify we found the right orders
+    console.log(`[TotalAmount] Grouping by BillNum: ${billNum}, BillId: ${billId}`);
+    console.log(`[TotalAmount] Found ${ordersToUpdate.length} orders to update. IDs: ${ordersToUpdate.map(o => o.id).join(', ')}`);
+
+
+    console.log(`Updating Total Amount for ${ordersToUpdate.length} orders (Bill ${billNum || billId})`);
+
+    // Optimistic Update
+    ordersToUpdate.forEach(o => {
+        // Update local data
+        o.total_amt = parseFloat(newAmount);
+        
+        // Update Total Amount Input
+        const totalEl = document.getElementById(`total-amount-${o.id}`);
+        if (totalEl) totalEl.value = newAmount;
+
+        // Recalculate and Update Pending Amount
+        const pendingAmount = o.total_amt - (o.payment_amount || 0);
+        const pendingEl = document.getElementById(`pending-amount-${o.id}`);
+        if (pendingEl) pendingEl.innerText = pendingAmount;
+    });
+
+    // Background API Update
+    Promise.all(ordersToUpdate.map(o => 
+        fetch(`http://127.0.0.1:5000/api/orders/${o.id}/update-total-amount`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ total_amt: parseFloat(newAmount) })
+        })
+    )).catch(err => {
+        console.error(err);
+        alert('Failed to save Total Amount to server.');
     });
 }
 
@@ -464,77 +493,122 @@ function assignWorkersToOrder(orderId) {
 
 // Function to update order status
 function updateOrderStatus(orderId, newStatus) {
-    fetch(`http://127.0.0.1:5000/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log('Order status update response:', result);
-        alert('Order status updated successfully');
-        // No need to reload the page, just show a success message
-    })
-    .catch(error => {
-        console.error('Error updating order status:', error);
-        alert('Error updating order status');
+    const order = allOrders.find(o => o.id == orderId);
+    if (!order) return;
+
+    // Use Bill Number grouping
+    const billNum = order.billnumberinput2;
+    const billId = order.bill_id;
+    let ordersToUpdate = [];
+
+    if (billNum) {
+        ordersToUpdate = allOrders.filter(o => o.billnumberinput2 == billNum);
+    } else if (billId) {
+        ordersToUpdate = allOrders.filter(o => o.bill_id == billId);
+    } else {
+        ordersToUpdate = [order];
+    }
+    
+    console.log(`[OrderStatus] Updating ${ordersToUpdate.length} orders. IDs: ${ordersToUpdate.map(o => o.id).join(', ')}`);
+
+
+    // Optimistic Update
+    ordersToUpdate.forEach(o => {
+        o.status = newStatus;
+        const el = document.getElementById(`status-select-${o.id}`);
+        if (el) el.value = newStatus;
+    });
+
+    Promise.all(ordersToUpdate.map(o => 
+        fetch(`http://127.0.0.1:5000/api/orders/${o.id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        })
+    )).then(() => {
+        console.log(`Updated status to ${newStatus} for ${ordersToUpdate.length} orders.`);
+    }).catch(err => {
+        console.error(err);
+        alert('Failed to update status on server.');
     });
 }
 
 // Function to update payment status
 function updatePaymentStatus(orderId, newPaymentStatus) {
-    fetch(`http://127.0.0.1:5000/api/orders/${orderId}/payment-status`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ payment_status: newPaymentStatus })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log('Payment status update response:', result);
-        alert('Payment status updated successfully');
-        // No need to reload the page, just show a success message
-    })
-    .catch(error => {
-        console.error('Error updating payment status:', error);
-        alert('Error updating payment status');
+    const order = allOrders.find(o => o.id == orderId);
+    if (!order) return;
+
+    // Use Bill Number grouping
+    const billNum = order.billnumberinput2;
+    const billId = order.bill_id;
+    let ordersToUpdate = [];
+
+    if (billNum) {
+        ordersToUpdate = allOrders.filter(o => o.billnumberinput2 == billNum);
+    } else if (billId) {
+        ordersToUpdate = allOrders.filter(o => o.bill_id == billId);
+    } else {
+        ordersToUpdate = [order];
+    }
+    
+    console.log(`[PaymentStatus] Updating ${ordersToUpdate.length} orders. IDs: ${ordersToUpdate.map(o => o.id).join(', ')}`);
+
+
+    // Optimistic Update
+    ordersToUpdate.forEach(o => {
+        o.payment_status = newPaymentStatus;
+        const el = document.getElementById(`payment-status-${o.id}`);
+        if (el) el.value = newPaymentStatus;
+    });
+
+    Promise.all(ordersToUpdate.map(o => 
+        fetch(`http://127.0.0.1:5000/api/orders/${o.id}/payment-status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_status: newPaymentStatus })
+        })
+    )).catch(err => {
+        console.error(err);
+        alert('Failed to update payment status on server.');
     });
 }
 // Function to update Payment mode
 function updatePaymentMode(orderId, newPaymentMode){
-    fetch(`http://127.0.0.1:5000/api/orders/${orderId}/payment-mode`, {  // Corrected endpoint
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ payment_mode: newPaymentMode })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log('Payment Mode update response:', result);
-        alert('Payment Mode updated successfully');
-    })
-    .catch(error => {
-        console.error('Error updating payment mode:', error);
-        alert('Error updating payment mode');
+    const order = allOrders.find(o => o.id == orderId);
+    if (!order) return;
+
+    // Use Bill Number grouping
+    const billNum = order.billnumberinput2;
+    const billId = order.bill_id;
+    let ordersToUpdate = [];
+
+    if (billNum) {
+        ordersToUpdate = allOrders.filter(o => o.billnumberinput2 == billNum);
+    } else if (billId) {
+        ordersToUpdate = allOrders.filter(o => o.bill_id == billId);
+    } else {
+        ordersToUpdate = [order];
+    }
+    
+    console.log(`[PaymentMode] Updating ${ordersToUpdate.length} orders. IDs: ${ordersToUpdate.map(o => o.id).join(', ')}`);
+
+
+    // Optimistic Update
+    ordersToUpdate.forEach(o => {
+        o.payment_mode = newPaymentMode;
+        const el = document.getElementById(`payment-mode-${o.id}`);
+        if (el) el.value = newPaymentMode;
+    });
+
+    Promise.all(ordersToUpdate.map(o => 
+        fetch(`http://127.0.0.1:5000/api/orders/${o.id}/payment-mode`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_mode: newPaymentMode })
+        })
+    )).catch(err => {
+        console.error(err);
+        alert('Failed to update payment mode on server.');
     });
 }
 
@@ -564,33 +638,59 @@ function updatePaymentMode(orderId, newPaymentMode){
         }
 
 
-        function updateAdvanceAmount(orderId, newAdvance) {
+function updateAdvanceAmount(orderId, newAdvance) {
     if (isNaN(newAdvance) || newAdvance < 0) {
         alert('Please enter a valid advance amount.');
         return;
     }
 
-    fetch(`http://127.0.0.1:5000/api/orders/${orderId}/update-advance-amount`, {
-        method: 'POST',  // Or PUT depending on your API
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ payment_amount: parseFloat(newAdvance) })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to update the advance amount.');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Advance amount updated successfully:', data);
-        alert('Advance amount updated successfully!');
-        fetchOrders(); // Refresh the table to update pending amount
-    })
-    .catch(error => {
-        console.error('Error updating advance amount:', error);
-        alert('Failed to update the advance amount.');
+    const order = allOrders.find(o => o.id == orderId);
+    if (!order) return;
+
+    // Use Bill Number grouping
+    const billNum = order.billnumberinput2;
+    const billId = order.bill_id;
+    let ordersToUpdate = [];
+
+    if (billNum) {
+        ordersToUpdate = allOrders.filter(o => o.billnumberinput2 == billNum);
+    } else if (billId) {
+        ordersToUpdate = allOrders.filter(o => o.bill_id == billId);
+    } else {
+        ordersToUpdate = [order];
+    }
+
+    // Debugging: Verify we found the right orders
+    console.log(`[AdvanceAmount] Grouping by BillNum: ${billNum}, BillId: ${billId}`);
+    console.log(`[AdvanceAmount] Found ${ordersToUpdate.length} orders to update. IDs: ${ordersToUpdate.map(o => o.id).join(', ')}`);
+
+
+    console.log(`Updating Advance Amount for ${ordersToUpdate.length} orders (Bill ${billNum || billId})`);
+
+    // Optimistic Update
+    ordersToUpdate.forEach(o => {
+        // Update local data
+        o.payment_amount = parseFloat(newAdvance);
+        
+        // Update Advance Amount Input
+        const advanceEl = document.getElementById(`advance-amount-${o.id}`);
+        if (advanceEl) advanceEl.value = newAdvance;
+
+        // Recalculate and Update Pending Amount
+        const pendingAmount = (o.total_amt || 0) - o.payment_amount;
+        const pendingEl = document.getElementById(`pending-amount-${o.id}`);
+        if (pendingEl) pendingEl.innerText = pendingAmount;
+    });
+
+    Promise.all(ordersToUpdate.map(o => 
+        fetch(`http://127.0.0.1:5000/api/orders/${o.id}/update-advance-amount`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_amount: parseFloat(newAdvance) })
+        })
+    )).catch(err => {
+        console.error(err);
+        alert('Failed to update Advance Amount on server.');
     });
 }
 function copyStatusToAll(orderId, billId) {

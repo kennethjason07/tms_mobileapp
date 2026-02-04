@@ -865,14 +865,28 @@ export default function OrdersOverviewScreen({ navigation }) {
         affectedOrderId: numericOrderId
       });
 
+      // Optimistic Update: Update all orders with this bill number in local state
+      const billNum = expandedOrder.billnumberinput2;
+      const billId = expandedOrder.bill_id;
+      
+      const updateFn = (orderList) => orderList.map(o => {
+        const match = (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId);
+        if (match) {
+          return { ...o, payment_status: newPaymentStatus };
+        }
+        return o;
+      });
+
+      setOrders(prev => updateFn(prev));
+      setFilteredOrders(prev => updateFn(prev));
       
       // Use bulk update to update all orders with the same bill number
       const updateResult = await SupabaseAPI.updatePaymentStatusByBillNumber(expandedOrder.billnumberinput2, newPaymentStatus);
 
-      
+      // We don't need to loadData here if optimistic update is correct, but we can do it silently or just rely on state
+      // Alert user but don't reload to keep UI stable
       const orderCount = updateResult.affected_count || 1;
-      Alert.alert('Success', `Payment status updated to "${newPaymentStatus}" for all ${orderCount} order(s) in bill ${expandedOrder.billnumberinput2}`);
-      loadData();
+      // Alert.alert('Success', `Payment status updated to "${newPaymentStatus}" for all ${orderCount} order(s) in bill ${expandedOrder.billnumberinput2}`);
       
     } catch (error) {
       console.error('❌ Payment status update failed:', error);
@@ -880,6 +894,8 @@ export default function OrdersOverviewScreen({ navigation }) {
         'Error', 
         `Failed to update payment status: ${error.message}\n\nIf this persists, please check:\n• Internet connection\n• Database permissions\n• Contact support`
       );
+      // Revert state on error if needed, or just reload
+      loadData();
     } finally {
       setLoading(false);
     }
@@ -892,7 +908,7 @@ export default function OrdersOverviewScreen({ navigation }) {
     }
 
     try {
-      setLoading(true);
+      setLoading(true); // Maybe show small loader or just proceed
       // Find the expanded order to get the original order ID
       const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
@@ -902,12 +918,37 @@ export default function OrdersOverviewScreen({ navigation }) {
         setLoading(false);
         return;
       }
+
+      // Optimistic Update
+      const billNum = expandedOrder.billnumberinput2;
+      const billId = expandedOrder.bill_id;
+      const updateFn = (orderList) => orderList.map(o => {
+        const match = (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId);
+        if (match) {
+          return { ...o, payment_mode: newPaymentMode };
+        }
+        return o;
+      });
+      setOrders(prev => updateFn(prev));
+      setFilteredOrders(prev => updateFn(prev));
       
-      await SupabaseAPI.updatePaymentMode(originalOrderId, newPaymentMode);
-      loadData();
-      Alert.alert('Success', 'Payment mode updated successfully');
+      // In Supabase, we might need a bulk update for payment mode too, but for now loop or assume single update
+      // The user requested shifting for ALL, so we should try to allow bulk update if backend supports it.
+      // If backend only supports single, we might need to loop here or update backend.
+      // For now, let's update single and assume the user's request implies we should update all.
+      // Since I edited Supabase.js to have bulk status/payment_status, I should ideally use a loop here if no bulk API.
+      
+      // Find all orders to update
+      const ordersToUpdate = orders.filter(o => 
+        (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId)
+      );
+      
+      await Promise.all(ordersToUpdate.map(o => SupabaseAPI.updatePaymentMode(o.id || o.original_id, newPaymentMode)));
+
+      // Alert.alert('Success', 'Payment mode updated successfully');
     } catch (error) {
       Alert.alert('Error', `Failed to update payment mode: ${error.message}`);
+      loadData(); // Revert on error
     } finally {
       setLoading(false);
     }
@@ -935,12 +976,31 @@ export default function OrdersOverviewScreen({ navigation }) {
         setLoading(false);
         return;
       }
+
+      // Optimistic Update
+      const billNum = expandedOrder.billnumberinput2;
+      const billId = expandedOrder.bill_id;
+      const updateFn = (orderList) => orderList.map(o => {
+        const match = (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId);
+        if (match) {
+          return { ...o, total_amt: parseFloat(newAmount) };
+        }
+        return o;
+      });
+      setOrders(prev => updateFn(prev));
+      setFilteredOrders(prev => updateFn(prev));
       
-      await SupabaseAPI.updateOrderTotalAmount(originalOrderId, parseFloat(newAmount));
-      loadData();
-      Alert.alert('Success', 'Total amount updated successfully');
+      // Loop update
+      const ordersToUpdate = orders.filter(o => 
+        (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId)
+      );
+      
+      await Promise.all(ordersToUpdate.map(o => SupabaseAPI.updateOrderTotalAmount(o.id || o.original_id, parseFloat(newAmount))));
+      
+      // Alert.alert('Success', 'Total amount updated successfully');
     } catch (error) {
       Alert.alert('Error', `Failed to update total amount: ${error.message}`);
+      loadData();
     } finally {
       setLoading(false);
     }
@@ -968,12 +1028,31 @@ export default function OrdersOverviewScreen({ navigation }) {
         setLoading(false);
         return;
       }
+
+      // Optimistic Update
+      const billNum = expandedOrder.billnumberinput2;
+      const billId = expandedOrder.bill_id;
+      const updateFn = (orderList) => orderList.map(o => {
+        const match = (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId);
+        if (match) {
+          return { ...o, payment_amount: parseFloat(newAmount) };
+        }
+        return o;
+      });
+      setOrders(prev => updateFn(prev));
+      setFilteredOrders(prev => updateFn(prev));
       
-      await SupabaseAPI.updatePaymentAmount(originalOrderId, parseFloat(newAmount));
-      loadData();
-      Alert.alert('Success', 'Payment amount updated successfully');
+      // Loop update
+      const ordersToUpdate = orders.filter(o => 
+        (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId)
+      );
+      
+      await Promise.all(ordersToUpdate.map(o => SupabaseAPI.updatePaymentAmount(o.id || o.original_id, parseFloat(newAmount))));
+
+      // Alert.alert('Success', 'Payment amount updated successfully');
     } catch (error) {
       Alert.alert('Error', `Failed to update payment amount: ${error.message}`);
+      loadData();
     } finally {
       setLoading(false);
     }
@@ -993,11 +1072,35 @@ export default function OrdersOverviewScreen({ navigation }) {
         return;
       }
 
-      // Update order_status in database
-      await SupabaseAPI.updateOrderStatus(originalOrderId, newOrderStatus);
+      // Optimistic Update
+      const billNum = expandedOrder.billnumberinput2;
+      const billId = expandedOrder.bill_id;
+      const updateFn = (orderList) => orderList.map(o => {
+        const match = (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId);
+        if (match) {
+          return { ...o, status: newOrderStatus, order_status: newOrderStatus }; // Update both fields just in case
+        }
+        return o;
+      });
+      setOrders(prev => updateFn(prev));
+      setFilteredOrders(prev => updateFn(prev));
+
+      // Update order_status in database (Bulk)
+      // Note: original code only updated single order via SupabaseAPI.updateOrderStatus
+      // We should update all
+      const ordersToUpdate = orders.filter(o => 
+        (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId)
+      );
+      
+      // Update in background
+      await SupabaseAPI.updateOrderStatusByBillNumber(expandedOrder.billnumberinput2, newOrderStatus);
       console.log('✅ Order status updated to:', newOrderStatus);
       
-      // If changed to 'completed', trigger WhatsApp integration
+      // WhatsApp trigger logic remains...
+      // For optimistic update stability, we should probably NOT call loadData() unless necessary
+      // But WhatsApp logic sends messages based on latest DB state potentially. 
+      // The original code re-checks DB for billOrders. This is fine.
+
       if (newOrderStatus === 'completed' && expandedOrder && expandedOrder.bill_id) {
         try {
           console.log('🎯 Order marked COMPLETED, checking for WhatsApp trigger...');
@@ -1119,8 +1222,10 @@ export default function OrdersOverviewScreen({ navigation }) {
       }
       
       // Only reload data if we're not showing the WhatsApp confirmation dialog
+      // AND also, if we just did an optimistic update, we might SKIP loadData entirely for "shifting"
+      // But for "completed" causing WhatsApp, we rely on checking if "all completed"
       if (newOrderStatus !== 'completed' || !expandedOrder || !expandedOrder.bill_id) {
-        loadData();
+        // loadData(); // Skip loadData to keep "shifting" stable. 
       }
     } catch (error) {
       Alert.alert('Error', `Failed to update order status: ${error.message}`);
