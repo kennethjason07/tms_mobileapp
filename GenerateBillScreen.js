@@ -668,7 +668,7 @@ export default function GenerateBillScreen({ navigation }) {
             const processedOrders = splitCommaGarmentsIntoRows(billOrders);
             setOrders(processedOrders);
 
-            // Calculate itemized bill from orders
+            // Calculate itemized bill directly from bill data (Source of Truth)
             const itemized = {
               suit_qty: (bill.suit_qty || 0).toString(),
               suit_amount: (bill.suit_amount || 0).toString(),
@@ -683,42 +683,56 @@ export default function GenerateBillScreen({ navigation }) {
               sadri_qty: (bill.sadri_qty || 0).toString(),
               sadri_amount: (bill.sadri_amount || 0).toString(),
               total_qty: '0',
-              total_amt: '0',
+              total_amt: (bill.total_amt || 0).toString(),
             };
 
-            let totalAmount = 0;
-            let totalQty = 0;
-
-            billOrders.forEach(order => {
-              const amount = parseFloat(order.total_amt || 0);
-              totalAmount += amount;
-              totalQty += 1;
-
-              const garmentType = order.garment_type?.toLowerCase();
-              if (garmentType?.includes('suit')) {
-                itemized.suit_qty = (parseInt(itemized.suit_qty) + 1).toString();
-                itemized.suit_amount = (parseFloat(itemized.suit_amount) + amount).toString();
-              } else if (garmentType?.includes('safari') || garmentType?.includes('jacket')) {
-                itemized.safari_qty = (parseInt(itemized.safari_qty) + 1).toString();
-                itemized.safari_amount = (parseFloat(itemized.safari_amount) + amount).toString();
-              } else if (garmentType?.includes('pant')) {
-                itemized.pant_qty = (parseInt(itemized.pant_qty) + 1).toString();
-                itemized.pant_amount = (parseFloat(itemized.pant_amount) + amount).toString();
-              } else if (garmentType?.includes('shirt') && !garmentType?.includes('n.shirt')) {
-                itemized.shirt_qty = (parseInt(itemized.shirt_qty) + 1).toString();
-                itemized.shirt_amount = (parseFloat(itemized.shirt_amount) + amount).toString();
-              } else if (garmentType?.includes('n.shirt')) {
-                itemized.nshirt_qty = (parseInt(itemized.nshirt_qty) + 1).toString();
-                itemized.nshirt_amount = (parseFloat(itemized.nshirt_amount) + amount).toString();
-              } else if (garmentType?.includes('sadri')) {
-                itemized.sadri_qty = (parseInt(itemized.sadri_qty) + 1).toString();
-                itemized.sadri_amount = (parseFloat(itemized.sadri_amount) + amount).toString();
-              }
-            });
-
-            itemized.total_amt = totalAmount.toString();
+            // Calculate total quantity from bill items
+            const totalQty = 
+              parseInt(itemized.suit_qty || 0) +
+              parseInt(itemized.safari_qty || 0) +
+              parseInt(itemized.pant_qty || 0) +
+              parseInt(itemized.shirt_qty || 0) +
+              parseInt(itemized.nshirt_qty || 0) +
+              parseInt(itemized.sadri_qty || 0);
+            
             itemized.total_qty = totalQty.toString();
+
+            // Check if individual amounts are 0 but total amount exists (common in legacy records)
+            const currentTotalCalc = 
+              parseFloat(itemized.suit_amount || 0) +
+              parseFloat(itemized.safari_amount || 0) +
+              parseFloat(itemized.pant_amount || 0) +
+              parseFloat(itemized.shirt_amount || 0) +
+              parseFloat(itemized.nshirt_amount || 0) +
+              parseFloat(itemized.sadri_amount || 0);
+
+            const billTotal = parseFloat(itemized.total_amt || 0);
+
+            // If we have quantities and a total price, but missing individual breakdown, distribute it
+            if (billTotal > 0 && currentTotalCalc === 0 && totalQty > 0) {
+              console.log('⚠️ Bill has total amount but missing individual breakdown. Distributing proportionally...');
+              
+              const avgPrice = billTotal / totalQty;
+              
+              if (parseInt(itemized.suit_qty) > 0) itemized.suit_amount = (parseInt(itemized.suit_qty) * avgPrice).toFixed(2);
+              if (parseInt(itemized.safari_qty) > 0) itemized.safari_amount = (parseInt(itemized.safari_qty) * avgPrice).toFixed(2);
+              if (parseInt(itemized.pant_qty) > 0) itemized.pant_amount = (parseInt(itemized.pant_qty) * avgPrice).toFixed(2);
+              if (parseInt(itemized.shirt_qty) > 0) itemized.shirt_amount = (parseInt(itemized.shirt_qty) * avgPrice).toFixed(2);
+              if (parseInt(itemized.nshirt_qty) > 0) itemized.nshirt_amount = (parseInt(itemized.nshirt_qty) * avgPrice).toFixed(2);
+              if (parseInt(itemized.sadri_qty) > 0) itemized.sadri_amount = (parseInt(itemized.sadri_qty) * avgPrice).toFixed(2);
+            }
+
+            console.log('✅ Itemized bill loaded from Bill Records:');
+            console.log(`  Suit: ${itemized.suit_qty} items, ₹${itemized.suit_amount}`);
+            console.log(`  Safari: ${itemized.safari_qty} items, ₹${itemized.safari_amount}`);
+            console.log(`  Pant: ${itemized.pant_qty} items, ₹${itemized.pant_amount}`);
+            console.log(`  Shirt: ${itemized.shirt_qty} items, ₹${itemized.shirt_amount}`);
+            console.log(`  N.Shirt: ${itemized.nshirt_qty} items, ₹${itemized.nshirt_amount}`);
+            console.log(`  Sadri: ${itemized.sadri_qty} items, ₹${itemized.sadri_amount}`);
+            console.log(`  TOTAL: ${itemized.total_qty} items, ₹${itemized.total_amt}`);
+
             setItemizedBill(itemized);
+
 
             // Try to get measurements if mobile number is available
             if (bill.mobile_number) {
