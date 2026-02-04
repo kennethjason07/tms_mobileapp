@@ -32,26 +32,26 @@ const { width } = Dimensions.get('window');
 const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = null) => {
 
 
-  
+
   // Check if orders are already individual garments (they should be based on schema)
   const sampleOrder = orders[0];
   if (sampleOrder && sampleOrder.garment_type) {
 
 
-    
+
     // Just sort the existing orders
     const sortedOrders = orders.sort((a, b) => {
       const billNumberA = Number(a.billnumberinput2) || 0;
       const billNumberB = Number(b.billnumberinput2) || 0;
-      
+
       if (billNumberB !== billNumberA) {
         return billNumberB - billNumberA; // Descending: highest first
       }
-      
+
       // Secondary sort by order ID descending if bill numbers are same
       return (b.id || 0) - (a.id || 0);
     });
-    
+
 
 
     if (sortedOrders.length > 0) {
@@ -63,26 +63,26 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
 
       if (expectedHighestBillNumber !== null) {
 
-        console.log(`✅ VERIFICATION: First order matches expected highest?`, 
+        console.log(`✅ VERIFICATION: First order matches expected highest?`,
           actualHighestBill === expectedHighestBillNumber ? 'YES ✓' : `NO ✗ (Expected: ${expectedHighestBillNumber}, Got: ${actualHighestBill})`);
       }
     }
-    
+
     return sortedOrders;
   }
-  
+
   // If orders don't have garment_type, proceed with legacy expansion logic
 
-  
+
   // First, ensure orders are sorted by bill number descending
   const sortedOrders = orders.sort((a, b) => {
     const billNumberA = Number(a.billnumberinput2) || 0;
     const billNumberB = Number(b.billnumberinput2) || 0;
-    
+
     if (billNumberB !== billNumberA) {
       return billNumberB - billNumberA; // Descending: highest first
     }
-    
+
     // Secondary sort by order ID descending if bill numbers are same
     return (b.id || 0) - (a.id || 0);
   });
@@ -90,7 +90,7 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
   // Group orders by bill_id first (maintaining sort order)
   const ordersByBill = {};
   const billOrder = []; // Track the order of bills
-  
+
   sortedOrders.forEach(order => {
     const billId = order.bill_id || 'no-bill';
     if (!ordersByBill[billId]) {
@@ -99,17 +99,17 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
     }
     ordersByBill[billId].push(order);
   });
-  
+
   const finalExpandedOrders = [];
-  
+
   // Process each bill group in the order we encountered them (highest bill numbers first)
   billOrder.forEach(billId => {
     const billOrders = ordersByBill[billId];
-    
+
     // Get the first order to access bill data
     const firstOrder = billOrders[0];
     const bill = firstOrder.bills || {};
-    
+
     // Define garment types and their quantities from the bill
     const garmentTypes = [
       { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
@@ -118,7 +118,7 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
       { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
       { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
     ];
-    
+
     // Create rows for each garment type based on quantities
     garmentTypes.forEach(({ type, qty }) => {
       if (qty > 0) {
@@ -126,7 +126,7 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
         for (let i = 0; i < qty; i++) {
           const expandedId = firstOrder.id + '_' + type + '_' + i;
 
-          
+
           finalExpandedOrders.push({
             ...firstOrder,
             // Create unique ID for each expanded row
@@ -143,27 +143,27 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
       }
     });
   });
-  
+
   // Final sort to ensure the expanded orders maintain bill number descending order
   const finalSorted = finalExpandedOrders.sort((a, b) => {
     const billNumberA = Number(a.billnumberinput2) || 0;
     const billNumberB = Number(b.billnumberinput2) || 0;
-    
+
     if (billNumberB !== billNumberA) {
       return billNumberB - billNumberA; // Descending: highest first
     }
-    
+
     // Secondary sort by original order ID
     const orderIdA = Number(a.original_id || a.id) || 0;
     const orderIdB = Number(b.original_id || b.id) || 0;
     if (orderIdB !== orderIdA) {
       return orderIdB - orderIdA;
     }
-    
+
     // Tertiary sort by garment index to maintain consistent order within same bill/order
     return (a.garment_index || 0) - (b.garment_index || 0);
   });
-  
+
 
 
   if (finalSorted.length > 0) {
@@ -175,12 +175,12 @@ const expandOrdersByGarmentAndQuantity = (orders, expectedHighestBillNumber = nu
 
     if (expectedHighestBillNumber !== null) {
 
-      console.log(`✅ VERIFICATION: First order matches expected highest?`, 
+      console.log(`✅ VERIFICATION: First order matches expected highest?`,
         actualHighestBill === expectedHighestBillNumber ? 'YES ✓' : `NO ✗ (Expected: ${expectedHighestBillNumber}, Got: ${actualHighestBill})`);
     }
 
   }
-  
+
   return finalSorted;
 };
 
@@ -222,19 +222,19 @@ export default function OrdersOverviewScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Get the highest bill number first for verification
       const highestBillNumber = await SupabaseAPI.getHighestBillNumber();
 
 
 
 
-      
+
       const [ordersData, workersData] = await Promise.all([
         SupabaseAPI.getOrders(),
         SupabaseAPI.getWorkers()
       ]);
-      
+
       // Debug raw data from Supabase
 
 
@@ -244,7 +244,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         ordersData.slice(0, 3).forEach((order, index) => {
 
         });
-        
+
         // Check if bill 8023 is in the raw data
         const rawBill8023 = ordersData.filter(order => Number(order.billnumberinput2) === 8023);
 
@@ -255,7 +255,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         }
       }
 
-      
+
       // Process orders data to match frontend structure
       const processedOrders = ordersData
         // REMOVE the filter so all orders are shown
@@ -269,35 +269,35 @@ export default function OrdersOverviewScreen({ navigation }) {
           // Handle billnumberinput2 - it can be stored as double precision in DB
           const billNumberA = Number(a.billnumberinput2) || 0;
           const billNumberB = Number(b.billnumberinput2) || 0;
-          
+
           // Primary sort: by bill number descending (highest first)
           if (billNumberB !== billNumberA) {
             const result = billNumberB - billNumberA; // Descending: 8023, 8022, 8021...
 
             return result;
           }
-          
+
           // Secondary sort: by order ID descending if bill numbers are same
           const orderResult = (b.id || 0) - (a.id || 0);
 
           return orderResult;
         });
-      
+
       // COMPREHENSIVE BILL NUMBER ANALYSIS
 
 
-      
+
       if (processedOrders.length > 0) {
         // Extract all unique bill numbers and sort them
         const allBillNumbers = [...new Set(processedOrders.map(order => Number(order.billnumberinput2) || 0))]
           .filter(num => num > 0)
           .sort((a, b) => b - a); // Descending order
-        
 
 
 
 
-        
+
+
         // Show top 20 bill numbers
 
         allBillNumbers.slice(0, 20).forEach((billNum, index) => {
@@ -306,7 +306,7 @@ export default function OrdersOverviewScreen({ navigation }) {
           const count = processedOrders.filter(o => Number(o.billnumberinput2) === billNum).length;
 
         });
-        
+
         // Check for bill 8023 specifically
         const bill8023Index = allBillNumbers.indexOf(8023);
         if (bill8023Index === -1) {
@@ -318,28 +318,28 @@ export default function OrdersOverviewScreen({ navigation }) {
         } else {
 
         }
-        
-      // Show actual first order details with user-friendly explanation
 
-      const topOrder = processedOrders[0];
+        // Show actual first order details with user-friendly explanation
 
-
-
-
-
-      
-      // User-friendly explanation of sorting
-      if (allBillNumbers[0] !== 8023) {
+        const topOrder = processedOrders[0];
 
 
 
 
+
+
+        // User-friendly explanation of sorting
+        if (allBillNumbers[0] !== 8023) {
+
+
+
+
+        }
       }
-      }
-      
+
       // Expand orders by garment type and quantity
       const expandedOrders = expandOrdersByGarmentAndQuantity(processedOrders, highestBillNumber);
-      
+
 
       if (expandedOrders.length > 0) {
 
@@ -348,7 +348,7 @@ export default function OrdersOverviewScreen({ navigation }) {
           const icon = isBill8023 ? '🏅' : (index < 5 ? '🔵' : '⚫');
 
         });
-        
+
         // Check if bill 8023 orders are at the top
         const bill8023Orders = expandedOrders.filter(o => Number(o.billnumberinput2) === 8023);
 
@@ -357,7 +357,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         });
       }
 
-      
+
       setOrders(expandedOrders);
       setFilteredOrders(expandedOrders);
       setWorkers(workersData);
@@ -373,19 +373,19 @@ export default function OrdersOverviewScreen({ navigation }) {
     let filtered = [...orders];
 
     if (filters.deliveryStatus) {
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         order.status?.toLowerCase() === filters.deliveryStatus.toLowerCase()
       );
     }
 
     if (filters.paymentStatus) {
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         order.payment_status?.toLowerCase() === filters.paymentStatus.toLowerCase()
       );
     }
 
     if (filters.deliveryDate) {
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         order.due_date === filters.deliveryDate
       );
     }
@@ -394,11 +394,11 @@ export default function OrdersOverviewScreen({ navigation }) {
     filtered = filtered.sort((a, b) => {
       const billNumberA = Number(a.billnumberinput2) || 0;
       const billNumberB = Number(b.billnumberinput2) || 0;
-      
+
       if (billNumberB !== billNumberA) {
         return billNumberB - billNumberA; // Descending: 8023, 8022, 8021...
       }
-      
+
       // Secondary sort by order ID if bill numbers are same
       return (b.id || 0) - (a.id || 0);
     });
@@ -416,54 +416,54 @@ export default function OrdersOverviewScreen({ navigation }) {
     try {
       setLoading(true);
 
-      
+
       const data = await SupabaseAPI.searchOrders(searchQuery);
 
-      
+
       if (!data || data.length === 0) {
 
         setFilteredOrders([]);
         return;
       }
-      
+
       // Process search results to match frontend structure
       const processedData = data.map(order => ({
         ...order,
         deliveryDate: order.due_date,
         workers: order.order_worker_association?.map(assoc => assoc.workers) || []
       }));
-      
+
 
       processedData.slice(0, 5).forEach((order, index) => {
 
       });
-      
+
       // Sort by billnumberinput2 descending (search results should show highest bill numbers first)
       const sortedData = processedData.sort((a, b) => {
         const billNumberA = Number(a.billnumberinput2) || 0;
         const billNumberB = Number(b.billnumberinput2) || 0;
-        
+
         if (billNumberB !== billNumberA) {
           return billNumberB - billNumberA; // Descending: highest first
         }
-        
+
         return (b.id || 0) - (a.id || 0);
       });
-      
+
 
       sortedData.slice(0, 5).forEach((order, index) => {
 
       });
-      
+
       // Find the highest bill number in search results for verification
       const searchResultHighestBill = Math.max(...sortedData.map(order => Number(order.billnumberinput2) || 0));
 
 
 
-      
+
       // Expand search results by garment type and quantity
       const expandedSearchResults = expandOrdersByGarmentAndQuantity(sortedData, searchResultHighestBill);
-      
+
 
       if (expandedSearchResults.length > 0) {
 
@@ -471,7 +471,7 @@ export default function OrdersOverviewScreen({ navigation }) {
 
         });
       }
-      
+
 
       setFilteredOrders(expandedSearchResults);
     } catch (error) {
@@ -490,49 +490,49 @@ export default function OrdersOverviewScreen({ navigation }) {
 
     try {
       setLoading(true);
-      
+
       // Debug: Log all available orders to understand the structure
 
 
 
 
 
-      
+
       // Try multiple search strategies with better validation
       let expandedOrder = null;
       let searchStrategy = null;
-      
+
       // Strategy 1: Direct expanded_id match
       expandedOrder = orders.find(order => order.expanded_id === expandedOrderId);
       if (expandedOrder) searchStrategy = 'orders.expanded_id';
-      
+
       // Strategy 2: If not found, try searching in filteredOrders
       if (!expandedOrder) {
         expandedOrder = filteredOrders.find(order => order.expanded_id === expandedOrderId);
         if (expandedOrder) searchStrategy = 'filteredOrders.expanded_id';
       }
-      
+
       // Strategy 3: If still not found, try regular ID match (string and number)
       if (!expandedOrder) {
-        expandedOrder = orders.find(order => 
+        expandedOrder = orders.find(order =>
           order.id.toString() === expandedOrderId.toString() ||
           order.id === expandedOrderId
         );
         if (expandedOrder) searchStrategy = 'orders.id';
       }
-      
+
       // Strategy 4: Try filteredOrders with regular ID
       if (!expandedOrder) {
-        expandedOrder = filteredOrders.find(order => 
+        expandedOrder = filteredOrders.find(order =>
           order.id.toString() === expandedOrderId.toString() ||
           order.id === expandedOrderId
         );
         if (expandedOrder) searchStrategy = 'filteredOrders.id';
       }
-      
+
       // Get original order ID with validation
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
-      
+
       console.log('Delivery search results:', {
         searchStrategy,
         expandedOrder: expandedOrder ? {
@@ -545,74 +545,74 @@ export default function OrdersOverviewScreen({ navigation }) {
         originalOrderId,
         originalOrderIdType: typeof originalOrderId
       });
-      
+
       // Enhanced validation
       if (!expandedOrder) {
         console.error('❌ Order not found using any strategy');
         console.error('Available order IDs in orders:', orders.slice(0, 10).map(o => ({ id: o.id, expanded_id: o.expanded_id })));
         console.error('Available order IDs in filteredOrders:', filteredOrders.slice(0, 10).map(o => ({ id: o.id, expanded_id: o.expanded_id })));
         Alert.alert(
-          'Error', 
+          'Error',
           `Order not found with ID: ${expandedOrderId}\n\nThis might happen if:\n• The page needs refreshing\n• The order was deleted\n• There's a data sync issue\n\nPlease try refreshing the page.`
         );
         setLoading(false);
         return;
       }
-      
+
       if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null || originalOrderId === undefined) {
         console.error('❌ Invalid original order ID:', originalOrderId);
         Alert.alert(
-          'Error', 
+          'Error',
           `Invalid order reference found.\n\nOrder ID: ${expandedOrderId}\nOriginal ID: ${originalOrderId}\n\nPlease try refreshing the page.`
         );
         setLoading(false);
         return;
       }
-      
+
       // Ensure originalOrderId is a number
       const numericOrderId = Number(originalOrderId);
       if (isNaN(numericOrderId) || numericOrderId <= 0) {
         console.error('❌ Original order ID is not a valid number:', originalOrderId);
         Alert.alert(
-          'Error', 
+          'Error',
           `Invalid order ID format: ${originalOrderId}\n\nExpected a positive number. Please try refreshing the page.`
         );
         setLoading(false);
         return;
       }
-      
+
       console.log('✅ About to update delivery status for all orders with bill number:', {
         billNumber: expandedOrder.billnumberinput2,
         newStatus,
         affectedOrderId: numericOrderId
       });
 
-      
+
       // Use bulk update to update all orders with the same bill number
       const updateResult = await SupabaseAPI.updateOrderStatusByBillNumber(expandedOrder.billnumberinput2, newStatus);
       console.log('✅ Status updated, checking for WhatsApp trigger...');
       console.log('New status:', newStatus);
-      
-        // If status is being set to completed, check if all orders for this bill are completed
-        if (newStatus.toLowerCase() === 'completed') {
-          console.log('🎯 Status is COMPLETED, checking bill completion...');
-          // Find the current order to get its bill_id (use the expanded order)
-          const currentOrder = expandedOrder;
-          console.log('Current order bill_id:', currentOrder.bill_id);
+
+      // If status is being set to completed, check if all orders for this bill are completed
+      if (newStatus.toLowerCase() === 'completed') {
+        console.log('🎯 Status is COMPLETED, checking bill completion...');
+        // Find the current order to get its bill_id (use the expanded order)
+        const currentOrder = expandedOrder;
+        console.log('Current order bill_id:', currentOrder.bill_id);
         if (currentOrder && currentOrder.bill_id) {
           try {
             console.log('📦 Fetching all orders for bill_id:', currentOrder.bill_id);
             // Get all orders for this bill
             const { orders: billOrders, bill } = await SupabaseAPI.getOrdersByBillId(currentOrder.bill_id);
             console.log('Found', billOrders.length, 'orders for this bill');
-            
+
             // Check if all orders for this bill are completed
-            const allCompleted = billOrders.every(order => 
+            const allCompleted = billOrders.every(order =>
               order.status?.toLowerCase() === 'completed'
             );
             console.log('All orders completed?', allCompleted);
             console.log('Bill data exists?', !!bill);
-            
+
             if (allCompleted && bill) {
               console.log('🎉 All orders completed! Preparing WhatsApp message...');
               // Redirect to WhatsApp with pre-filled message
@@ -627,13 +627,13 @@ export default function OrdersOverviewScreen({ navigation }) {
                   orderDetails
                 );
                 console.log('Message generated, length:', message.length);
-                
+
                 if (customerInfo.mobile && customerInfo.mobile.trim() !== '') {
                   console.log('Mobile number found:', customerInfo.mobile);
                   // Validate mobile number format
                   const cleanMobile = customerInfo.mobile.replace(/\D/g, '');
                   console.log('Clean mobile:', cleanMobile);
-                  
+
                   // Check if mobile number is valid (should be 10 digits starting with 6-9 for India)
                   if (cleanMobile.length === 10 && /^[6-9]/.test(cleanMobile)) {
                     console.log('✅ Mobile number is valid, opening WhatsApp...');
@@ -642,19 +642,19 @@ export default function OrdersOverviewScreen({ navigation }) {
                       console.log('Calling WhatsAppRedirectService...');
                       const result = WhatsAppRedirectService.openWhatsAppWithMessage(customerInfo.mobile, message, true);
                       console.log('WhatsApp service result:', result);
-                      
+
                       if (result.success === 'confirmation_needed') {
                         console.log('📱 Showing confirmation dialog...');
                         // Show Yes/No confirmation popup
                         Alert.alert(
-                          '📱 Send WhatsApp Message?', 
+                          '📱 Send WhatsApp Message?',
                           `Order completed! Would you like to send a WhatsApp notification to customer ${customerInfo.name}?\n\nNumber: ${customerInfo.mobile}\n\nMessage preview:\n${message.substring(0, 100)}...`,
                           [
                             {
                               text: 'No',
                               onPress: () => {
                                 Alert.alert(
-                                  'Success', 
+                                  'Success',
                                   `Order status updated to "${newStatus}" for bill ${expandedOrder.billnumberinput2}. WhatsApp message not sent.`
                                 );
                               },
@@ -671,20 +671,20 @@ export default function OrdersOverviewScreen({ navigation }) {
                                   if (openResult.success) {
                                     console.log('✅ WhatsApp opened successfully!');
                                     Alert.alert(
-                                      'Success', 
+                                      'Success',
                                       'Order status updated successfully! WhatsApp opened with your completion message ready to send.'
                                     );
                                   } else {
                                     console.log('❌ WhatsApp failed to open:', openResult.message);
                                     Alert.alert(
-                                      'Success', 
+                                      'Success',
                                       `Order status updated successfully. ${openResult.message}`
                                     );
                                   }
                                 } catch (openError) {
                                   console.error('❌ WhatsApp opening failed:', openError);
                                   Alert.alert(
-                                    'Error', 
+                                    'Error',
                                     'Failed to open WhatsApp. Please make sure WhatsApp is installed on your device.'
                                   );
                                 }
@@ -695,39 +695,39 @@ export default function OrdersOverviewScreen({ navigation }) {
                         );
                       } else if (result.success === true) {
                         Alert.alert(
-                          'Success', 
+                          'Success',
                           'Order status updated successfully! WhatsApp opened with your completion message ready to send.'
                         );
                       } else {
                         Alert.alert(
-                          'Success', 
+                          'Success',
                           `Order status updated successfully. ${result.message}`
                         );
                       }
                     } catch (redirectError) {
                       console.error('WhatsApp redirect failed:', redirectError);
                       Alert.alert(
-                        'Success', 
+                        'Success',
                         'Order status updated successfully. WhatsApp is not available for this number.'
                       );
                     }
                   } else {
                     // Invalid mobile number format
                     Alert.alert(
-                      'Success', 
+                      'Success',
                       `Order status updated successfully. WhatsApp redirect skipped - invalid mobile number format (${customerInfo.mobile}).`
                     );
                   }
                 } else {
                   Alert.alert(
-                    'Success', 
+                    'Success',
                     'Order status updated successfully. WhatsApp redirect skipped - no mobile number found.'
                   );
                 }
               } catch (whatsappError) {
                 console.error('WhatsApp redirect error:', whatsappError);
                 Alert.alert(
-                  'Success', 
+                  'Success',
                   'Order status updated successfully. WhatsApp redirect failed - please make sure WhatsApp is installed.'
                 );
               }
@@ -747,12 +747,12 @@ export default function OrdersOverviewScreen({ navigation }) {
         const orderCount = updateResult.affected_count || 1;
         Alert.alert('Success', `Delivery status updated to "${newStatus}" for all ${orderCount} order(s) in bill ${expandedOrder.billnumberinput2}`);
       }
-      
+
       loadData();
     } catch (error) {
       console.error('❌ Delivery status update failed:', error);
       Alert.alert(
-        'Error', 
+        'Error',
         `Failed to update delivery status: ${error.message}\n\nIf this persists, please check:\n• Internet connection\n• Database permissions\n• Contact support`
       );
     } finally {
@@ -768,49 +768,49 @@ export default function OrdersOverviewScreen({ navigation }) {
 
     try {
       setLoading(true);
-      
+
       // Debug: Log all available orders to understand the structure
 
 
 
 
 
-      
+
       // Try multiple search strategies with better validation
       let expandedOrder = null;
       let searchStrategy = null;
-      
+
       // Strategy 1: Direct expanded_id match
       expandedOrder = orders.find(order => order.expanded_id === expandedOrderId);
       if (expandedOrder) searchStrategy = 'orders.expanded_id';
-      
+
       // Strategy 2: If not found, try searching in filteredOrders
       if (!expandedOrder) {
         expandedOrder = filteredOrders.find(order => order.expanded_id === expandedOrderId);
         if (expandedOrder) searchStrategy = 'filteredOrders.expanded_id';
       }
-      
+
       // Strategy 3: If still not found, try regular ID match (string and number)
       if (!expandedOrder) {
-        expandedOrder = orders.find(order => 
+        expandedOrder = orders.find(order =>
           order.id.toString() === expandedOrderId.toString() ||
           order.id === expandedOrderId
         );
         if (expandedOrder) searchStrategy = 'orders.id';
       }
-      
+
       // Strategy 4: Try filteredOrders with regular ID
       if (!expandedOrder) {
-        expandedOrder = filteredOrders.find(order => 
+        expandedOrder = filteredOrders.find(order =>
           order.id.toString() === expandedOrderId.toString() ||
           order.id === expandedOrderId
         );
         if (expandedOrder) searchStrategy = 'filteredOrders.id';
       }
-      
+
       // Get original order ID with validation
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
-      
+
       console.log('Search results:', {
         searchStrategy,
         expandedOrder: expandedOrder ? {
@@ -823,42 +823,42 @@ export default function OrdersOverviewScreen({ navigation }) {
         originalOrderId,
         originalOrderIdType: typeof originalOrderId
       });
-      
+
       // Enhanced validation
       if (!expandedOrder) {
         console.error('❌ Order not found using any strategy');
         console.error('Available order IDs in orders:', orders.slice(0, 10).map(o => ({ id: o.id, expanded_id: o.expanded_id })));
         console.error('Available order IDs in filteredOrders:', filteredOrders.slice(0, 10).map(o => ({ id: o.id, expanded_id: o.expanded_id })));
         Alert.alert(
-          'Error', 
+          'Error',
           `Order not found with ID: ${expandedOrderId}\n\nThis might happen if:\n• The page needs refreshing\n• The order was deleted\n• There's a data sync issue\n\nPlease try refreshing the page.`
         );
         setLoading(false);
         return;
       }
-      
+
       if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null || originalOrderId === undefined) {
         console.error('❌ Invalid original order ID:', originalOrderId);
         Alert.alert(
-          'Error', 
+          'Error',
           `Invalid order reference found.\n\nOrder ID: ${expandedOrderId}\nOriginal ID: ${originalOrderId}\n\nPlease try refreshing the page.`
         );
         setLoading(false);
         return;
       }
-      
+
       // Ensure originalOrderId is a number
       const numericOrderId = Number(originalOrderId);
       if (isNaN(numericOrderId) || numericOrderId <= 0) {
         console.error('❌ Original order ID is not a valid number:', originalOrderId);
         Alert.alert(
-          'Error', 
+          'Error',
           `Invalid order ID format: ${originalOrderId}\n\nExpected a positive number. Please try refreshing the page.`
         );
         setLoading(false);
         return;
       }
-      
+
       console.log('✅ About to update payment status for all orders with bill number:', {
         billNumber: expandedOrder.billnumberinput2,
         newPaymentStatus,
@@ -868,7 +868,7 @@ export default function OrdersOverviewScreen({ navigation }) {
       // Optimistic Update: Update all orders with this bill number in local state
       const billNum = expandedOrder.billnumberinput2;
       const billId = expandedOrder.bill_id;
-      
+
       const updateFn = (orderList) => orderList.map(o => {
         const match = (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId);
         if (match) {
@@ -879,7 +879,7 @@ export default function OrdersOverviewScreen({ navigation }) {
 
       setOrders(prev => updateFn(prev));
       setFilteredOrders(prev => updateFn(prev));
-      
+
       // Use bulk update to update all orders with the same bill number
       const updateResult = await SupabaseAPI.updatePaymentStatusByBillNumber(expandedOrder.billnumberinput2, newPaymentStatus);
 
@@ -887,11 +887,11 @@ export default function OrdersOverviewScreen({ navigation }) {
       // Alert user but don't reload to keep UI stable
       const orderCount = updateResult.affected_count || 1;
       // Alert.alert('Success', `Payment status updated to "${newPaymentStatus}" for all ${orderCount} order(s) in bill ${expandedOrder.billnumberinput2}`);
-      
+
     } catch (error) {
       console.error('❌ Payment status update failed:', error);
       Alert.alert(
-        'Error', 
+        'Error',
         `Failed to update payment status: ${error.message}\n\nIf this persists, please check:\n• Internet connection\n• Database permissions\n• Contact support`
       );
       // Revert state on error if needed, or just reload
@@ -912,7 +912,7 @@ export default function OrdersOverviewScreen({ navigation }) {
       // Find the expanded order to get the original order ID
       const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
-      
+
       if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
         Alert.alert('Error', 'Invalid original order ID. Cannot update payment mode.');
         setLoading(false);
@@ -931,18 +931,18 @@ export default function OrdersOverviewScreen({ navigation }) {
       });
       setOrders(prev => updateFn(prev));
       setFilteredOrders(prev => updateFn(prev));
-      
+
       // In Supabase, we might need a bulk update for payment mode too, but for now loop or assume single update
       // The user requested shifting for ALL, so we should try to allow bulk update if backend supports it.
       // If backend only supports single, we might need to loop here or update backend.
       // For now, let's update single and assume the user's request implies we should update all.
       // Since I edited Supabase.js to have bulk status/payment_status, I should ideally use a loop here if no bulk API.
-      
+
       // Find all orders to update
-      const ordersToUpdate = orders.filter(o => 
+      const ordersToUpdate = orders.filter(o =>
         (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId)
       );
-      
+
       await Promise.all(ordersToUpdate.map(o => SupabaseAPI.updatePaymentMode(o.id || o.original_id, newPaymentMode)));
 
       // Alert.alert('Success', 'Payment mode updated successfully');
@@ -970,7 +970,7 @@ export default function OrdersOverviewScreen({ navigation }) {
       // Find the expanded order to get the original order ID
       const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
-      
+
       if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
         Alert.alert('Error', 'Invalid original order ID. Cannot update total amount.');
         setLoading(false);
@@ -989,14 +989,14 @@ export default function OrdersOverviewScreen({ navigation }) {
       });
       setOrders(prev => updateFn(prev));
       setFilteredOrders(prev => updateFn(prev));
-      
+
       // Loop update
-      const ordersToUpdate = orders.filter(o => 
+      const ordersToUpdate = orders.filter(o =>
         (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId)
       );
-      
+
       await Promise.all(ordersToUpdate.map(o => SupabaseAPI.updateOrderTotalAmount(o.id || o.original_id, parseFloat(newAmount))));
-      
+
       // Alert.alert('Success', 'Total amount updated successfully');
     } catch (error) {
       Alert.alert('Error', `Failed to update total amount: ${error.message}`);
@@ -1022,7 +1022,7 @@ export default function OrdersOverviewScreen({ navigation }) {
       // Find the expanded order to get the original order ID
       const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
-      
+
       if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
         Alert.alert('Error', 'Invalid original order ID. Cannot update payment amount.');
         setLoading(false);
@@ -1041,12 +1041,12 @@ export default function OrdersOverviewScreen({ navigation }) {
       });
       setOrders(prev => updateFn(prev));
       setFilteredOrders(prev => updateFn(prev));
-      
+
       // Loop update
-      const ordersToUpdate = orders.filter(o => 
+      const ordersToUpdate = orders.filter(o =>
         (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId)
       );
-      
+
       await Promise.all(ordersToUpdate.map(o => SupabaseAPI.updatePaymentAmount(o.id || o.original_id, parseFloat(newAmount))));
 
       // Alert.alert('Success', 'Payment amount updated successfully');
@@ -1060,12 +1060,12 @@ export default function OrdersOverviewScreen({ navigation }) {
 
   const handleUpdateOrderStatus = async (expandedOrderId, newOrderStatus) => {
     console.log('📋 Updating order status:', { expandedOrderId, newOrderStatus });
-    
+
     try {
       setLoading(true);
       const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
-      
+
       if (!originalOrderId || originalOrderId === 'null' || originalOrderId === null) {
         Alert.alert('Error', 'Invalid order ID. Cannot update order status.');
         setLoading(false);
@@ -1088,14 +1088,14 @@ export default function OrdersOverviewScreen({ navigation }) {
       // Update order_status in database (Bulk)
       // Note: original code only updated single order via SupabaseAPI.updateOrderStatus
       // We should update all
-      const ordersToUpdate = orders.filter(o => 
+      const ordersToUpdate = orders.filter(o =>
         (billNum && o.billnumberinput2 == billNum) || (billId && o.bill_id == billId)
       );
-      
+
       // Update in background
       await SupabaseAPI.updateOrderStatusByBillNumber(expandedOrder.billnumberinput2, newOrderStatus);
       console.log('✅ Order status updated to:', newOrderStatus);
-      
+
       // WhatsApp trigger logic remains...
       // For optimistic update stability, we should probably NOT call loadData() unless necessary
       // But WhatsApp logic sends messages based on latest DB state potentially. 
@@ -1104,18 +1104,18 @@ export default function OrdersOverviewScreen({ navigation }) {
       if (newOrderStatus === 'completed' && expandedOrder && expandedOrder.bill_id) {
         try {
           console.log('🎯 Order marked COMPLETED, checking for WhatsApp trigger...');
-          
+
           // Get all orders for this bill
           const { orders: billOrders, bill } = await SupabaseAPI.getOrdersByBillId(expandedOrder.bill_id);
           console.log('📦 Found', billOrders.length, 'orders for this bill');
-          
+
           // Check if all orders for this bill are completed
           const allCompleted = billOrders.every(order => order.order_status === 'completed');
           console.log('All orders completed?', allCompleted);
-          
+
           if (allCompleted && bill) {
             console.log('🎉 All orders completed! Preparing WhatsApp message...');
-            
+
             // Generate WhatsApp message
             const customerInfo = WhatsAppService.getCustomerInfoFromBill(bill);
             const orderDetails = WhatsAppService.generateOrderDetailsString(billOrders);
@@ -1124,15 +1124,15 @@ export default function OrdersOverviewScreen({ navigation }) {
               bill.id,
               orderDetails
             );
-            
+
             if (customerInfo.mobile && customerInfo.mobile.trim() !== '') {
               const cleanMobile = customerInfo.mobile.replace(/\D/g, '');
-              
+
               if (cleanMobile.length === 10 && /^[6-9]/.test(cleanMobile)) {
                 console.log('✅ Mobile number valid, opening WhatsApp...');
-                
+
                 const result = WhatsAppRedirectService.openWhatsAppWithMessage(customerInfo.mobile, message, true);
-                
+
                 if (result.success === 'confirmation_needed') {
                   if (Platform.OS === 'web') {
                     // Use standard window.confirm for web to avoid React Native Web Alert issues
@@ -1220,7 +1220,7 @@ export default function OrdersOverviewScreen({ navigation }) {
       } else {
         Alert.alert('Success', `Order status updated to "${newOrderStatus}".`);
       }
-      
+
       // Only reload data if we're not showing the WhatsApp confirmation dialog
       // AND also, if we just did an optimistic update, we might SKIP loadData entirely for "shifting"
       // But for "completed" causing WhatsApp, we rely on checking if "all completed"
@@ -1246,10 +1246,10 @@ export default function OrdersOverviewScreen({ navigation }) {
     if (!selectedWorkers[orderId]) {
       setSelectedWorkers(prev => ({ ...prev, [orderId]: [] }));
     }
-    
+
     const currentSelected = selectedWorkers[orderId] || [];
     const isSelected = currentSelected.includes(workerId);
-    
+
     if (isSelected) {
       // Remove worker if already selected
       setSelectedWorkers(prev => ({
@@ -1258,12 +1258,12 @@ export default function OrdersOverviewScreen({ navigation }) {
       }));
     } else {
       // Find the order to get worker limit
-      const order = orders.find(o => (o.expanded_id || o.id) === orderId) || 
-                    filteredOrders.find(o => (o.expanded_id || o.id) === orderId);
-      
+      const order = orders.find(o => (o.expanded_id || o.id) === orderId) ||
+        filteredOrders.find(o => (o.expanded_id || o.id) === orderId);
+
       // Allow up to 3 workers for all garment types
       let maxWorkers = 3;
-      
+
       // Check if we've reached the worker limit
       if (currentSelected.length >= maxWorkers) {
         const garmentName = order?.garment_type || 'this garment';
@@ -1273,7 +1273,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         );
         return;
       }
-      
+
       // Add worker if limit not reached
       setSelectedWorkers(prev => ({
         ...prev,
@@ -1294,18 +1294,18 @@ export default function OrdersOverviewScreen({ navigation }) {
       // Find the expanded order to get the original order ID
       const expandedOrder = orders.find(order => (order.expanded_id || order.id) === expandedOrderId);
       const originalOrderId = expandedOrder?.original_id || expandedOrder?.id;
-      
+
       if (!originalOrderId) {
         Alert.alert('Error', 'Could not find original order ID.');
         setLoading(false);
         return;
       }
-      
+
       const result = await SupabaseAPI.assignWorkersToOrder(originalOrderId, workerIds);
-      
+
       // Find the current order to get bill information (use the expanded order)
       const currentOrder = expandedOrder;
-      
+
       // Debug logging
       console.log('Current order data:', {
         id: currentOrder?.id,
@@ -1314,10 +1314,10 @@ export default function OrdersOverviewScreen({ navigation }) {
         customer_name: currentOrder?.customer_name,
         bills: currentOrder?.bills
       });
-      
+
       // Manually update the order in local state for immediate UI feedback
       const assignedWorkerObjects = workers.filter(worker => workerIds.includes(worker.id));
-      
+
       setOrders(prevOrders =>
         prevOrders.map(order =>
           (order.expanded_id || order.id) === expandedOrderId
@@ -1332,14 +1332,14 @@ export default function OrdersOverviewScreen({ navigation }) {
             : order
         )
       );
-      
+
       // Send measurements to each assigned worker via WhatsApp
       try {
         // Try to get customer mobile from multiple possible sources
-        let customerMobile = currentOrder?.customer_mobile || 
-                           currentOrder?.bills?.mobile_number || 
-                           null;
-        
+        let customerMobile = currentOrder?.customer_mobile ||
+          currentOrder?.bills?.mobile_number ||
+          null;
+
 
 
 
@@ -1349,7 +1349,7 @@ export default function OrdersOverviewScreen({ navigation }) {
           customer_mobile: currentOrder?.customer_mobile,
           bills_mobile: currentOrder?.bills?.mobile_number
         });
-        
+
         // If no customer mobile found but we have bill_id, try to fetch bill data directly
         if (!customerMobile && currentOrder?.bill_id) {
 
@@ -1359,7 +1359,7 @@ export default function OrdersOverviewScreen({ navigation }) {
               .select('*')
               .eq('id', currentOrder.bill_id)
               .single();
-              
+
             if (!billError && bill) {
               console.log('Direct bill lookup successful:', {
                 customer_name: bill.customer_name,
@@ -1377,16 +1377,16 @@ export default function OrdersOverviewScreen({ navigation }) {
             console.error('Error in direct bill lookup:', directBillError);
           }
         }
-        
+
         if (currentOrder && customerMobile) {
 
-          
+
           // Fetch measurements for the customer
           const measurements = await SupabaseAPI.getMeasurementsByMobileNumber(customerMobile);
-          
 
 
-          
+
+
           // Send WhatsApp message to each assigned worker
           for (const worker of assignedWorkerObjects) {
             if (worker.number) {
@@ -1397,12 +1397,12 @@ export default function OrdersOverviewScreen({ navigation }) {
                   currentOrder.garment_type || 'N/A',
                   measurements
                 );
-                
 
-                
+
+
                 // Use WhatsApp redirect service with confirmation (for worker assignment)
                 const whatsappResult = WhatsAppRedirectService.openWhatsAppWithMessage(worker.number, message, true);
-                
+
                 if (whatsappResult.success === 'confirmation_needed') {
                   // Show Yes/No confirmation popup for worker assignment
                   Alert.alert(
@@ -1439,14 +1439,14 @@ export default function OrdersOverviewScreen({ navigation }) {
               console.warn(`Worker ${worker.name} has no phone number`);
             }
           }
-          
+
           Alert.alert(
-            'Success', 
+            'Success',
             `Workers assigned successfully. Total Work Pay: ₹${result.work_pay.toFixed(2)}\n\nWhatsApp messages with measurement details have been prepared for each worker.`
           );
         } else {
           console.warn('Customer mobile not found. Order data:', currentOrder);
-          
+
           // Still send WhatsApp messages to workers but without measurements
           for (const worker of assignedWorkerObjects) {
             if (worker.number) {
@@ -1457,12 +1457,12 @@ export default function OrdersOverviewScreen({ navigation }) {
                   currentOrder?.garment_type || 'N/A',
                   null // No measurements
                 );
-                
 
-                
+
+
                 // Use WhatsApp redirect service with confirmation (no measurements)
                 const whatsappResult = WhatsAppRedirectService.openWhatsAppWithMessage(worker.number, message, true);
-                
+
                 if (whatsappResult.success === 'confirmation_needed') {
                   // Show Yes/No confirmation popup for worker assignment (no measurements)
                   Alert.alert(
@@ -1497,20 +1497,20 @@ export default function OrdersOverviewScreen({ navigation }) {
               }
             }
           }
-          
+
           Alert.alert(
-            'Success', 
+            'Success',
             `Workers assigned successfully. Total Work Pay: ₹${result.work_pay.toFixed(2)}\n\nNote: Customer mobile number not found, measurements could not be sent.`
           );
         }
       } catch (measurementError) {
         console.error('Error fetching measurements or sending WhatsApp messages:', measurementError);
         Alert.alert(
-          'Success', 
+          'Success',
           `Workers assigned successfully. Total Work Pay: ₹${result.work_pay.toFixed(2)}\n\nNote: Failed to send measurements to workers.`
         );
       }
-      
+
       setWorkerDropdownVisible(prev => ({ ...prev, [expandedOrderId]: false }));
     } catch (error) {
       Alert.alert('Error', `Failed to assign workers: ${error.message}`);
@@ -1552,21 +1552,21 @@ export default function OrdersOverviewScreen({ navigation }) {
   // Helper to normalize date string to YYYY-MM-DD with UTC to IST conversion
   function normalizeDate(dateStr) {
     if (!dateStr) return '';
-    
+
     try {
       // Convert UTC date to IST for display
       const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
       const utcDate = new Date(dateStr);
-      
+
       if (isNaN(utcDate.getTime())) {
         return dateStr; // Return original if invalid date
       }
-      
+
       const istDate = new Date(utcDate.getTime() + IST_OFFSET_MS);
       const yyyy = istDate.getFullYear();
       const mm = String(istDate.getMonth() + 1).padStart(2, '0');
       const dd = String(istDate.getDate()).padStart(2, '0');
-      
+
       return `${yyyy}-${mm}-${dd}`;
     } catch (error) {
       console.warn('Date normalization error:', error);
@@ -1641,7 +1641,8 @@ export default function OrdersOverviewScreen({ navigation }) {
 
   const renderTableRow = (order, index) => {
     const workerNames = order.workers?.map(worker => worker.name).join(", ") || "Not Assigned";
-    const pendingAmount = (order.total_amt || 0) - (order.payment_amount || 0);
+    const isPaid = (order.payment_status || '').toLowerCase() === 'paid';
+    const pendingAmount = isPaid ? 0 : Math.max(0, (order.total_amt || 0) - (order.payment_amount || 0));
     const expandedOrderId = order.expanded_id || order.id;
     const isWorkerDropdownOpen = workerDropdownVisible[expandedOrderId] || false;
     const uniqueKey = 'order-' + (expandedOrderId || 'null') + '-' + index;
@@ -1650,7 +1651,7 @@ export default function OrdersOverviewScreen({ navigation }) {
     // Add garment count indicator if garment_index is a valid number (including 0)
     const hasValidIndex = typeof order.garment_index === 'number' && order.garment_index >= 0;
     const garmentDisplay = hasValidIndex ? displayGarmentType + ' (' + (order.garment_index + 1) + ')' : displayGarmentType;
-    
+
 
     return (
       <View key={uniqueKey} style={[styles.tableRow, Platform.OS === 'web' && { display: 'flex', flexDirection: 'row' }]}>
@@ -1666,7 +1667,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         <View style={[styles.cell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
           <Text style={styles.cellText}>{order.status || 'N/A'}</Text>
         </View>
-        
+
         <View style={[styles.cell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
           {hasValidId ? (
             <View style={styles.buttonGroup}>
@@ -1693,14 +1694,14 @@ export default function OrdersOverviewScreen({ navigation }) {
             <Text style={styles.disabledText}>No ID</Text>
           )}
         </View>
-        
+
         <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
           <Text style={styles.cellText}>{normalizeDate(order.order_date)}</Text>
         </View>
         <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
           <Text style={styles.cellText}>{normalizeDate(order.due_date)}</Text>
         </View>
-        
+
         <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
           {hasValidId ? (
             <View style={styles.buttonGroup}>
@@ -1725,7 +1726,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         <View style={[styles.cell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
           <Text style={styles.cellText}>{order.payment_status || 'N/A'}</Text>
         </View>
-        
+
         <View style={[styles.cell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
           {hasValidId ? (
             <View style={styles.buttonGroup}>
@@ -1756,7 +1757,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         <View style={[styles.cell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
           <Text style={styles.cellText}>{order.order_status || 'pending'}</Text>
         </View>
-        
+
         <View style={[styles.cell, { width: 180, minWidth: 180, maxWidth: 180 }]}>
           {hasValidId ? (
             <View style={styles.buttonGroup}>
@@ -1782,8 +1783,8 @@ export default function OrdersOverviewScreen({ navigation }) {
           {hasValidId ? (
             <TextInput
               style={styles.amountInput}
-              value={editingAmounts[`total_${expandedOrderId}`] !== undefined 
-                ? editingAmounts[`total_${expandedOrderId}`] 
+              value={editingAmounts[`total_${expandedOrderId}`] !== undefined
+                ? editingAmounts[`total_${expandedOrderId}`]
                 : (order.total_amt?.toString() || '0')}
               onChangeText={(text) => setEditingAmounts(prev => ({
                 ...prev,
@@ -1804,13 +1805,13 @@ export default function OrdersOverviewScreen({ navigation }) {
             <Text style={styles.disabledText}>No ID</Text>
           )}
         </View>
-        
+
         <View style={[styles.cell, { width: 120, minWidth: 120, maxWidth: 120 }]}>
           {hasValidId ? (
             <TextInput
               style={styles.amountInput}
-              value={editingAmounts[`payment_${expandedOrderId}`] !== undefined 
-                ? editingAmounts[`payment_${expandedOrderId}`] 
+              value={editingAmounts[`payment_${expandedOrderId}`] !== undefined
+                ? editingAmounts[`payment_${expandedOrderId}`]
                 : (order.payment_amount?.toString() || '0')}
               onChangeText={(text) => setEditingAmounts(prev => ({
                 ...prev,
@@ -1840,7 +1841,7 @@ export default function OrdersOverviewScreen({ navigation }) {
         <View style={[styles.cell, { width: 100, minWidth: 100, maxWidth: 100 }]}>
           <Text style={styles.cellText}>{order.bill_id || 'N/A'}</Text>
         </View>
-        
+
         <View style={[styles.cell, { width: 150, minWidth: 150, maxWidth: 150 }]}>
           {hasValidId ? (
             <View>
@@ -1855,7 +1856,7 @@ export default function OrdersOverviewScreen({ navigation }) {
                 </Text>
                 <Text style={styles.dropdownArrow}>{isWorkerDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
-              
+
               {isWorkerDropdownOpen && (
                 <Modal
                   visible={true}
@@ -1863,8 +1864,8 @@ export default function OrdersOverviewScreen({ navigation }) {
                   animationType="fade"
                   onRequestClose={() => closeWorkerDropdown(expandedOrderId)}
                 >
-                  <KeyboardAvoidingView 
-                    style={{ flex: 1 }} 
+                  <KeyboardAvoidingView
+                    style={{ flex: 1 }}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                   >
                     <TouchableOpacity
@@ -1887,8 +1888,8 @@ export default function OrdersOverviewScreen({ navigation }) {
                             <Text style={styles.modalCloseButtonText}>✕</Text>
                           </TouchableOpacity>
                         </View>
-                        
-                        <ScrollView 
+
+                        <ScrollView
                           style={styles.workerList}
                           showsVerticalScrollIndicator={true}
                           keyboardShouldPersistTaps="handled"
@@ -1922,7 +1923,7 @@ export default function OrdersOverviewScreen({ navigation }) {
                             );
                           })}
                         </ScrollView>
-                        
+
                         <View style={styles.dropdownActions}>
                           <TouchableOpacity
                             style={styles.cancelButton}
@@ -1947,7 +1948,7 @@ export default function OrdersOverviewScreen({ navigation }) {
             <Text style={styles.disabledText}>No ID</Text>
           )}
         </View>
-        
+
         <View style={[styles.cell, { width: 200, minWidth: 200, maxWidth: 200 }]}>
           <Text style={styles.cellText}>{workerNames}</Text>
         </View>
@@ -2124,7 +2125,7 @@ export default function OrdersOverviewScreen({ navigation }) {
             Page {currentPage} of {totalPages}
           </Text>
         </View>
-        
+
         <View style={styles.paginationButtons}>
           <TouchableOpacity
             style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
@@ -2133,7 +2134,7 @@ export default function OrdersOverviewScreen({ navigation }) {
           >
             <Text style={styles.paginationButtonText}>Previous</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.paginationButton, currentPage === totalPages && styles.paginationButtonDisabled]}
             onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
@@ -2235,8 +2236,8 @@ export default function OrdersOverviewScreen({ navigation }) {
             {renderFilters()}
             {currentOrders.length > 0 ? (
               <View style={styles.tableContainer}>
-                <View style={{ 
-                  overflow: 'auto', 
+                <View style={{
+                  overflow: 'auto',
                   flex: 1,
                   maxHeight: 600,
                   borderWidth: 1,
@@ -2279,16 +2280,16 @@ export default function OrdersOverviewScreen({ navigation }) {
               <Text style={styles.filtersTitle}>Filters</Text>
               {renderFilters()}
             </View>
-            
+
             {currentOrders.length > 0 ? (
               <View style={styles.tableContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={true}>
                   <View style={styles.tableWrapper}>
                     {renderTableHeader()}
                     {currentOrders.map((order, index) => renderTableRow(order, index))}
-                </View>
+                  </View>
                 </ScrollView>
-                </View>
+              </View>
             ) : (
               <View style={styles.noDataContainer}>
                 <Text style={styles.noDataText}>No orders found.</Text>

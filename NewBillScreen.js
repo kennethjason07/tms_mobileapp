@@ -11,16 +11,16 @@ const testTemplateSystem = () => {
     due_date: '2024-01-25',
     billnumberinput2: '1001'
   };
-  
+
   const testItemizedBill = {
     suit_qty: '1',
     suit_amount: '2500',
-    pant_qty: '1', 
+    pant_qty: '1',
     pant_amount: '800',
     shirt_qty: '2',
     shirt_amount: '1000'
   };
-  
+
   try {
     const html = generateBillHTMLFromTemplate(testBillData, testItemizedBill, '1001');
     console.log('✅ Template system working! HTML generated:', html.length, 'characters');
@@ -68,22 +68,22 @@ const { width } = Dimensions.get('window');
 // Supports formats like: "4 2/5", "4.5", "4", "2/5", "0.5"
 function parseMeasurementInput(input) {
   if (!input || input.trim() === '') return 0;
-  
+
   const text = input.trim();
-  
+
   // Handle pure decimal numbers (e.g., "4.5", "4", "0.5")
   if (/^\d+\.?\d*$/.test(text)) {
     const value = parseFloat(text);
     return isNaN(value) ? 0 : value;
   }
-  
+
   // Handle pure fractions (e.g., "2/5", "3/4")
   if (/^\d+\/\d+$/.test(text)) {
     const [numerator, denominator] = text.split('/').map(Number);
     if (denominator === 0) return 0;
     return numerator / denominator;
   }
-  
+
   // Handle mixed fractions (e.g., "4 2/5", "3 1/4")
   if (/^\d+\s+\d+\/\d+$/.test(text)) {
     const parts = text.split(' ');
@@ -92,7 +92,7 @@ function parseMeasurementInput(input) {
     if (denominator === 0) return wholeNumber;
     return wholeNumber + (numerator / denominator);
   }
-  
+
   // If format doesn't match any pattern, try parseFloat as fallback
   const fallbackValue = parseFloat(text);
   return isNaN(fallbackValue) ? 0 : fallbackValue;
@@ -102,12 +102,12 @@ function parseMeasurementInput(input) {
 // Converts decimal back to fractional display if needed
 function formatMeasurementDisplay(value) {
   if (!value || value === 0) return '0';
-  
+
   // If it's a whole number, display as is
   if (value % 1 === 0) {
     return value.toString();
   }
-  
+
   // For decimal values, show up to 3 decimal places (removes trailing zeros)
   return parseFloat(value.toFixed(3)).toString();
 }
@@ -137,7 +137,7 @@ function generateMeasurementsTextForBill(billData) {
       .replace(/_/g, ' ')
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .replace(/\b\w/g, (l) => l.toUpperCase());
-  
+
   // Fields to exclude from measurements display
   const excludedFields = [
     'id', 'customer_id', 'bill_id', 'order_id',
@@ -145,7 +145,7 @@ function generateMeasurementsTextForBill(billData) {
     'customer_name', 'name', 'email', 'address',
     'order_date', 'due_date', 'created_at', 'updated_at'
   ];
-  
+
   // Check if we have measurements in billData
   if (billData.measurements) {
     const allEntries = Object.entries(billData.measurements).filter(
@@ -153,78 +153,78 @@ function generateMeasurementsTextForBill(billData) {
         // Filter out empty values
         const hasValue = value !== '' && value !== null && value !== undefined && value !== 0;
         // Filter out excluded fields (case insensitive)
-        const isNotExcluded = !excludedFields.some(excludedField => 
+        const isNotExcluded = !excludedFields.some(excludedField =>
           key.toLowerCase().includes(excludedField.toLowerCase())
         );
         return hasValue && isNotExcluded;
       }
     );
-    
+
     if (allEntries.length === 0) {
       return '<div class="measurement-line">No measurements available</div>';
     }
-    
+
     // Group measurements by category
-    const pantMeasurements = allEntries.filter(([key]) => 
-      key.toLowerCase().includes('pant') || 
+    const pantMeasurements = allEntries.filter(([key]) =>
+      key.toLowerCase().includes('pant') ||
       ['length', 'kamar', 'hips', 'waist', 'ghutna', 'bottom', 'seat', 'sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(key.toLowerCase())
     );
-    
-    const shirtMeasurements = allEntries.filter(([key]) => 
-      key.toLowerCase().includes('shirt') || 
+
+    const shirtMeasurements = allEntries.filter(([key]) =>
+      key.toLowerCase().includes('shirt') ||
       ['shirtlength', 'body', 'loose', 'shoulder', 'astin', 'collar', 'collor', 'aloose', 'allose', 'callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(key.toLowerCase())
     );
-    
-    const extraMeasurements = allEntries.filter(([key]) => 
+
+    const extraMeasurements = allEntries.filter(([key]) =>
       !pantMeasurements.some(([pantKey]) => pantKey === key) &&
       !shirtMeasurements.some(([shirtKey]) => shirtKey === key)
     );
-    
+
     let result = [];
-    
+
     // Add Pant measurements line
     if (pantMeasurements.length > 0) {
       const pantLine = '<div class="measurement-line"><strong>Pant:</strong> ' +
         pantMeasurements
-          .map(([key, value]) => 
+          .map(([key, value]) =>
             `<span class="measurement-item"><span class="measurement-value">${value}</span></span>`
           )
           .join('&nbsp;&nbsp;') + '</div>';
       result.push(pantLine);
     }
-    
+
     // Add Shirt measurements line
     if (shirtMeasurements.length > 0) {
       const shirtLine = '<div class="measurement-line"><strong>Shirt:</strong> ' +
         shirtMeasurements
-          .map(([key, value]) => 
+          .map(([key, value]) =>
             `<span class="measurement-item"><span class="measurement-value">${value}</span></span>`
           )
           .join('&nbsp;&nbsp;') + '</div>';
       result.push(shirtLine);
     }
-    
+
     // Add Extra measurements line
     if (extraMeasurements.length > 0) {
       const extraLine = '<div class="measurement-line"><strong>Extra:</strong> ' +
         extraMeasurements
-          .map(([key, value]) => 
+          .map(([key, value]) =>
             `<span class="measurement-item"><span class="measurement-value">${value}</span></span>`
           )
           .join('&nbsp;&nbsp;') + '</div>';
       result.push(extraLine);
     }
-    
+
     return result.join('');
   }
-  
+
   return '<div class="measurement-line">No measurements available</div>';
 }
 
 // Template-based bill generation functions
 const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber) => {
   let htmlTemplate;
-  
+
   // Try to read the actual print-format.html file
   try {
     if (Platform.OS === 'web' && typeof fetch !== 'undefined') {
@@ -554,7 +554,7 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
       { name: 'N.Shirt', qty: parseInt(itemizedBillData.nshirt_qty) || 0, amount: parseFloat(itemizedBillData.nshirt_amount) || 0 },
       { name: 'Sadri', qty: parseInt(itemizedBillData.sadri_qty) || 0, amount: parseFloat(itemizedBillData.sadri_amount) || 0 }
     ];
-    
+
     const rows = items
       .filter(item => parseFloat(item.qty) > 0 || parseFloat(item.amount) > 0)
       .map(item => `
@@ -564,49 +564,49 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
           <td>₹${parseFloat(item.amount).toFixed(2)}</td>
         </tr>
       `).join('');
-      
+
     if (rows === '') {
       return '<tr><td colspan="3" style="text-align: center;">No items added</td></tr>';
     }
-    
+
     return rows;
   }
-  
+
   function getTotalQuantity(itemizedBillData) {
-    const totalQty = parseInt(itemizedBillData.suit_qty || 0) + 
-                    parseInt(itemizedBillData.safari_qty || 0) + 
-                    parseInt(itemizedBillData.pant_qty || 0) + 
-                    parseInt(itemizedBillData.pant_qty || 0) + 
-                    parseInt(itemizedBillData.shirt_qty || 0) + 
-                    parseInt(itemizedBillData.nshirt_qty || 0) + 
-                    parseInt(itemizedBillData.sadri_qty || 0);
+    const totalQty = parseInt(itemizedBillData.suit_qty || 0) +
+      parseInt(itemizedBillData.safari_qty || 0) +
+      parseInt(itemizedBillData.pant_qty || 0) +
+      parseInt(itemizedBillData.pant_qty || 0) +
+      parseInt(itemizedBillData.shirt_qty || 0) +
+      parseInt(itemizedBillData.nshirt_qty || 0) +
+      parseInt(itemizedBillData.sadri_qty || 0);
     return totalQty > 0 ? totalQty.toString() : '0';
   }
-  
+
   function getTotalAmount(itemizedBillData) {
-    const totalAmount = (parseFloat(itemizedBillData.suit_amount) || 0) + 
-                       (parseFloat(itemizedBillData.safari_amount) || 0) + 
-                       (parseFloat(itemizedBillData.pant_amount) || 0) + 
-                       (parseFloat(itemizedBillData.pant_amount) || 0) + 
-                       (parseFloat(itemizedBillData.shirt_amount) || 0) + 
-                       (parseFloat(itemizedBillData.nshirt_amount) || 0) + 
-                       (parseFloat(itemizedBillData.sadri_amount) || 0);
+    const totalAmount = (parseFloat(itemizedBillData.suit_amount) || 0) +
+      (parseFloat(itemizedBillData.safari_amount) || 0) +
+      (parseFloat(itemizedBillData.pant_amount) || 0) +
+      (parseFloat(itemizedBillData.pant_amount) || 0) +
+      (parseFloat(itemizedBillData.shirt_amount) || 0) +
+      (parseFloat(itemizedBillData.nshirt_amount) || 0) +
+      (parseFloat(itemizedBillData.sadri_amount) || 0);
     return totalAmount.toFixed(2);
   }
-  
+
   console.log('🔄 Processing template with data:', {
     orderNumber: orderNumber || billData.billnumberinput2 || 'N/A',
     customerName: billData.customer_name || 'N/A',
     totalItems: getTotalQuantity(itemizedBill)
   });
-  
+
   // Prepare the data for replacement
   const billItemsTable = generateBillItemsTable(itemizedBill);
   const totalQuantity = getTotalQuantity(itemizedBill);
   const totalAmount = getTotalAmount(itemizedBill);
-  
+
   console.log('📊 Generated table HTML:', billItemsTable.substring(0, 100) + '...');
-  
+
   // Replace placeholders with actual data
   const replacements = {
     '{{ORDER_NUMBER}}': orderNumber || billData.billnumberinput2 || 'N/A',
@@ -618,7 +618,7 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
     '{{TOTAL_QUANTITY}}': totalQuantity,
     '{{TOTAL_AMOUNT}}': totalAmount
   };
-  
+
   // Replace all placeholders
   let finalHTML = htmlTemplate;
   Object.keys(replacements).forEach(placeholder => {
@@ -629,7 +629,7 @@ const generateBillHTMLFromTemplate = async (billData, itemizedBill, orderNumber)
       console.log(`✅ Replaced ${placeholder} with:`, value.substring(0, 50) + (value.length > 50 ? '...' : ''));
     }
   });
-  
+
   console.log('🎯 Final HTML length:', finalHTML.length, 'characters');
   return finalHTML;
 };
@@ -651,11 +651,11 @@ const getISTDateString = () => {
   const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
   const now = new Date();
   const istDate = new Date(now.getTime() + IST_OFFSET_MS);
-  
+
   const yyyy = istDate.getFullYear();
   const mm = String(istDate.getMonth() + 1).padStart(2, '0');
   const dd = String(istDate.getDate()).padStart(2, '0');
-  
+
   return `${yyyy}-${mm}-${dd}`;
 };
 
@@ -683,7 +683,7 @@ export default function NewBillScreen({ navigation }) {
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [selectedDueDate, setSelectedDueDate] = useState(new Date());
   const [measurementType, setMeasurementType] = useState({ pant: false, shirt: false, suit: false, safari: false, nshirt: false, sadri: false, extra: false });
-  
+
   const [billData, setBillData] = useState({
     customer_name: '',
     mobile_number: '',
@@ -708,7 +708,7 @@ export default function NewBillScreen({ navigation }) {
     Belt: '',
     Back_P: '',
     WP: '',
-    
+
     // Shirt measurements
     shirt_type: 'Shirt',
     shirt_length: 0,
@@ -723,22 +723,16 @@ export default function NewBillScreen({ navigation }) {
     Pkt: '',
     LooseShirt: '',
     DT_TT: '',
-    
+
     // Extra measurements
     extra_measurements: '',
     suit_length: 0,
     suit_body: '',
-    suit_loose: '',
     suit_shoulder: 0,
     suit_astin: 0,
     suit_collar: 0,
-    suit_aloose: 0,
-    suit_callar: '',
-    suit_cuff: '',
-    suit_pkt: '',
-    suit_looseshirt: '',
     suit_dt_tt: '',
-    
+
     // Safari/Jacket measurements
     safari_length: 0,
     safari_body: '',
@@ -770,15 +764,9 @@ export default function NewBillScreen({ navigation }) {
     // Sadri measurements
     sadri_length: 0,
     sadri_body: '',
-    sadri_loose: '',
     sadri_shoulder: 0,
     sadri_astin: 0,
     sadri_collar: 0,
-    sadri_aloose: 0,
-    sadri_callar: '',
-    sadri_cuff: '',
-    sadri_pkt: '',
-    sadri_looseshirt: '',
     sadri_dt_tt: '',
   });
 
@@ -916,15 +904,9 @@ export default function NewBillScreen({ navigation }) {
             extra_measurements: '',
             suit_length: 0,
             suit_body: '',
-            suit_loose: '',
             suit_shoulder: 0,
             suit_astin: 0,
             suit_collar: 0,
-            suit_aloose: 0,
-            suit_callar: '',
-            suit_cuff: '',
-            suit_pkt: '',
-            suit_looseshirt: '',
             suit_dt_tt: '',
             safari_length: 0,
             safari_body: '',
@@ -952,15 +934,9 @@ export default function NewBillScreen({ navigation }) {
             nshirt_dt_tt: '',
             sadri_length: 0,
             sadri_body: '',
-            sadri_loose: '',
             sadri_shoulder: 0,
             sadri_astin: 0,
             sadri_collar: 0,
-            sadri_aloose: 0,
-            sadri_callar: '',
-            sadri_cuff: '',
-            sadri_pkt: '',
-            sadri_looseshirt: '',
             sadri_dt_tt: '',
           });
         }
@@ -1074,13 +1050,13 @@ export default function NewBillScreen({ navigation }) {
       const todayStr = getISTDateString(); // Use IST date for today
       const currentISTTimestamp = getISTTimestamp(); // Full IST timestamp
       const advanceAmount = parseFloat(billData.payment_amount) || 0;
-      
+
       console.log('🇮🇳 USING IST TIMEZONE FOR BILL CREATION:');
       console.log(`   IST Date: ${todayStr}`);
       console.log(`   IST Timestamp: ${currentISTTimestamp}`);
       console.log(`   UTC would be: ${new Date().toISOString()}`);
       console.log('   This ensures bills appear in Today\'s Profit correctly');
-      
+
       let billToSave = {
         customer_name: billData.customer_name,
         mobile_number: billData.mobile_number,
@@ -1100,7 +1076,7 @@ export default function NewBillScreen({ navigation }) {
         nshirt_qty: parseInt(itemizedBill.nshirt_qty) || 0,
         sadri_qty: parseInt(itemizedBill.sadri_qty) || 0,
       };
-      
+
       // Note: bills table doesn't have updated_at column per schema
       // The updated_at will be added to individual orders instead
       if (advanceAmount > 0) {
@@ -1114,10 +1090,10 @@ export default function NewBillScreen({ navigation }) {
       });
 
       console.log('📋 About to create bill with data:', JSON.stringify(billToSave, null, 2));
-      
+
       const billResult = await SupabaseAPI.createNewBill(billToSave);
       console.log('✅ Bill save result:', billResult);
-      
+
       if (!billResult || !billResult[0] || typeof billResult[0].id !== 'number') {
         console.error('❌ Bill creation failed - Invalid result:', billResult);
         Alert.alert('Error', 'Failed to create bill. Please try again.');
@@ -1135,28 +1111,28 @@ export default function NewBillScreen({ navigation }) {
 
       // Create individual orders for each garment based on quantities (using IST date)
       const garmentOrders = createIndividualGarmentOrders(billId, orderNumber, todayStr, currentISTTimestamp);
-      
+
       if (garmentOrders.length === 0) {
         Alert.alert('Error', 'No garments to create orders for.');
         return false;
       }
-      
+
       console.log(`Creating ${garmentOrders.length} individual garment orders:`);
       garmentOrders.forEach((order, i) => {
         console.log(`  ${i + 1}. ${order.garment_type}`);
       });
-      
+
       // Create all individual orders
       const orderResults = [];
       for (const orderData of garmentOrders) {
         try {
           console.log(`Creating order for: ${orderData.garment_type}`);
           const orderResult = await SupabaseAPI.createOrder(orderData);
-          
+
           if (!orderResult || !orderResult[0] || typeof orderResult[0].id !== 'number') {
             throw new Error(`Failed to create ${orderData.garment_type} order`);
           }
-          
+
           orderResults.push(orderResult[0]);
           console.log(`✅ Created ${orderData.garment_type} order with ID: ${orderResult[0].id}`);
         } catch (error) {
@@ -1165,15 +1141,15 @@ export default function NewBillScreen({ navigation }) {
           return false;
         }
       }
-      
+
       console.log(`✅ Successfully created ${orderResults.length} individual garment orders`);
-      
+
       // Check if all orders were created successfully
       if (orderResults.length !== garmentOrders.length) {
         Alert.alert('Error', 'Some orders failed to create. Please try again.');
         return false;
       }
-      
+
       console.log('\u2705 BILL CREATED WITH TWO-STAGE REVENUE TRACKING:', {
         billId: billResult[0].id,
         ordersCreated: orderResults.length,
@@ -1190,19 +1166,19 @@ export default function NewBillScreen({ navigation }) {
 
       // Reset form after successful save
       resetForm();
-      
+
       // Create success message with garment breakdown
       const garmentSummary = garmentOrders.reduce((acc, order) => {
         acc[order.garment_type] = (acc[order.garment_type] || 0) + 1;
         return acc;
       }, {});
-      
+
       const garmentList = Object.entries(garmentSummary)
         .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
         .join(', ');
-      
+
       Alert.alert(
-        'Success', 
+        'Success',
         `Bill ${orderNumber} created successfully!
 
 Individual orders created:
@@ -1237,12 +1213,12 @@ Total: ${orderResults.length} garment orders`,
     const orders = [];
     const totals = calculateTotals();
     const advanceAmount = parseFloat(billData.payment_amount) || 0;
-    
+
     console.log('🇮🇳 createIndividualGarmentOrders - Using IST timezone:');
     console.log(`   IST Date: ${todayStr}`);
     console.log(`   IST Timestamp: ${istTimestamp || 'not provided'}`);
     console.log(`   Advance Amount: ₹${advanceAmount}`);
-    
+
     // Define garment types and their quantities
     const garmentTypes = [
       { type: 'Suit', qty: parseInt(itemizedBill.suit_qty) || 0 },
@@ -1252,7 +1228,7 @@ Total: ${orderResults.length} garment orders`,
       { type: 'N.Shirt', qty: parseInt(itemizedBill.nshirt_qty) || 0 },
       { type: 'Sadri', qty: parseInt(itemizedBill.sadri_qty) || 0 }
     ];
-    
+
     // Create individual order for each garment instance
     garmentTypes.forEach(({ type, qty }) => {
       for (let i = 0; i < qty; i++) {
@@ -1269,27 +1245,27 @@ Total: ${orderResults.length} garment orders`,
           status: 'pending',
           Work_pay: null, // Only set after workers are assigned
         };
-        
+
         // Add updated_at date if there's an advance payment (orders.updated_at is date type per schema)
         if (advanceAmount > 0) {
           orderData.updated_at = todayStr; // Use date format (YYYY-MM-DD) not timestamp
           console.log(`  ✅ Adding updated_at date to ${type} order: ${todayStr}`);
         }
-        
+
         // Sanitize orderData
         Object.keys(orderData).forEach(key => {
           if (orderData[key] === undefined || orderData[key] === 'undefined') {
             orderData[key] = null;
           }
         });
-        
+
         orders.push(orderData);
       }
     });
-    
+
     return orders;
   };
-  
+
   const getGarmentTypes = () => {
     const types = [];
     if (parseFloat(itemizedBill.suit_qty) > 0) types.push('Suit');
@@ -1339,15 +1315,9 @@ Total: ${orderResults.length} garment orders`,
       extra_measurements: '',
       suit_length: 0,
       suit_body: '',
-      suit_loose: '',
       suit_shoulder: 0,
       suit_astin: 0,
       suit_collar: 0,
-      suit_aloose: 0,
-      suit_callar: '',
-      suit_cuff: '',
-      suit_pkt: '',
-      suit_looseshirt: '',
       suit_dt_tt: '',
       safari_length: 0,
       safari_body: '',
@@ -1375,15 +1345,9 @@ Total: ${orderResults.length} garment orders`,
       nshirt_dt_tt: '',
       sadri_length: 0,
       sadri_body: '',
-      sadri_loose: '',
       sadri_shoulder: 0,
       sadri_astin: 0,
       sadri_collar: 0,
-      sadri_aloose: 0,
-      sadri_callar: '',
-      sadri_cuff: '',
-      sadri_pkt: '',
-      sadri_looseshirt: '',
       sadri_dt_tt: '',
     });
     setItemizedBill({
@@ -1403,7 +1367,7 @@ Total: ${orderResults.length} garment orders`,
       total_amt: '0',
     });
     setMeasurementType({ pant: false, shirt: false, suit: false, safari: false, nshirt: false, sadri: false, extra: false });
-    
+
     // Generate new bill number after reset
     generateBillNumber();
   };
@@ -1417,15 +1381,15 @@ Total: ${orderResults.length} garment orders`,
     const today = new Date();
     const currentMonth = selectedDate.getMonth();
     const currentYear = selectedDate.getFullYear();
-    
+
     const firstDay = new Date(currentYear, currentMonth, 1);
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDay = firstDay.getDay();
-    
+
     const days = [];
     const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    
+
     // Add day headers
     dayNames.forEach((day, index) => {
       days.push(
@@ -1434,26 +1398,26 @@ Total: ${orderResults.length} garment orders`,
         </View>
       );
     });
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDay; i++) {
       days.push(<View key={`empty-${currentYear}-${currentMonth}-${i}`} style={styles.calendarDayEmpty} />);
     }
-    
+
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
       const isToday = date.toDateString() === today.toDateString();
-      
+
       // Fix timezone issue in date comparison
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const dayStr = String(date.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${dayStr}`;
       const isSelected = billData.due_date === formattedDate;
-      
+
       const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      
+
       days.push(
         <TouchableOpacity
           key={`day-${currentYear}-${currentMonth}-${day}`}
@@ -1469,7 +1433,7 @@ Total: ${orderResults.length} garment orders`,
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const dayStr = String(date.getDate()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${dayStr}`;
-            
+
             setBillData({ ...billData, due_date: formattedDate });
             setDatePickerVisible(false);
           }}
@@ -1485,7 +1449,7 @@ Total: ${orderResults.length} garment orders`,
         </TouchableOpacity>
       );
     }
-    
+
     return (
       <View style={styles.calendarWrapper}>
         <View style={styles.calendarHeader}>
@@ -1511,7 +1475,7 @@ Total: ${orderResults.length} garment orders`,
             <Text style={styles.calendarNavButtonText}>›</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.calendarLegend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, styles.legendToday]} />
@@ -1522,11 +1486,11 @@ Total: ${orderResults.length} garment orders`,
             <Text style={styles.legendText}>Selected</Text>
           </View>
         </View>
-        
+
         <View style={styles.calendarGrid}>
           {days}
         </View>
-        
+
         <View style={styles.calendarFooter}>
           <Text style={styles.calendarFooterText}>
             Selected: {billData.due_date || 'No date selected'}
@@ -1540,28 +1504,28 @@ Total: ${orderResults.length} garment orders`,
     try {
       console.log('🎯 Generating traditional measurement cards PDF...');
       console.log('📊 Current measurements data:', measurements);
-      
+
       // Generate the traditional measurement card HTML
       const html = generateMeasurementHTML(billData, measurements);
-      
+
       console.log('📄 Generated measurement HTML length:', html.length);
-      
+
       if (Platform.OS === 'web') {
         // For web, create a new window and print
         console.log('🌐 Opening measurement card preview for web...');
         const printWindow = window.open('', '_blank', 'width=800,height=1000');
         printWindow.document.write(html);
         printWindow.document.close();
-        
+
         // Wait a moment for rendering then print
         printWindow.onload = () => {
           setTimeout(() => {
             printWindow.print();
           }, 500);
         };
-        
+
         Alert.alert(
-          'Measurement Cards Ready', 
+          'Measurement Cards Ready',
           'Traditional measurement cards are ready to print. The print dialog will open automatically.',
           [{ text: 'OK' }]
         );
@@ -1569,13 +1533,13 @@ Total: ${orderResults.length} garment orders`,
         // For mobile, use Expo Print
         console.log('📱 Generating measurement PDF for mobile...');
         const { uri } = await Print.printToFileAsync({ html });
-        
+
         if (uri) {
           console.log('✅ Measurement PDF generated:', uri);
           if (await Sharing.isAvailableAsync()) {
             await Sharing.shareAsync(uri);
           }
-          
+
           Alert.alert(
             'Measurement Cards Generated',
             'Traditional measurement cards have been generated successfully!',
@@ -1621,25 +1585,25 @@ Total: ${orderResults.length} garment orders`,
       console.log('📊 billDataWithMeasurements.measurements:', billDataWithMeasurements.measurements);
       const html = generateProfessionalBillHTML(billDataWithMeasurements, itemizedBill, billNumber, false);
       console.log('✅ HTML generated, length:', html.length);
-      
+
       if (Platform.OS === 'web') {
         // For web, create a new window and print
         console.log('📄 Opening print window for web...');
         const printWindow = window.open('', '_blank');
         printWindow.document.write(html);
         printWindow.document.close();
-        
+
         // Wait for images to load before printing
         printWindow.onload = () => {
           const images = printWindow.document.querySelectorAll('img');
           let loadedImages = 0;
-          
+
           if (images.length === 0) {
             // No images, print immediately
             printWindow.print();
             return;
           }
-          
+
           images.forEach((img) => {
             if (img.complete) {
               loadedImages++;
@@ -1658,40 +1622,40 @@ Total: ${orderResults.length} garment orders`,
               };
             }
           });
-          
+
           if (loadedImages === images.length) {
             printWindow.print();
           }
         };
-        
+
         // Show success message
         Alert.alert(
-          'Print Ready', 
+          'Print Ready',
           `Bill #${billNumber} is ready to print. The print dialog will open once images load.`,
           [{ text: 'OK' }]
         );
       } else {
         // For mobile, use Expo Print
         console.log('📱 Generating PDF for mobile...');
-        const result = await Print.printToFileAsync({ 
+        const result = await Print.printToFileAsync({
           html,
-          base64: false 
+          base64: false
         });
-        
+
         console.log('Print result:', result);
-        
+
         if (result && result.uri) {
           console.log('PDF generated successfully, sharing:', result.uri);
-          
+
           if (await Sharing.isAvailableAsync()) {
             await Sharing.shareAsync(result.uri);
           } else {
             Alert.alert('Success', `Bill #${billNumber} generated successfully`);
           }
-          
+
           // Show success message
           Alert.alert(
-            'Bill Generated', 
+            'Bill Generated',
             `Bill #${billNumber} has been generated and is ready to print or share.`,
             [{ text: 'OK' }]
           );
@@ -1773,2544 +1737,2344 @@ Total: ${orderResults.length} garment orders`,
             contentContainerStyle={Platform.OS === 'web' ? { paddingBottom: isMobile ? 180 : 120 } : undefined}
             showsVerticalScrollIndicator={true}
           >
-        {/* Order Number Display */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Number</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.input, { fontWeight: 'bold', fontSize: 18, color: '#2c3e50' }]}
-              value={billData.billnumberinput2 ? billData.billnumberinput2.toString() : ''}
-              onChangeText={text => {
-                // Only allow numbers
-                const numeric = text.replace(/[^0-9]/g, '');
-                setBillData(prev => ({ ...prev, billnumberinput2: numeric }));
-              }}
-              placeholder="Enter Order Number"
-              keyboardType="numeric"
-              maxLength={12}
-            />
-          </View>
-        </View>
-
-        {/* Customer Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Customer Information</Text>
-          
-          {/* Customer Search */}
-          <View style={styles.searchContainer}>
-            <Text style={styles.inputLabel}>Search by Mobile Number:</Text>
-            <View style={styles.searchRow}>
-              <TextInput
-                style={styles.searchInput}
-                value={customerSearchMobile}
-                onChangeText={setCustomerSearchMobile}
-                placeholder="Enter 10-digit mobile number"
-                keyboardType="phone-pad"
-                maxLength={10}
-              />
-          <TouchableOpacity
-                style={styles.searchButton}
-                onPress={handleCustomerSearch}
-                disabled={searching}
-              >
-                {searching ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.searchButtonText}>Search</Text>
-                )}
-          </TouchableOpacity>
-            </View>
-        </View>
-
-          {/* Customer Details */}
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Customer Name:</Text>
-            <TextInput
-              style={styles.input}
-              value={billData.customer_name}
-              onChangeText={(text) => setBillData({ ...billData, customer_name: text })}
-              placeholder="Customer name"
-            />
-          </View>
-
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Mobile Number:</Text>
-            <TextInput
-              style={styles.input}
-              value={billData.mobile_number}
-              onChangeText={(text) => setBillData({ ...billData, mobile_number: text })}
-              placeholder="Mobile number"
-              keyboardType="phone-pad"
-            />
-          </View>
-          </View>
-
-        {/* Measurements Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Measurements</Text>
-          
-          {/* Measurement Type Selection */}
-          <View style={styles.measurementTypeContainer}>
-            <Text style={styles.inputLabel}>Select Measurement Type:</Text>
-            <View style={styles.checkboxRow}>
-              <TouchableOpacity
-                style={[styles.checkbox, measurementType.pant && styles.checkboxSelected]}
-                onPress={() => toggleMeasurementType('pant')}
-              >
-                <Text style={styles.checkboxText}>Pant</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
-                onPress={() => toggleMeasurementType('shirt')}
-              >
-                <Text style={styles.checkboxText}>Shirt</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('suit')}
-              >
-                <Text style={styles.checkboxText}>Suit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.safari && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('safari')}
-              >
-                <Text style={styles.checkboxText}>Safari/Jacket</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.nshirt && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('nshirt')}
-              >
-                <Text style={styles.checkboxText}>N.Shirt</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.sadri && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('sadri')}
-              >
-                <Text style={styles.checkboxText}>Sadri</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
-                onPress={() => toggleMeasurementType('extra')}
-              >
-                <Text style={styles.checkboxText}>Extra</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Pant Measurements */}
-          {measurementType.pant && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Pant Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Kamar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_kamar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Hips:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_hips}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Ran:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_waist}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Ghutna:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_ghutna}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Bottom:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_bottom}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Seat:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_seat}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-          </View>
-
-              {/* Pant Details */}
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Pant Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>SideP/Cross:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.SideP_Cross}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Plates:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Plates}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Belt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Belt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Back P:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Back_P}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>WP:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.WP}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Shirt Measurements */}
-          {measurementType.shirt && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Shirt Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
-
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
-
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
-
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-          </View>
-              
-              {/* Shirt Details */}
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Shirt Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.LooseShirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.DT_TT}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, DT_TT: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Suit Measurements */}
-          {measurementType.suit && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Suit Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_length: value })}
-
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_body: value })}
-
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_loose: value })}
-
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_shoulder: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_astin: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_aloose: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_collar: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-              </View>
-              
-              {/* Suit Details */}
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Suit Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_callar: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_cuff: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_pkt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_looseshirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_looseshirt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_dt_tt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_dt_tt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Safari/Jacket Measurements */}
-          {measurementType.safari && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Safari/Jacket Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_length: value })}
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_body: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_loose: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_shoulder: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_astin: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_aloose: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_collar: value })}
-                    keyboardType="default"
-                  />
-                </View>
-              </View>
-              
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Safari/Jacket Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_callar: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_cuff: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_pkt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_looseshirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_looseshirt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_dt_tt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_dt_tt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* N.Shirt Measurements */}
-          {measurementType.nshirt && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>N.Shirt Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_length: value })}
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_body: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_loose: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_shoulder: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_astin: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_aloose: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_collar: value })}
-                    keyboardType="default"
-                  />
-                </View>
-              </View>
-              
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>N.Shirt Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_callar: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_cuff: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_pkt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_looseshirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_looseshirt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_dt_tt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_dt_tt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Sadri Measurements */}
-          {measurementType.sadri && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Sadri Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_length: value })}
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_body: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_loose: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_shoulder: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_astin: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_aloose: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_collar: value })}
-                    keyboardType="default"
-                  />
-                </View>
-              </View>
-              
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Sadri Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_callar: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_cuff: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_pkt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_looseshirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_looseshirt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_dt_tt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_dt_tt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Extra Measurements */}
-          {measurementType.extra && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Extra Measurements</Text>
-              <TextInput
-                style={styles.extraTextArea}
-                value={measurements.extra_measurements}
-                onChangeText={(text) => setMeasurements({ ...measurements, extra_measurements: text })}
-                placeholder="Enter extra measurements or special instructions..."
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-          )}
-        </View>
-
-        {/* Itemized Billing */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Itemized Billing</Text>
-          
-          <View style={styles.billingTable}>
-            <View style={styles.tableHeader}>
-              <Text style={styles.tableHeaderText}>Item</Text>
-              <Text style={styles.tableHeaderText}>Qty</Text>
-              <Text style={styles.tableHeaderText}>Amount</Text>
-            </View>
-            
-            {/* Suit */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Suit</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.suit_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_qty: text })}
-              keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.suit_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-            />
-          </View>
-
-            {/* Safari/Jacket */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Safari/Jacket</Text>
-            <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.safari_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_qty: text })}
-              keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.safari_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-            />
-          </View>
-            
-            {/* Pant */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Pant</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.pant_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, pant_qty: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.pant_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, pant_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-            </View>
-            
-            {/* Shirt */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Shirt</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.shirt_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_qty: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.shirt_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-            </View>
-            
-            {/* N.Shirt */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>N.Shirt</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.nshirt_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, nshirt_qty: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.nshirt_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, nshirt_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-            </View>
-            
-            {/* Sadri */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Sadri</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.sadri_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, sadri_qty: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.sadri_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, sadri_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-            </View>
-            
-            {/* Total Row */}
-            <View style={[styles.tableRow, styles.totalRow]}>
-              <Text style={[styles.tableItemText, styles.totalText]}>Total</Text>
-              <Text style={[styles.tableQtyInput, styles.totalInput]}>{calculateTotals().total_qty || 0}</Text>
-              <Text style={[styles.tableAmountInput, styles.totalInput]}>₹{calculateTotals().total_amt || 0}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Order Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Details</Text>
-
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Order Date:</Text>
-            <View style={styles.dateFilterContainer}>
-              {Platform.OS === 'web' ? (
-                <input
-                  type="date"
-                  value={billData.order_date}
-                  onChange={e => setBillData(prev => ({ ...prev, order_date: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
-                  min={new Date().toISOString().split('T')[0]}
-                  max="2030-12-31"
-                />
-              ) : (
-                <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => {
-                    setActiveDateField('order');
-                    setDatePickerVisible(true);
+            {/* Order Number Display */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Order Number</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={[styles.input, { fontWeight: 'bold', fontSize: 18, color: '#2c3e50' }]}
+                  value={billData.billnumberinput2 ? billData.billnumberinput2.toString() : ''}
+                  onChangeText={text => {
+                    // Only allow numbers
+                    const numeric = text.replace(/[^0-9]/g, '');
+                    setBillData(prev => ({ ...prev, billnumberinput2: numeric }));
                   }}
-                >
-                  <Text style={styles.datePickerButtonText}>
-                    {billData.order_date ? billData.order_date : 'Select Order Date'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {billData.order_date && (
-                <TouchableOpacity
-                  style={styles.clearDateButton}
-                  onPress={() => setBillData(prev => ({ ...prev, order_date: '' }))}
-                >
-                  <Text style={styles.clearDateButtonText}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Due Date:</Text>
-            <View style={styles.dateFilterContainer}>
-              {Platform.OS === 'web' ? (
-                <input
-                  type="date"
-                  value={billData.due_date}
-                  onChange={e => setBillData(prev => ({ ...prev, due_date: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
-                  min={new Date().toISOString().split('T')[0]}
-                  max="2030-12-31"
+                  placeholder="Enter Order Number"
+                  keyboardType="numeric"
+                  maxLength={12}
                 />
-              ) : (
-                <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => {
-                    setActiveDateField('due');
-                    setDatePickerVisible(true);
-                  }}
-                >
-                  <Text style={styles.datePickerButtonText}>
-                    {billData.due_date ? billData.due_date : 'Select Due Date'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {billData.due_date && (
-                <TouchableOpacity
-                  style={styles.clearDateButton}
-                  onPress={clearDueDate}
-                >
-                  <Text style={styles.clearDateButtonText}>✕</Text>
-                </TouchableOpacity>
-              )}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Payment Status:</Text>
-            <View style={styles.pickerContainer}>
-            <TouchableOpacity
-                  style={[styles.pickerOption, billData.payment_status === 'pending' && styles.pickerOptionSelected]}
-                  onPress={() => setBillData({ ...billData, payment_status: 'pending' })}
-                >
-                  <Text style={[styles.pickerOptionText, billData.payment_status === 'pending' && styles.pickerOptionTextSelected]}>
-                    Pending
-            </Text>
-          </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.pickerOption, billData.payment_status === 'paid' && styles.pickerOptionSelected]}
-                onPress={() => setBillData({ ...billData, payment_status: 'paid' })}
-              >
-                <Text style={[styles.pickerOptionText, billData.payment_status === 'paid' && styles.pickerOptionTextSelected]}>
-                  Paid
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.pickerOption, billData.payment_status === 'advance' && styles.pickerOptionSelected]}
-                onPress={() => setBillData({ ...billData, payment_status: 'advance' })}
-              >
-                <Text style={[styles.pickerOptionText, billData.payment_status === 'advance' && styles.pickerOptionTextSelected]}>
-                  Advance
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            {/* Customer Selection */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Customer Information</Text>
 
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Payment Mode:</Text>
-            <View style={styles.pickerContainer}>
+              {/* Customer Search */}
+              <View style={styles.searchContainer}>
+                <Text style={styles.inputLabel}>Search by Mobile Number:</Text>
+                <View style={styles.searchRow}>
+                  <TextInput
+                    style={styles.searchInput}
+                    value={customerSearchMobile}
+                    onChangeText={setCustomerSearchMobile}
+                    placeholder="Enter 10-digit mobile number"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                  />
                   <TouchableOpacity
-                style={[styles.pickerOption, billData.payment_mode === 'Cash' && styles.pickerOptionSelected]}
-                onPress={() => setBillData({ 
-                  ...billData, 
-                  payment_mode: billData.payment_mode === 'Cash' ? '' : 'Cash' 
-                })}
-              >
-                <Text style={[styles.pickerOptionText, billData.payment_mode === 'Cash' && styles.pickerOptionTextSelected]}>
-                  Cash
-                </Text>
+                    style={styles.searchButton}
+                    onPress={handleCustomerSearch}
+                    disabled={searching}
+                  >
+                    {searching ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.searchButtonText}>Search</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
-            </View>
-
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Advance Amount:</Text>
-            <TextInput
-              style={styles.input}
-              value={billData.payment_amount}
-              onChangeText={(text) => setBillData({ ...billData, payment_amount: text })}
-              placeholder="0.00"
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
-
-        {/* Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Summary</Text>
-          
-          <View style={styles.summaryContainer}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Amount:</Text>
-              <Text style={styles.summaryValue}>₹{parseFloat(calculateTotals().total_amt) || 0}</Text>
-          </View>
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Advance Amount:</Text>
-            <Text style={styles.summaryValue}>₹{parseFloat(billData.payment_amount) || 0}</Text>
-          </View>
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Remaining Amount:</Text>
-            <Text style={[styles.summaryValue, styles.remainingAmount]}>
-                ₹{((parseFloat(calculateTotals().total_amt) || 0) - (parseFloat(billData.payment_amount) || 0)).toFixed(2)}
-            </Text>
-          </View>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.printButton]}
-            onPress={handlePrintMeasurement}
-            disabled={saving}
-          >
-            <Text style={styles.printButtonText}>Print Measurements</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.saveButton]}
-            onPress={async () => {
-              console.log('Save and Print button pressed');
-              
-              try {
-                setSaving(true);
-                
-                // Get the order number that will be used for this bill
-                const currentBillNumber = await SupabaseAPI.getCurrentBillNumber();
-                const orderNumber = currentBillNumber.billno;
-                console.log('📋 Order number for printing:', orderNumber);
-                
-                // Save the bill first
-                const saved = await handleSaveBill();
-                
-                if (saved) {
-                  console.log('✅ Bill saved successfully, now printing...');
-                  // Use the orderNumber we got before saving
-                  await handlePrintBill(orderNumber);
-                } else {
-                  console.log('❌ Not printing because save failed');
-                }
-              } catch (error) {
-                console.error('Error in save and print:', error);
-                Alert.alert('Error', 'Failed to save and print bill: ' + error.message);
-              } finally {
-                setSaving(false);
-              }
-            }}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save and Print</Text>
-            )}
-          </TouchableOpacity>
-        </View> 
-      </ScrollView>
-    </View>
-  ) : (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Order Number Display */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Number</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.input, { fontWeight: 'bold', fontSize: 18, color: '#2c3e50' }]}
-              value={billData.billnumberinput2 ? billData.billnumberinput2.toString() : ''}
-              onChangeText={text => {
-                // Only allow numbers
-                const numeric = text.replace(/[^0-9]/g, '');
-                setBillData(prev => ({ ...prev, billnumberinput2: numeric }));
-              }}
-              placeholder="Enter Order Number"
-              keyboardType="numeric"
-              maxLength={12}
-            />
-          </View>
-        </View>
-
-        {/* Customer Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Customer Information</Text>
-          
-          {/* Customer Search */}
-          <View style={styles.searchContainer}>
-            <Text style={styles.inputLabel}>Search by Mobile Number:</Text>
-            <View style={styles.searchRow}>
-              <TextInput
-                style={styles.searchInput}
-                value={customerSearchMobile}
-                onChangeText={setCustomerSearchMobile}
-                placeholder="Enter 10-digit mobile number"
-                keyboardType="phone-pad"
-                maxLength={10}
-              />
-          <TouchableOpacity
-                style={styles.searchButton}
-                onPress={handleCustomerSearch}
-                disabled={searching}
-              >
-                {searching ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.searchButtonText}>Search</Text>
-                )}
-          </TouchableOpacity>
-            </View>
-        </View>
-
-          {/* Customer Details */}
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Customer Name:</Text>
-            <TextInput
-              style={styles.input}
-              value={billData.customer_name}
-              onChangeText={(text) => setBillData({ ...billData, customer_name: text })}
-              placeholder="Customer name"
-            />
-          </View>
-
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Mobile Number:</Text>
-            <TextInput
-              style={styles.input}
-              value={billData.mobile_number}
-              onChangeText={(text) => setBillData({ ...billData, mobile_number: text })}
-              placeholder="Mobile number"
-              keyboardType="phone-pad"
-            />
-          </View>
-          </View>
-
-        {/* Measurements Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Measurements</Text>
-          
-          {/* Measurement Type Selection */}
-          <View style={styles.measurementTypeContainer}>
-            <Text style={styles.inputLabel}>Select Measurement Type:</Text>
-            <View style={styles.checkboxRow}>
-              <TouchableOpacity
-                style={[styles.checkbox, measurementType.pant && styles.checkboxSelected]}
-                onPress={() => toggleMeasurementType('pant')}
-              >
-                <Text style={styles.checkboxText}>Pant</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
-                onPress={() => toggleMeasurementType('shirt')}
-              >
-                <Text style={styles.checkboxText}>Shirt</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('suit')}
-              >
-                <Text style={styles.checkboxText}>Suit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.safari && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('safari')}
-              >
-                <Text style={styles.checkboxText}>Safari/Jacket</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.nshirt && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('nshirt')}
-              >
-                <Text style={styles.checkboxText}>N.Shirt</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.sadri && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('sadri')}
-              >
-                <Text style={styles.checkboxText}>Sadri</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
-                onPress={() => toggleMeasurementType('extra')}
-              >
-                <Text style={styles.checkboxText}>Extra</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
-                onPress={() => toggleMeasurementType('shirt')}
-              >
-                <Text style={styles.checkboxText}>Shirt</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]} 
-                onPress={() => toggleMeasurementType('suit')}
-              >
-                <Text style={styles.checkboxText}>Suit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
-                onPress={() => toggleMeasurementType('extra')}
-              >
-                <Text style={styles.checkboxText}>Extra</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Pant Measurements */}
-          {measurementType.pant && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Pant Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-            <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
-                    placeholder="32, 1/2, 22/7/2"
-              keyboardType="default"
-            />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Kamar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_kamar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Hips:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_hips}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Ran:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_waist}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Ghutna:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_ghutna}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Bottom:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_bottom}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Seat:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.pant_seat}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-          </View>
-
-              {/* Pant Details */}
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Pant Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>SideP/Cross:</Text>
-            <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.SideP_Cross}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Plates:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Plates}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Belt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Belt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Back P:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Back_P}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>WP:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.WP}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                </View>
               </View>
-            </View>
-          )}
 
-          {/* Shirt Measurements */}
-          {measurementType.shirt && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Shirt Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
-
-              keyboardType="default"
-                    allowText={true}
-            />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
-
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
-
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.shirt_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-          </View>
-              
-              {/* Shirt Details */}
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Shirt Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.Pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.LooseShirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.DT_TT}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, DT_TT: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Suit Measurements */}
-          {measurementType.suit && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Suit Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_length: value })}
-
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_body: value })}
-
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_loose: value })}
-
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_shoulder: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_astin: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_aloose: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.suit_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, suit_collar: value })}
-
-                    keyboardType="default"
-                  />
-                </View>
-              </View>
-              
-              {/* Suit Details */}
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Suit Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_callar: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_cuff: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_pkt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_looseshirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_looseshirt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.suit_dt_tt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, suit_dt_tt: value })}
-
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Safari/Jacket Measurements */}
-          {measurementType.safari && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Safari/Jacket Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_length: value })}
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_body: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_loose: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_shoulder: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_astin: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_aloose: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.safari_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, safari_collar: value })}
-                    keyboardType="default"
-                  />
-                </View>
-              </View>
-              
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Safari/Jacket Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_callar: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_cuff: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_pkt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_looseshirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_looseshirt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.safari_dt_tt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, safari_dt_tt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* N.Shirt Measurements */}
-          {measurementType.nshirt && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>N.Shirt Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_length: value })}
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_body: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_loose: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_shoulder: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_astin: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_aloose: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.nshirt_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_collar: value })}
-                    keyboardType="default"
-                  />
-                </View>
-              </View>
-              
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>N.Shirt Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_callar: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_cuff: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_pkt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_looseshirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_looseshirt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.nshirt_dt_tt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_dt_tt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Sadri Measurements */}
-          {measurementType.sadri && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Sadri Measurements</Text>
-              <View style={styles.measurementGrid}>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Length:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_length}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_length: value })}
-                    keyboardType="default"
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Body:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_body}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_body: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Loose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_loose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_loose: value })}
-                    allowText={true}
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Shoulder:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_shoulder}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_shoulder: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Astin:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_astin}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_astin: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Aloose:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_aloose}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_aloose: value })}
-                    keyboardType="default"
-                  />
-                </View>
-                <View style={styles.measurementInput}>
-                  <Text style={styles.measurementLabel}>Collar:</Text>
-                  <FractionalInput
-                    style={styles.measurementTextInput} disableCalculation={true}
-                    value={measurements.sadri_collar}
-                    onChangeValue={(value) => setMeasurements({ ...measurements, sadri_collar: value })}
-                    keyboardType="default"
-                  />
-                </View>
-              </View>
-              
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Sadri Details</Text>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Collar:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_callar}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_callar: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Cuff:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_cuff}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_cuff: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Pkt:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_pkt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_pkt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>Loose:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_looseshirt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_looseshirt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                  <View style={styles.detailInput}>
-                    <Text style={styles.detailLabel}>DT/TT:</Text>
-                    <FractionalInput
-                      style={styles.detailTextInput} disableCalculation={true}
-                      value={measurements.sadri_dt_tt}
-                      onChangeValue={(value) => setMeasurements({ ...measurements, sadri_dt_tt: value })}
-                      allowText={true}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Extra Measurements */}
-          {measurementType.extra && (
-            <View style={styles.measurementSection}>
-              <Text style={styles.measurementTitle}>Extra Measurements</Text>
-              <TextInput
-                style={styles.extraTextArea}
-                value={measurements.extra_measurements}
-                onChangeText={(text) => setMeasurements({ ...measurements, extra_measurements: text })}
-                placeholder="Enter extra measurements or special instructions..."
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-          )}
-        </View>
-
-        {/* Itemized Billing */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Itemized Billing</Text>
-          
-          <View style={styles.billingTable}>
-            <View style={styles.tableHeader}>
-              <Text style={styles.tableHeaderText}>Item</Text>
-              <Text style={styles.tableHeaderText}>Qty</Text>
-              <Text style={styles.tableHeaderText}>Amount</Text>
-            </View>
-            
-            {/* Suit */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Suit</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.suit_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_qty: text })}
-              keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.suit_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-            />
-          </View>
-
-            {/* Safari/Jacket */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Safari/Jacket</Text>
-            <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.safari_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_qty: text })}
-              keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.safari_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-            />
-          </View>
-            
-            {/* Pant */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Pant</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.pant_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, pant_qty: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.pant_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, pant_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-            </View>
-            
-            {/* Shirt */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Shirt</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.shirt_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_qty: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.shirt_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-            </View>
-            
-            {/* Sadri */}
-            <View style={styles.tableRow}>
-              <Text style={styles.tableItemText}>Sadri</Text>
-              <TextInput
-                style={styles.tableQtyInput}
-                value={itemizedBill.sadri_qty}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, sadri_qty: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-              <TextInput
-                style={styles.tableAmountInput}
-                value={itemizedBill.sadri_amount}
-                onChangeText={(text) => setItemizedBill({ ...itemizedBill, sadri_amount: text })}
-                keyboardType="numeric"
-                placeholder="0"
-              />
-            </View>
-            
-            {/* Total Row */}
-            <View style={[styles.tableRow, styles.totalRow]}>
-              <Text style={[styles.tableItemText, styles.totalText]}>Total</Text>
-              <Text style={[styles.tableQtyInput, styles.totalInput]}>{calculateTotals().total_qty || 0}</Text>
-              <Text style={[styles.tableAmountInput, styles.totalInput]}>₹{calculateTotals().total_amt || 0}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Order Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Details</Text>
-
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Order Date:</Text>
-            <View style={styles.dateFilterContainer}>
-              {Platform.OS === 'web' ? (
-                <input
-                  type="date"
-                  value={billData.order_date}
-                  onChange={e => setBillData(prev => ({ ...prev, order_date: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
-                  min={new Date().toISOString().split('T')[0]}
-                  max="2030-12-31"
+              {/* Customer Details */}
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Customer Name:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={billData.customer_name}
+                  onChangeText={(text) => setBillData({ ...billData, customer_name: text })}
+                  placeholder="Customer name"
                 />
-              ) : (
-                <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => {
-                    setActiveDateField('order');
-                    setDatePickerVisible(true);
-                  }}
-                >
-                  <Text style={styles.datePickerButtonText}>
-                    {billData.order_date ? billData.order_date : 'Select Order Date'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {billData.order_date && (
-                <TouchableOpacity
-                  style={styles.clearDateButton}
-                  onPress={() => setBillData(prev => ({ ...prev, order_date: '' }))}
-                >
-                  <Text style={styles.clearDateButtonText}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+              </View>
 
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Due Date:</Text>
-            <View style={styles.dateFilterContainer}>
-              {Platform.OS === 'web' ? (
-                <input
-                  type="date"
-                  value={billData.due_date}
-                  onChange={e => setBillData(prev => ({ ...prev, due_date: e.target.value }))}
-                  style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
-                  min={new Date().toISOString().split('T')[0]}
-                  max="2030-12-31"
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Mobile Number:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={billData.mobile_number}
+                  onChangeText={(text) => setBillData({ ...billData, mobile_number: text })}
+                  placeholder="Mobile number"
+                  keyboardType="phone-pad"
                 />
-              ) : (
-                <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => {
-                    setActiveDateField('due');
-                    setDatePickerVisible(true);
-                  }}
-                >
-                  <Text style={styles.datePickerButtonText}>
-                    {billData.due_date ? billData.due_date : 'Select Due Date'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {billData.due_date && (
-                <TouchableOpacity
-                  style={styles.clearDateButton}
-                  onPress={clearDueDate}
-                >
-                  <Text style={styles.clearDateButtonText}>✕</Text>
-                </TouchableOpacity>
-              )}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Payment Status:</Text>
-            <View style={styles.pickerContainer}>
-          <TouchableOpacity
-                style={[styles.pickerOption, billData.payment_status === 'pending' && styles.pickerOptionSelected]}
-                onPress={() => setBillData({ ...billData, payment_status: 'pending' })}
-              >
-                <Text style={[styles.pickerOptionText, billData.payment_status === 'pending' && styles.pickerOptionTextSelected]}>
-                  Pending
-            </Text>
-          </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.pickerOption, billData.payment_status === 'paid' && styles.pickerOptionSelected]}
-                onPress={() => setBillData({ ...billData, payment_status: 'paid' })}
-              >
-                <Text style={[styles.pickerOptionText, billData.payment_status === 'paid' && styles.pickerOptionTextSelected]}>
-                  Paid
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.pickerOption, billData.payment_status === 'advance' && styles.pickerOptionSelected]}
-                onPress={() => setBillData({ ...billData, payment_status: 'advance' })}
-              >
-                <Text style={[styles.pickerOptionText, billData.payment_status === 'advance' && styles.pickerOptionTextSelected]}>
-                  Advance
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            {/* Measurements Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Measurements</Text>
 
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Payment Mode:</Text>
-            <View style={styles.pickerContainer}>
+              {/* Measurement Type Selection */}
+              <View style={styles.measurementTypeContainer}>
+                <Text style={styles.inputLabel}>Select Measurement Type:</Text>
+                <View style={styles.checkboxRow}>
                   <TouchableOpacity
-                style={[styles.pickerOption, billData.payment_mode === 'Cash' && styles.pickerOptionSelected]}
-                onPress={() => setBillData({ 
-                  ...billData, 
-                  payment_mode: billData.payment_mode === 'Cash' ? '' : 'Cash' 
-                })}
-              >
-                <Text style={[styles.pickerOptionText, billData.payment_mode === 'Cash' && styles.pickerOptionTextSelected]}>
-                  Cash
-                </Text>
+                    style={[styles.checkbox, measurementType.pant && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('pant')}
+                  >
+                    <Text style={styles.checkboxText}>Pant</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('shirt')}
+                  >
+                    <Text style={styles.checkboxText}>Shirt</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('suit')}
+                  >
+                    <Text style={styles.checkboxText}>Suit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.safari && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('safari')}
+                  >
+                    <Text style={styles.checkboxText}>Safari/Jacket</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.nshirt && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('nshirt')}
+                  >
+                    <Text style={styles.checkboxText}>N.Shirt</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.sadri && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('sadri')}
+                  >
+                    <Text style={styles.checkboxText}>Sadri</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('extra')}
+                  >
+                    <Text style={styles.checkboxText}>Extra</Text>
                   </TouchableOpacity>
                 </View>
+              </View>
+
+              {/* Pant Measurements */}
+              {measurementType.pant && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Pant Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Kamar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_kamar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Hips:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_hips}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Ran:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_waist}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Ghutna:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_ghutna}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Bottom:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_bottom}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Seat:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_seat}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Pant Details */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsTitle}>Pant Details</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Pocket:</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={measurements.SideP_Cross}
+                            onValueChange={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
+                            style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                          >
+                            <Picker.Item label="Select Pocket" value="" />
+                            <Picker.Item label="Side" value="Side" />
+                            <Picker.Item label="Cross" value="Cross" />
+                          </Picker>
+                        </View>
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Plates:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Plates}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Belt:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Belt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Back P:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Back_P}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>WP:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.WP}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Shirt Measurements */}
+              {measurementType.shirt && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Shirt Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
+
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
+
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Loose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_loose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
+
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Aloose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_aloose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Shirt Details */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsTitle}>Shirt Details</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Collar:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Callar}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Cuff:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Cuff}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Pkt:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Pkt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Loose:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.LooseShirt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Strip:</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={measurements.DT_TT}
+                            onValueChange={(value) => setMeasurements({ ...measurements, DT_TT: value })}
+                            style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                          >
+                            <Picker.Item label="Select Strip" value="" />
+                            <Picker.Item label="ST" value="ST" />
+                            <Picker.Item label="TT" value="TT" />
+                          </Picker>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Suit Measurements */}
+              {measurementType.suit && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Suit Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_length: value })}
+
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_body: value })}
+
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_shoulder: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_astin: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_collar: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Strip:</Text>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={measurements.suit_dt_tt}
+                          onValueChange={(value) => setMeasurements({ ...measurements, suit_dt_tt: value })}
+                          style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                        >
+                          <Picker.Item label="Select Strip" value="" />
+                          <Picker.Item label="ST" value="ST" />
+                          <Picker.Item label="TT" value="TT" />
+                        </Picker>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Safari/Jacket Measurements */}
+              {measurementType.safari && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Safari/Jacket Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_length: value })}
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_body: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Loose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_loose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_loose: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_shoulder: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_astin: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Aloose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_aloose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_aloose: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_collar: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsTitle}>Safari/Jacket Details</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Collar:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.safari_callar}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, safari_callar: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Cuff:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.safari_cuff}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, safari_cuff: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Pkt:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.safari_pkt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, safari_pkt: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Loose:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.safari_looseshirt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, safari_looseshirt: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Strip:</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={measurements.safari_dt_tt}
+                            onValueChange={(value) => setMeasurements({ ...measurements, safari_dt_tt: value })}
+                            style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                          >
+                            <Picker.Item label="Select Strip" value="" />
+                            <Picker.Item label="ST" value="ST" />
+                            <Picker.Item label="TT" value="TT" />
+                          </Picker>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* N.Shirt Measurements */}
+              {measurementType.nshirt && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>N.Shirt Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_length: value })}
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_body: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Loose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_loose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_loose: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_shoulder: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_astin: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Aloose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_aloose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_aloose: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_collar: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsTitle}>N.Shirt Details</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Collar:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.nshirt_callar}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_callar: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Cuff:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.nshirt_cuff}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_cuff: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Pkt:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.nshirt_pkt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_pkt: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Loose:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.nshirt_looseshirt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_looseshirt: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Strip:</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={measurements.nshirt_dt_tt}
+                            onValueChange={(value) => setMeasurements({ ...measurements, nshirt_dt_tt: value })}
+                            style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                          >
+                            <Picker.Item label="Select Strip" value="" />
+                            <Picker.Item label="ST" value="ST" />
+                            <Picker.Item label="TT" value="TT" />
+                          </Picker>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Sadri Measurements */}
+              {measurementType.sadri && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Sadri Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_length: value })}
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_body: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_shoulder: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_astin: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_collar: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Strip:</Text>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={measurements.sadri_dt_tt}
+                          onValueChange={(value) => setMeasurements({ ...measurements, sadri_dt_tt: value })}
+                          style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                        >
+                          <Picker.Item label="Select Strip" value="" />
+                          <Picker.Item label="ST" value="ST" />
+                          <Picker.Item label="TT" value="TT" />
+                        </Picker>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Extra Measurements */}
+              {measurementType.extra && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Extra Measurements</Text>
+                  <TextInput
+                    style={styles.extraTextArea}
+                    value={measurements.extra_measurements}
+                    onChangeText={(text) => setMeasurements({ ...measurements, extra_measurements: text })}
+                    placeholder="Enter extra measurements or special instructions..."
+                    multiline
+                    numberOfLines={4}
+                  />
+                </View>
+              )}
             </View>
 
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Advance Amount:</Text>
-            <TextInput
-              style={styles.input}
-              value={billData.payment_amount}
-              onChangeText={(text) => setBillData({ ...billData, payment_amount: text })}
-              placeholder="0.00"
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
+            {/* Itemized Billing */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Itemized Billing</Text>
 
-        {/* Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Summary</Text>
-          
-          <View style={styles.summaryContainer}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Amount:</Text>
-              <Text style={styles.summaryValue}>₹{parseFloat(calculateTotals().total_amt) || 0}</Text>
-          </View>
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Advance Amount:</Text>
-            <Text style={styles.summaryValue}>₹{parseFloat(billData.payment_amount) || 0}</Text>
-          </View>
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Remaining Amount:</Text>
-            <Text style={[styles.summaryValue, styles.remainingAmount]}>
-                ₹{((parseFloat(calculateTotals().total_amt) || 0) - (parseFloat(billData.payment_amount) || 0)).toFixed(2)}
-            </Text>
-          </View>
-          </View>
-        </View>
+              <View style={styles.billingTable}>
+                <View style={styles.tableHeader}>
+                  <Text style={styles.tableHeaderText}>Item</Text>
+                  <Text style={styles.tableHeaderText}>Qty</Text>
+                  <Text style={styles.tableHeaderText}>Amount</Text>
+                </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.printButton]}
-            onPress={handlePrintMeasurement}
-            disabled={saving}
+                {/* Suit */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Suit</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.suit_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.suit_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Safari/Jacket */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Safari/Jacket</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.safari_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.safari_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Pant */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Pant</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.pant_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, pant_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.pant_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, pant_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Shirt */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Shirt</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.shirt_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.shirt_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* N.Shirt */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>N.Shirt</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.nshirt_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, nshirt_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.nshirt_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, nshirt_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Sadri */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Sadri</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.sadri_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, sadri_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.sadri_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, sadri_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Total Row */}
+                <View style={[styles.tableRow, styles.totalRow]}>
+                  <Text style={[styles.tableItemText, styles.totalText]}>Total</Text>
+                  <Text style={[styles.tableQtyInput, styles.totalInput]}>{calculateTotals().total_qty || 0}</Text>
+                  <Text style={[styles.tableAmountInput, styles.totalInput]}>₹{calculateTotals().total_amt || 0}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Order Details */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Order Details</Text>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Order Date:</Text>
+                <View style={styles.dateFilterContainer}>
+                  {Platform.OS === 'web' ? (
+                    <input
+                      type="date"
+                      value={billData.order_date}
+                      onChange={e => setBillData(prev => ({ ...prev, order_date: e.target.value }))}
+                      style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
+                      min={new Date().toISOString().split('T')[0]}
+                      max="2030-12-31"
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        setActiveDateField('order');
+                        setDatePickerVisible(true);
+                      }}
+                    >
+                      <Text style={styles.datePickerButtonText}>
+                        {billData.order_date ? billData.order_date : 'Select Order Date'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {billData.order_date && (
+                    <TouchableOpacity
+                      style={styles.clearDateButton}
+                      onPress={() => setBillData(prev => ({ ...prev, order_date: '' }))}
+                    >
+                      <Text style={styles.clearDateButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Due Date:</Text>
+                <View style={styles.dateFilterContainer}>
+                  {Platform.OS === 'web' ? (
+                    <input
+                      type="date"
+                      value={billData.due_date}
+                      onChange={e => setBillData(prev => ({ ...prev, due_date: e.target.value }))}
+                      style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
+                      min={new Date().toISOString().split('T')[0]}
+                      max="2030-12-31"
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        setActiveDateField('due');
+                        setDatePickerVisible(true);
+                      }}
+                    >
+                      <Text style={styles.datePickerButtonText}>
+                        {billData.due_date ? billData.due_date : 'Select Due Date'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {billData.due_date && (
+                    <TouchableOpacity
+                      style={styles.clearDateButton}
+                      onPress={clearDueDate}
+                    >
+                      <Text style={styles.clearDateButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Payment Status:</Text>
+                <View style={styles.pickerContainer}>
+                  <TouchableOpacity
+                    style={[styles.pickerOption, billData.payment_status === 'pending' && styles.pickerOptionSelected]}
+                    onPress={() => setBillData({ ...billData, payment_status: 'pending' })}
+                  >
+                    <Text style={[styles.pickerOptionText, billData.payment_status === 'pending' && styles.pickerOptionTextSelected]}>
+                      Pending
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.pickerOption, billData.payment_status === 'paid' && styles.pickerOptionSelected]}
+                    onPress={() => setBillData({ ...billData, payment_status: 'paid' })}
+                  >
+                    <Text style={[styles.pickerOptionText, billData.payment_status === 'paid' && styles.pickerOptionTextSelected]}>
+                      Paid
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.pickerOption, billData.payment_status === 'advance' && styles.pickerOptionSelected]}
+                    onPress={() => setBillData({ ...billData, payment_status: 'advance' })}
+                  >
+                    <Text style={[styles.pickerOptionText, billData.payment_status === 'advance' && styles.pickerOptionTextSelected]}>
+                      Advance
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Payment Mode:</Text>
+                <View style={styles.pickerContainer}>
+                  <TouchableOpacity
+                    style={[styles.pickerOption, billData.payment_mode === 'Cash' && styles.pickerOptionSelected]}
+                    onPress={() => setBillData({
+                      ...billData,
+                      payment_mode: billData.payment_mode === 'Cash' ? '' : 'Cash'
+                    })}
+                  >
+                    <Text style={[styles.pickerOptionText, billData.payment_mode === 'Cash' && styles.pickerOptionTextSelected]}>
+                      Cash
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Advance Amount:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={billData.payment_amount}
+                  onChangeText={(text) => setBillData({ ...billData, payment_amount: text })}
+                  placeholder="0.00"
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            {/* Summary */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Summary</Text>
+
+              <View style={styles.summaryContainer}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Total Amount:</Text>
+                  <Text style={styles.summaryValue}>₹{parseFloat(calculateTotals().total_amt) || 0}</Text>
+                </View>
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Advance Amount:</Text>
+                  <Text style={styles.summaryValue}>₹{parseFloat(billData.payment_amount) || 0}</Text>
+                </View>
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Remaining Amount:</Text>
+                  <Text style={[styles.summaryValue, styles.remainingAmount]}>
+                    ₹{((parseFloat(calculateTotals().total_amt) || 0) - (parseFloat(billData.payment_amount) || 0)).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.printButton]}
+                onPress={handlePrintMeasurement}
+                disabled={saving}
+              >
+                <Text style={styles.printButtonText}>Print Measurements</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.saveButton]}
+                onPress={async () => {
+                  console.log('Save and Print button pressed');
+
+                  try {
+                    setSaving(true);
+
+                    // Get the order number that will be used for this bill
+                    const currentBillNumber = await SupabaseAPI.getCurrentBillNumber();
+                    const orderNumber = currentBillNumber.billno;
+                    console.log('📋 Order number for printing:', orderNumber);
+
+                    // Save the bill first
+                    const saved = await handleSaveBill();
+
+                    if (saved) {
+                      console.log('✅ Bill saved successfully, now printing...');
+                      // Use the orderNumber we got before saving
+                      await handlePrintBill(orderNumber);
+                    } else {
+                      console.log('❌ Not printing because save failed');
+                    }
+                  } catch (error) {
+                    console.error('Error in save and print:', error);
+                    Alert.alert('Error', 'Failed to save and print bill: ' + error.message);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save and Print</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      ) : (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.printButtonText}>Print Measurements</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.saveButton]}
-            onPress={async () => {
-              console.log('Save and Print button pressed (Mobile)');
-              
-              try {
-                setSaving(true);
-                
-                // Get the order number that will be used for this bill
-                const currentBillNumber = await SupabaseAPI.getCurrentBillNumber();
-                const orderNumber = currentBillNumber.billno;
-                console.log('📋 Order number for printing (Mobile):', orderNumber);
-                
-                // Save the bill first
-                const saved = await handleSaveBill();
-                
-                if (saved) {
-                  console.log('✅ Bill saved successfully, now printing (Mobile)...');
-                  // Use the orderNumber we got before saving
-                  await handlePrintBill(orderNumber);
-                } else {
-                  console.log('❌ Not printing because save failed (Mobile)');
-                }
-              } catch (error) {
-                console.error('Error in save and print (Mobile):', error);
-                Alert.alert('Error', 'Failed to save and print bill: ' + error.message);
-              } finally {
-                setSaving(false);
-              }
-            }}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save and Print</Text>
-            )}
-          </TouchableOpacity>
-        </View> 
-      </ScrollView>
-    </KeyboardAvoidingView>
-  )}
+            {/* Order Number Display */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Order Number</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={[styles.input, { fontWeight: 'bold', fontSize: 18, color: '#2c3e50' }]}
+                  value={billData.billnumberinput2 ? billData.billnumberinput2.toString() : ''}
+                  onChangeText={text => {
+                    // Only allow numbers
+                    const numeric = text.replace(/[^0-9]/g, '');
+                    setBillData(prev => ({ ...prev, billnumberinput2: numeric }));
+                  }}
+                  placeholder="Enter Order Number"
+                  keyboardType="numeric"
+                  maxLength={12}
+                />
+              </View>
+            </View>
+
+            {/* Customer Selection */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Customer Information</Text>
+
+              {/* Customer Search */}
+              <View style={styles.searchContainer}>
+                <Text style={styles.inputLabel}>Search by Mobile Number:</Text>
+                <View style={styles.searchRow}>
+                  <TextInput
+                    style={styles.searchInput}
+                    value={customerSearchMobile}
+                    onChangeText={setCustomerSearchMobile}
+                    placeholder="Enter 10-digit mobile number"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                  />
+                  <TouchableOpacity
+                    style={styles.searchButton}
+                    onPress={handleCustomerSearch}
+                    disabled={searching}
+                  >
+                    {searching ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.searchButtonText}>Search</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Customer Details */}
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Customer Name:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={billData.customer_name}
+                  onChangeText={(text) => setBillData({ ...billData, customer_name: text })}
+                  placeholder="Customer name"
+                />
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Mobile Number:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={billData.mobile_number}
+                  onChangeText={(text) => setBillData({ ...billData, mobile_number: text })}
+                  placeholder="Mobile number"
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+
+            {/* Measurements Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Measurements</Text>
+
+              {/* Measurement Type Selection */}
+              <View style={styles.measurementTypeContainer}>
+                <Text style={styles.inputLabel}>Select Measurement Type:</Text>
+                <View style={styles.checkboxRow}>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.pant && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('pant')}
+                  >
+                    <Text style={styles.checkboxText}>Pant</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('shirt')}
+                  >
+                    <Text style={styles.checkboxText}>Shirt</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('suit')}
+                  >
+                    <Text style={styles.checkboxText}>Suit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.safari && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('safari')}
+                  >
+                    <Text style={styles.checkboxText}>Safari/Jacket</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.nshirt && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('nshirt')}
+                  >
+                    <Text style={styles.checkboxText}>N.Shirt</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.sadri && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('sadri')}
+                  >
+                    <Text style={styles.checkboxText}>Sadri</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('extra')}
+                  >
+                    <Text style={styles.checkboxText}>Extra</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.shirt && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('shirt')}
+                  >
+                    <Text style={styles.checkboxText}>Shirt</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.suit && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('suit')}
+                  >
+                    <Text style={styles.checkboxText}>Suit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.checkbox, measurementType.extra && styles.checkboxSelected]}
+                    onPress={() => toggleMeasurementType('extra')}
+                  >
+                    <Text style={styles.checkboxText}>Extra</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Pant Measurements */}
+              {measurementType.pant && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Pant Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_length: value })}
+                        placeholder="32, 1/2, 22/7/2"
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Kamar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_kamar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_kamar: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Hips:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_hips}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_hips: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Ran:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_waist}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_waist: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Ghutna:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_ghutna}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_ghutna: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Bottom:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_bottom}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_bottom: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Seat:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.pant_seat}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, pant_seat: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Pant Details */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsTitle}>Pant Details</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Pocket:</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={measurements.SideP_Cross}
+                            onValueChange={(value) => setMeasurements({ ...measurements, SideP_Cross: value })}
+                            style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                          >
+                            <Picker.Item label="Select Pocket" value="" />
+                            <Picker.Item label="Side" value="Side" />
+                            <Picker.Item label="Cross" value="Cross" />
+                          </Picker>
+                        </View>
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Plates:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Plates}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Plates: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Belt:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Belt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Belt: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Back P:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Back_P}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Back_P: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>WP:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.WP}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, WP: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Shirt Measurements */}
+              {measurementType.shirt && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Shirt Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_length: value })}
+
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_body: value })}
+
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Loose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_loose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_loose: value })}
+
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_shoulder: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_astin: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Aloose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_aloose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_aloose: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.shirt_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, shirt_collar: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Shirt Details */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsTitle}>Shirt Details</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Collar:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Callar}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Callar: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Cuff:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Cuff}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Cuff: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Pkt:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.Pkt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, Pkt: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Loose:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.LooseShirt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, LooseShirt: value })}
+
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Strip:</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={measurements.DT_TT}
+                            onValueChange={(value) => setMeasurements({ ...measurements, DT_TT: value })}
+                            style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                          >
+                            <Picker.Item label="Select Strip" value="" />
+                            <Picker.Item label="ST" value="ST" />
+                            <Picker.Item label="TT" value="TT" />
+                          </Picker>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Suit Measurements */}
+              {measurementType.suit && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Suit Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_length: value })}
+
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_body: value })}
+
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_shoulder: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_astin: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.suit_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, suit_collar: value })}
+
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Strip:</Text>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={measurements.suit_dt_tt}
+                          onValueChange={(value) => setMeasurements({ ...measurements, suit_dt_tt: value })}
+                          style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                        >
+                          <Picker.Item label="Select Strip" value="" />
+                          <Picker.Item label="ST" value="ST" />
+                          <Picker.Item label="TT" value="TT" />
+                        </Picker>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Safari/Jacket Measurements */}
+              {measurementType.safari && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Safari/Jacket Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_length: value })}
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_body: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Loose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_loose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_loose: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_shoulder: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_astin: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Aloose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_aloose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_aloose: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.safari_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, safari_collar: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsTitle}>Safari/Jacket Details</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Collar:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.safari_callar}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, safari_callar: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Cuff:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.safari_cuff}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, safari_cuff: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Pkt:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.safari_pkt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, safari_pkt: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Loose:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.safari_looseshirt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, safari_looseshirt: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Strip:</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={measurements.safari_dt_tt}
+                            onValueChange={(value) => setMeasurements({ ...measurements, safari_dt_tt: value })}
+                            style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                          >
+                            <Picker.Item label="Select Strip" value="" />
+                            <Picker.Item label="ST" value="ST" />
+                            <Picker.Item label="TT" value="TT" />
+                          </Picker>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* N.Shirt Measurements */}
+              {measurementType.nshirt && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>N.Shirt Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_length: value })}
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_body: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Loose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_loose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_loose: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_shoulder: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_astin: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Aloose:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_aloose}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_aloose: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.nshirt_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_collar: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsTitle}>N.Shirt Details</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Collar:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.nshirt_callar}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_callar: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Cuff:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.nshirt_cuff}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_cuff: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Pkt:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.nshirt_pkt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_pkt: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Loose:</Text>
+                        <FractionalInput
+                          style={styles.detailTextInput} disableCalculation={true}
+                          value={measurements.nshirt_looseshirt}
+                          onChangeValue={(value) => setMeasurements({ ...measurements, nshirt_looseshirt: value })}
+                          allowText={true}
+                        />
+                      </View>
+                      <View style={styles.detailInput}>
+                        <Text style={styles.detailLabel}>Strip:</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={measurements.nshirt_dt_tt}
+                            onValueChange={(value) => setMeasurements({ ...measurements, nshirt_dt_tt: value })}
+                            style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                          >
+                            <Picker.Item label="Select Strip" value="" />
+                            <Picker.Item label="ST" value="ST" />
+                            <Picker.Item label="TT" value="TT" />
+                          </Picker>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Sadri Measurements */}
+              {measurementType.sadri && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Sadri Measurements</Text>
+                  <View style={styles.measurementGrid}>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Length:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_length}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_length: value })}
+                        keyboardType="default"
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Body:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_body}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_body: value })}
+                        allowText={true}
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Shoulder:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_shoulder}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_shoulder: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Astin:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_astin}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_astin: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Collar:</Text>
+                      <FractionalInput
+                        style={styles.measurementTextInput} disableCalculation={true}
+                        value={measurements.sadri_collar}
+                        onChangeValue={(value) => setMeasurements({ ...measurements, sadri_collar: value })}
+                        keyboardType="default"
+                      />
+                    </View>
+                    <View style={styles.measurementInput}>
+                      <Text style={styles.measurementLabel}>Strip:</Text>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={measurements.sadri_dt_tt}
+                          onValueChange={(value) => setMeasurements({ ...measurements, sadri_dt_tt: value })}
+                          style={Platform.OS === 'web' ? { width: '100%', height: '100%', border: 'none', outline: 'none' } : { width: '100%', height: 48 }}
+                        >
+                          <Picker.Item label="Select Strip" value="" />
+                          <Picker.Item label="ST" value="ST" />
+                          <Picker.Item label="TT" value="TT" />
+                        </Picker>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Extra Measurements */}
+              {measurementType.extra && (
+                <View style={styles.measurementSection}>
+                  <Text style={styles.measurementTitle}>Extra Measurements</Text>
+                  <TextInput
+                    style={styles.extraTextArea}
+                    value={measurements.extra_measurements}
+                    onChangeText={(text) => setMeasurements({ ...measurements, extra_measurements: text })}
+                    placeholder="Enter extra measurements or special instructions..."
+                    multiline
+                    numberOfLines={4}
+                  />
+                </View>
+              )}
+            </View>
+
+            {/* Itemized Billing */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Itemized Billing</Text>
+
+              <View style={styles.billingTable}>
+                <View style={styles.tableHeader}>
+                  <Text style={styles.tableHeaderText}>Item</Text>
+                  <Text style={styles.tableHeaderText}>Qty</Text>
+                  <Text style={styles.tableHeaderText}>Amount</Text>
+                </View>
+
+                {/* Suit */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Suit</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.suit_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.suit_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, suit_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Safari/Jacket */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Safari/Jacket</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.safari_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.safari_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, safari_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Pant */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Pant</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.pant_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, pant_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.pant_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, pant_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Shirt */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Shirt</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.shirt_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.shirt_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, shirt_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Sadri */}
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableItemText}>Sadri</Text>
+                  <TextInput
+                    style={styles.tableQtyInput}
+                    value={itemizedBill.sadri_qty}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, sadri_qty: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                  <TextInput
+                    style={styles.tableAmountInput}
+                    value={itemizedBill.sadri_amount}
+                    onChangeText={(text) => setItemizedBill({ ...itemizedBill, sadri_amount: text })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                  />
+                </View>
+
+                {/* Total Row */}
+                <View style={[styles.tableRow, styles.totalRow]}>
+                  <Text style={[styles.tableItemText, styles.totalText]}>Total</Text>
+                  <Text style={[styles.tableQtyInput, styles.totalInput]}>{calculateTotals().total_qty || 0}</Text>
+                  <Text style={[styles.tableAmountInput, styles.totalInput]}>₹{calculateTotals().total_amt || 0}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Order Details */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Order Details</Text>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Order Date:</Text>
+                <View style={styles.dateFilterContainer}>
+                  {Platform.OS === 'web' ? (
+                    <input
+                      type="date"
+                      value={billData.order_date}
+                      onChange={e => setBillData(prev => ({ ...prev, order_date: e.target.value }))}
+                      style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
+                      min={new Date().toISOString().split('T')[0]}
+                      max="2030-12-31"
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        setActiveDateField('order');
+                        setDatePickerVisible(true);
+                      }}
+                    >
+                      <Text style={styles.datePickerButtonText}>
+                        {billData.order_date ? billData.order_date : 'Select Order Date'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {billData.order_date && (
+                    <TouchableOpacity
+                      style={styles.clearDateButton}
+                      onPress={() => setBillData(prev => ({ ...prev, order_date: '' }))}
+                    >
+                      <Text style={styles.clearDateButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Due Date:</Text>
+                <View style={styles.dateFilterContainer}>
+                  {Platform.OS === 'web' ? (
+                    <input
+                      type="date"
+                      value={billData.due_date}
+                      onChange={e => setBillData(prev => ({ ...prev, due_date: e.target.value }))}
+                      style={{ padding: 8, borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
+                      min={new Date().toISOString().split('T')[0]}
+                      max="2030-12-31"
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        setActiveDateField('due');
+                        setDatePickerVisible(true);
+                      }}
+                    >
+                      <Text style={styles.datePickerButtonText}>
+                        {billData.due_date ? billData.due_date : 'Select Due Date'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {billData.due_date && (
+                    <TouchableOpacity
+                      style={styles.clearDateButton}
+                      onPress={clearDueDate}
+                    >
+                      <Text style={styles.clearDateButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Payment Status:</Text>
+                <View style={styles.pickerContainer}>
+                  <TouchableOpacity
+                    style={[styles.pickerOption, billData.payment_status === 'pending' && styles.pickerOptionSelected]}
+                    onPress={() => setBillData({ ...billData, payment_status: 'pending' })}
+                  >
+                    <Text style={[styles.pickerOptionText, billData.payment_status === 'pending' && styles.pickerOptionTextSelected]}>
+                      Pending
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.pickerOption, billData.payment_status === 'paid' && styles.pickerOptionSelected]}
+                    onPress={() => setBillData({ ...billData, payment_status: 'paid' })}
+                  >
+                    <Text style={[styles.pickerOptionText, billData.payment_status === 'paid' && styles.pickerOptionTextSelected]}>
+                      Paid
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.pickerOption, billData.payment_status === 'advance' && styles.pickerOptionSelected]}
+                    onPress={() => setBillData({ ...billData, payment_status: 'advance' })}
+                  >
+                    <Text style={[styles.pickerOptionText, billData.payment_status === 'advance' && styles.pickerOptionTextSelected]}>
+                      Advance
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Payment Mode:</Text>
+                <View style={styles.pickerContainer}>
+                  <TouchableOpacity
+                    style={[styles.pickerOption, billData.payment_mode === 'Cash' && styles.pickerOptionSelected]}
+                    onPress={() => setBillData({
+                      ...billData,
+                      payment_mode: billData.payment_mode === 'Cash' ? '' : 'Cash'
+                    })}
+                  >
+                    <Text style={[styles.pickerOptionText, billData.payment_mode === 'Cash' && styles.pickerOptionTextSelected]}>
+                      Cash
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Advance Amount:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={billData.payment_amount}
+                  onChangeText={(text) => setBillData({ ...billData, payment_amount: text })}
+                  placeholder="0.00"
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            {/* Summary */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Summary</Text>
+
+              <View style={styles.summaryContainer}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Total Amount:</Text>
+                  <Text style={styles.summaryValue}>₹{parseFloat(calculateTotals().total_amt) || 0}</Text>
+                </View>
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Advance Amount:</Text>
+                  <Text style={styles.summaryValue}>₹{parseFloat(billData.payment_amount) || 0}</Text>
+                </View>
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Remaining Amount:</Text>
+                  <Text style={[styles.summaryValue, styles.remainingAmount]}>
+                    ₹{((parseFloat(calculateTotals().total_amt) || 0) - (parseFloat(billData.payment_amount) || 0)).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.printButton]}
+                onPress={handlePrintMeasurement}
+                disabled={saving}
+              >
+                <Text style={styles.printButtonText}>Print Measurements</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.saveButton]}
+                onPress={async () => {
+                  console.log('Save and Print button pressed (Mobile)');
+
+                  try {
+                    setSaving(true);
+
+                    // Get the order number that will be used for this bill
+                    const currentBillNumber = await SupabaseAPI.getCurrentBillNumber();
+                    const orderNumber = currentBillNumber.billno;
+                    console.log('📋 Order number for printing (Mobile):', orderNumber);
+
+                    // Save the bill first
+                    const saved = await handleSaveBill();
+
+                    if (saved) {
+                      console.log('✅ Bill saved successfully, now printing (Mobile)...');
+                      // Use the orderNumber we got before saving
+                      await handlePrintBill(orderNumber);
+                    } else {
+                      console.log('❌ Not printing because save failed (Mobile)');
+                    }
+                  } catch (error) {
+                    console.error('Error in save and print (Mobile):', error);
+                    Alert.alert('Error', 'Failed to save and print bill: ' + error.message);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save and Print</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      )}
 
       {/* Customer Selection Modal */}
       <Modal

@@ -129,7 +129,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
 
     const sadriMeasurements = allEntries.filter(([key]) =>
       key.toLowerCase().includes('sadri') ||
-      ['sadrilength', 'sadribody', 'sadriloose', 'sadrishoulder', 'sadriastin', 'sadricollar', 'sadrialoose', 'sadricallar', 'sadricuff', 'sadripkt', 'sadrilooseshirt', 'sadridttt'].includes(key.toLowerCase())
+      ['sadrilength', 'sadribody', 'sadrishoulder', 'sadriastin', 'sadricollar', 'sadridttt'].includes(key.toLowerCase())
     );
 
     const extraMeasurements = allEntries.filter(([key]) =>
@@ -172,7 +172,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
         const boxedValues = boxedPantFields.map(([key, value]) => {
           let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Pant ', '');
           if (key === 'SideP_Cross' || key.toLowerCase() === 'sidep_cross') {
-            label = 'SideP/Cross';
+            label = 'Pocket';
           } else if (key === 'Back_P' || key.toLowerCase() === 'back_p') {
             label = 'Back P.';
           }
@@ -192,7 +192,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
 
     // Generate SUIT measurements box
     if (suitMeasurements.length > 0) {
-      const suitBoxedFields = ['suit_callar', 'suit_cuff', 'suit_pkt', 'suit_looseshirt', 'suit_dt_tt'];
+      const suitBoxedFields = ['suit_dt_tt'];
       const regularSuitFields = suitMeasurements.filter(([key]) =>
         !suitBoxedFields.includes(key.toLowerCase())
       );
@@ -216,7 +216,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
           let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Suit ', '').replace('suit_', '');
           if (label.toLowerCase().includes('callar')) label = 'Collar';
           if (label.toLowerCase().includes('looseshirt')) label = 'Loose';
-          if (label.toLowerCase().includes('dt tt')) label = 'DT/TT';
+          if (label.toLowerCase().includes('dt tt')) label = 'Strip';
           return `<span style="display: inline-block; margin: 1px; padding: 2px 4px; background: #e3f2fd; border: 1px solid #1976d2; border-radius: 3px; font-size: 12px; font-weight: bold; color: #0d47a1;">${label}:${value}</span>`;
         }).join('');
         suitContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
@@ -296,7 +296,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
           let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Safari ', '').replace('safari_', '');
           if (label.toLowerCase().includes('callar')) label = 'Collar';
           if (label.toLowerCase().includes('looseshirt')) label = 'Loose';
-          if (label.toLowerCase().includes('dt tt')) label = 'DT/TT';
+          if (label.toLowerCase().includes('dt tt')) label = 'Strip';
           return `<span style="display: inline-block; margin: 1px; padding: 2px 4px; background: #e0f2f1; border: 1px solid #00695c; border-radius: 3px; font-size: 12px; font-weight: bold; color: #004d40;">${label}:${value}</span>`;
         }).join('');
         safariContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
@@ -333,7 +333,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
           let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Nshirt ', '').replace('nshirt_', '');
           if (label.toLowerCase().includes('callar')) label = 'Collar';
           if (label.toLowerCase().includes('looseshirt')) label = 'Loose';
-          if (label.toLowerCase().includes('dt tt')) label = 'DT/TT';
+          if (label.toLowerCase().includes('dt tt')) label = 'Strip';
           return `<span style="display: inline-block; margin: 1px; padding: 2px 4px; background: #e1bee7; border: 1px solid #8e24aa; border-radius: 3px; font-size: 12px; font-weight: bold; color: #4a148c;">${label}:${value}</span>`;
         }).join('');
         nshirtContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
@@ -350,7 +350,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
 
     // Generate SADRI measurements box
     if (sadriMeasurements.length > 0) {
-      const sadriBoxedFields = ['sadri_callar', 'sadri_cuff', 'sadri_pkt', 'sadri_looseshirt', 'sadri_dt_tt'];
+      const sadriBoxedFields = ['sadri_dt_tt'];
       const regularSadriFields = sadriMeasurements.filter(([key]) =>
         !sadriBoxedFields.includes(key.toLowerCase())
       );
@@ -370,7 +370,7 @@ export const generateProfessionalBillHTML = (billData, itemizedBill, orderNumber
           let label = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, l => l.toUpperCase()).replace('Sadri ', '').replace('sadri_', '');
           if (label.toLowerCase().includes('callar')) label = 'Collar';
           if (label.toLowerCase().includes('looseshirt')) label = 'Loose';
-          if (label.toLowerCase().includes('dt tt')) label = 'DT/TT';
+          if (label.toLowerCase().includes('dt tt')) label = 'Strip';
           return `<span style="display: inline-block; margin: 1px; padding: 2px 4px; background: #fff9c4; border: 1px solid #fbc02d; border-radius: 3px; font-size: 12px; font-weight: bold; color: #f57f17;">${label}:${value}</span>`;
         }).join('');
         sadriContent += `<div style="margin-top: 2px;">${boxedValues}</div>`;
@@ -595,7 +595,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
           { key: "pant_ghutna", label: "Ghutna", position: "middle-center" },
           { key: "pant_bottom", label: "Bottom", position: "middle-right" },
           { key: "pant_seat", label: "Seat", position: "bottom-left" },
-          { key: "SideP_Cross", label: "SideP/Cross", position: "labeled-box-1" },
+          { key: "SideP_Cross", label: "Pocket", position: "labeled-box-1" },
           { key: "Plates", label: "Plates", position: "labeled-box-2" },
           { key: "Belt", label: "Belt", position: "labeled-box-3" },
           { key: "Back_P", label: "Back P.", position: "labeled-box-4" },
@@ -616,7 +616,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
           { key: "Cuff", label: "Cuff", position: "labeled-box-2" },
           { key: "Pkt", label: "Pkt", position: "labeled-box-3" },
           { key: "LooseShirt", label: "Loose", position: "labeled-box-4" },
-          { key: "DT_TT", label: "DT/TT", position: "labeled-box-5" }
+          { key: "DT_TT", label: "Strip", position: "labeled-box-5" }
         ]
       }
     };
@@ -858,8 +858,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
       <!-- Measurements sections will provide their own headers -->
       
       <!-- SUIT Measurements -->
-      ${(measurements.suit_length || measurements.suit_body || measurements.suit_loose || measurements.suit_shoulder || measurements.suit_astin || measurements.suit_collar || measurements.suit_aloose ||
-      measurements.suit_callar || measurements.suit_cuff || measurements.suit_pkt || measurements.suit_looseshirt || measurements.suit_dt_tt) ? `
+      ${(measurements.suit_length || measurements.suit_body || measurements.suit_shoulder || measurements.suit_astin || measurements.suit_collar || measurements.suit_dt_tt) ? `
       <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
         <div class="info-row">
           <span>Order No:</span>
@@ -877,18 +876,12 @@ export const generateMeasurementHTML = (billData, measurements) => {
       <div class="section-title">SUIT</div>
       ${measurements.suit_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.suit_length}</span></div>` : ''}
       ${measurements.suit_body ? `<div class="measurement-item"><span class="measurement-label">Body:</span><span class="measurement-value">${measurements.suit_body}</span></div>` : ''}
-      ${measurements.suit_loose ? `<div class="measurement-item"><span class="measurement-label">Loose:</span><span class="measurement-value">${measurements.suit_loose}</span></div>` : ''}
       ${measurements.suit_shoulder ? `<div class="measurement-item"><span class="measurement-label">Shoulder:</span><span class="measurement-value">${measurements.suit_shoulder}</span></div>` : ''}
       ${measurements.suit_astin ? `<div class="measurement-item"><span class="measurement-label">Astin:</span><span class="measurement-value">${measurements.suit_astin}</span></div>` : ''}
       ${measurements.suit_collar ? `<div class="measurement-item"><span class="measurement-label">Collar:</span><span class="measurement-value">${measurements.suit_collar}</span></div>` : ''}
-      ${measurements.suit_aloose ? `<div class="measurement-item"><span class="measurement-label">A.Loose:</span><span class="measurement-value">${measurements.suit_aloose}</span></div>` : ''}
-      ${measurements.suit_callar || measurements.suit_cuff || measurements.suit_pkt || measurements.suit_looseshirt || measurements.suit_dt_tt ? `
+      ${measurements.suit_dt_tt ? `
       <div class="special-boxes">
-        ${measurements.suit_callar ? `<span class="special-box">Collar: ${measurements.suit_callar}</span>` : ''}
-        ${measurements.suit_cuff ? `<span class="special-box">Cuff: ${measurements.suit_cuff}</span>` : ''}
-        ${measurements.suit_pkt ? `<span class="special-box">Pkt: ${measurements.suit_pkt}</span>` : ''}
-        ${measurements.suit_looseshirt ? `<span class="special-box">Loose: ${measurements.suit_looseshirt}</span>` : ''}
-        ${measurements.suit_dt_tt ? `<span class="special-box">DT/TT: ${measurements.suit_dt_tt}</span>` : ''}
+        <span class="special-box">Strip: ${measurements.suit_dt_tt}</span>
       </div>
       ` : ''}
       
@@ -970,7 +963,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.Cuff ? `<span class="special-box">Cuff: ${measurements.Cuff}</span>` : ''}
         ${measurements.Pkt ? `<span class="special-box">Pkt: ${measurements.Pkt}</span>` : ''}
         ${measurements.LooseShirt ? `<span class="special-box">Loose: ${measurements.LooseShirt}</span>` : ''}
-        ${measurements.DT_TT ? `<span class="special-box">DT/TT: ${measurements.DT_TT}</span>` : ''}
+        ${measurements.DT_TT ? `<span class="special-box">Strip: ${measurements.DT_TT}</span>` : ''}
       </div>
       ` : ''}
       
@@ -1011,7 +1004,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.safari_cuff ? `<span class="special-box">Cuff: ${measurements.safari_cuff}</span>` : ''}
         ${measurements.safari_pkt ? `<span class="special-box">Pkt: ${measurements.safari_pkt}</span>` : ''}
         ${measurements.safari_looseshirt ? `<span class="special-box">Loose: ${measurements.safari_looseshirt}</span>` : ''}
-        ${measurements.safari_dt_tt ? `<span class="special-box">DT/TT: ${measurements.safari_dt_tt}</span>` : ''}
+        ${measurements.safari_dt_tt ? `<span class="special-box">Strip: ${measurements.safari_dt_tt}</span>` : ''}
       </div>
       ` : ''}
       
@@ -1052,7 +1045,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
         ${measurements.nshirt_cuff ? `<span class="special-box">Cuff: ${measurements.nshirt_cuff}</span>` : ''}
         ${measurements.nshirt_pkt ? `<span class="special-box">Pkt: ${measurements.nshirt_pkt}</span>` : ''}
         ${measurements.nshirt_looseshirt ? `<span class="special-box">Loose: ${measurements.nshirt_looseshirt}</span>` : ''}
-        ${measurements.nshirt_dt_tt ? `<span class="special-box">DT/TT: ${measurements.nshirt_dt_tt}</span>` : ''}
+        ${measurements.nshirt_dt_tt ? `<span class="special-box">Strip: ${measurements.nshirt_dt_tt}</span>` : ''}
       </div>
       ` : ''}
       
@@ -1063,8 +1056,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
       ` : ''}
 
       <!-- SADRI Measurements -->
-      ${(measurements.sadri_length || measurements.sadri_body || measurements.sadri_loose || measurements.sadri_shoulder || measurements.sadri_astin || measurements.sadri_collar || measurements.sadri_aloose ||
-      measurements.sadri_callar || measurements.sadri_cuff || measurements.sadri_pkt || measurements.sadri_looseshirt || measurements.sadri_dt_tt) ? `
+      ${(measurements.sadri_length || measurements.sadri_body || measurements.sadri_shoulder || measurements.sadri_astin || measurements.sadri_collar || measurements.sadri_dt_tt) ? `
       <div class="customer-info" style="border-top: 2px solid #000; padding-top: 2mm; margin-top: 5mm;">
         <div class="info-row">
           <span>Order No:</span>
@@ -1082,18 +1074,12 @@ export const generateMeasurementHTML = (billData, measurements) => {
       <div class="section-title">SADRI</div>
       ${measurements.sadri_length ? `<div class="measurement-item"><span class="measurement-label">Length:</span><span class="measurement-value">${measurements.sadri_length}</span></div>` : ''}
       ${measurements.sadri_body ? `<div class="measurement-item"><span class="measurement-label">Body:</span><span class="measurement-value">${measurements.sadri_body}</span></div>` : ''}
-      ${measurements.sadri_loose ? `<div class="measurement-item"><span class="measurement-label">Loose:</span><span class="measurement-value">${measurements.sadri_loose}</span></div>` : ''}
       ${measurements.sadri_shoulder ? `<div class="measurement-item"><span class="measurement-label">Shoulder:</span><span class="measurement-value">${measurements.sadri_shoulder}</span></div>` : ''}
       ${measurements.sadri_astin ? `<div class="measurement-item"><span class="measurement-label">Astin:</span><span class="measurement-value">${measurements.sadri_astin}</span></div>` : ''}
       ${measurements.sadri_collar ? `<div class="measurement-item"><span class="measurement-label">Collar:</span><span class="measurement-value">${measurements.sadri_collar}</span></div>` : ''}
-      ${measurements.sadri_aloose ? `<div class="measurement-item"><span class="measurement-label">A.Loose:</span><span class="measurement-value">${measurements.sadri_aloose}</span></div>` : ''}
-      ${measurements.sadri_callar || measurements.sadri_cuff || measurements.sadri_pkt || measurements.sadri_looseshirt || measurements.sadri_dt_tt ? `
+      ${measurements.sadri_dt_tt ? `
       <div class="special-boxes">
-        ${measurements.sadri_callar ? `<span class="special-box">Collar: ${measurements.sadri_callar}</span>` : ''}
-        ${measurements.sadri_cuff ? `<span class="special-box">Cuff: ${measurements.sadri_cuff}</span>` : ''}
-        ${measurements.sadri_pkt ? `<span class="special-box">Pkt: ${measurements.sadri_pkt}</span>` : ''}
-        ${measurements.sadri_looseshirt ? `<span class="special-box">Loose: ${measurements.sadri_looseshirt}</span>` : ''}
-        ${measurements.sadri_dt_tt ? `<span class="special-box">DT/TT: ${measurements.sadri_dt_tt}</span>` : ''}
+        <span class="special-box">Strip: ${measurements.sadri_dt_tt}</span>
       </div>
       ` : ''}
       
@@ -1105,7 +1091,7 @@ export const generateMeasurementHTML = (billData, measurements) => {
       
       <!-- Extra Measurements -->
       ${measurements.extra_measurements ? `
-      ${!(measurements.suit_length || measurements.suit_body || measurements.suit_loose || measurements.suit_shoulder || measurements.suit_astin || measurements.suit_collar || measurements.suit_aloose || measurements.suit_callar || measurements.suit_cuff || measurements.suit_pkt || measurements.suit_looseshirt || measurements.suit_dt_tt ||
+      ${!(measurements.suit_length || measurements.suit_body || measurements.suit_shoulder || measurements.suit_astin || measurements.suit_collar || measurements.suit_dt_tt ||
         measurements.pant_length || measurements.pant_kamar || measurements.pant_hips || measurements.pant_waist || measurements.pant_ghutna || measurements.pant_bottom || measurements.pant_seat || measurements.SideP_Cross || measurements.Plates || measurements.Belt || measurements.Back_P || measurements.WP ||
         measurements.shirt_length || measurements.shirt_body || measurements.shirt_loose || measurements.shirt_shoulder || measurements.shirt_astin || measurements.shirt_collar || measurements.shirt_aloose || measurements.Callar || measurements.Cuff || measurements.Pkt || measurements.LooseShirt || measurements.DT_TT ||
         measurements.safari_length || measurements.safari_body || measurements.safari_loose || measurements.safari_shoulder || measurements.safari_astin || measurements.safari_collar || measurements.safari_aloose || measurements.safari_callar || measurements.safari_cuff || measurements.safari_pkt || measurements.safari_looseshirt || measurements.safari_dt_tt ||

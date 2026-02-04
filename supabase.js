@@ -15,12 +15,12 @@ export const SupabaseAPI = {
       const { data, error } = await supabase
         .rpc('get_tables')
         .select('*')
-      
+
       if (error) {
         // If RPC doesn't work, try a simple query to test connection
         return { message: 'Testing connection...', error: error.message }
       }
-      
+
       return data
     } catch (error) {
       return { message: 'Error checking tables', error: error.message }
@@ -32,7 +32,7 @@ export const SupabaseAPI = {
     const { data, error } = await supabase
       .from('workers')
       .select('*')
-    
+
     if (error) throw error
     return data
   },
@@ -42,7 +42,7 @@ export const SupabaseAPI = {
       .from('workers')
       .insert(workersData)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -52,7 +52,7 @@ export const SupabaseAPI = {
       .from('workers')
       .delete()
       .eq('id', workerId)
-    
+
     if (error) throw error
     return true
   },
@@ -63,7 +63,7 @@ export const SupabaseAPI = {
       .update(workerData)
       .eq('id', workerId)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -107,7 +107,7 @@ export const SupabaseAPI = {
       // First, get the highest bill number to verify our sorting will be correct
       const highestBillNumber = await this.getHighestBillNumber();
       console.log('🔢 HIGHEST BILL NUMBER DETECTED:', highestBillNumber);
-      
+
       // Get all orders first - ordered by billnumberinput2 descending to ensure highest bills come first
       // Add a reasonable limit to prevent performance issues with massive datasets
       const { data: orders, error: ordersError } = await supabase
@@ -116,27 +116,27 @@ export const SupabaseAPI = {
         .order('billnumberinput2', { ascending: false })
         .order('id', { ascending: false }) // Secondary sort by ID descending
         .limit(2000) // Limit to recent 2000 orders to prevent performance issues
-      
+
       if (ordersError) {
         console.error('Orders fetch error:', ordersError)
         throw ordersError
       }
 
-      console.log(`📊 ORDERS LOADED: ${orders?.length || 0} orders`);      
-      
+      console.log(`📊 ORDERS LOADED: ${orders?.length || 0} orders`);
+
       // Verify the highest bill number is first
       if (orders && orders.length > 0) {
         const firstOrderBillNumber = Number(orders[0].billnumberinput2) || 0;
         console.log('🎯 FIRST ORDER BILL NUMBER:', firstOrderBillNumber);
         console.log(`🎯 FIRST ORDER ID: ${orders[0].id}`);
         console.log(`🎯 FIRST ORDER GARMENT: ${orders[0].garment_type}`);
-        console.log('✅ VERIFICATION: Highest bill number matches first order?', 
+        console.log('✅ VERIFICATION: Highest bill number matches first order?',
           firstOrderBillNumber === highestBillNumber ? 'YES' : 'NO');
         if (firstOrderBillNumber !== highestBillNumber) {
           console.warn('⚠️ WARNING: First order bill number does not match highest bill number!');
           console.warn(`Expected: ${highestBillNumber}, Got: ${firstOrderBillNumber}`);
         }
-        
+
         // Show first few orders for debugging
         console.log('\n📋 TOP 3 ORDERS FROM SUPABASE:');
         orders.slice(0, 3).forEach((order, index) => {
@@ -148,7 +148,7 @@ export const SupabaseAPI = {
       const { data: bills, error: billsError } = await supabase
         .from('bills')
         .select('*')
-      
+
       if (billsError) throw billsError
 
       // Create a map of bills by ID for efficient lookup
@@ -161,14 +161,14 @@ export const SupabaseAPI = {
       const { data: associations, error: associationsError } = await supabase
         .from('order_worker_association')
         .select('*')
-      
+
       if (associationsError) throw associationsError
 
       // Get all workers
       const { data: workers, error: workersError } = await supabase
         .from('workers')
         .select('*')
-      
+
       if (workersError) throw workersError
 
       // Create a map of workers by ID
@@ -190,7 +190,7 @@ export const SupabaseAPI = {
       const ordersWithRelations = orders.map(order => {
         const orderAssociations = associationsMap[order.id] || []
         const bill = billsMap[order.bill_id]
-        
+
         const orderWorkerAssociations = orderAssociations.map(association => ({
           order_id: association.order_id,
           worker_id: association.worker_id,
@@ -223,12 +223,12 @@ export const SupabaseAPI = {
       // Try exact numeric match first (since billnumberinput2 is numeric)
       try {
         const { data: ordersData, error: ordersDataError } = await supabase
-        .from('orders')
-        .select('*')
+          .from('orders')
+          .select('*')
           .eq('billnumberinput2', billNumber)
-        .order('billnumberinput2', { ascending: false })
-        .order('id', { ascending: false })
-      
+          .order('billnumberinput2', { ascending: false })
+          .order('id', { ascending: false })
+
         if (ordersDataError) throw ordersDataError
 
         if (ordersData && ordersData.length > 0) {
@@ -237,14 +237,14 @@ export const SupabaseAPI = {
           ordersData.slice(0, 3).forEach((order, index) => {
             console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}`);
           });
-          
+
           // Get related bills
           const billIds = [...new Set(ordersData.map(order => order.bill_id))]
           const { data: bills, error: billsError } = await supabase
             .from('bills')
             .select('*')
             .in('id', billIds)
-          
+
           if (billsError) throw billsError
 
           const billsMap = {}
@@ -258,10 +258,10 @@ export const SupabaseAPI = {
             customer_mobile: billsMap[order.bill_id]?.mobile_number || null,
             customer_name: billsMap[order.bill_id]?.customer_name || null
           }))
-          } else {
+        } else {
           console.log('❌ EXACT MATCH: No orders found, trying partial match...');
         }
-        } catch (numericSearchError) {
+      } catch (numericSearchError) {
         // Numeric search failed, continue to cast search
       }
 
@@ -274,7 +274,7 @@ export const SupabaseAPI = {
             .ilike('billnumberinput2::text', `%${billNumber}%`)
             .order('billnumberinput2', { ascending: false })
             .order('id', { ascending: false })
-          
+
           if (ordersDataError) throw ordersDataError
 
           if (ordersData && ordersData.length > 0) {
@@ -283,14 +283,14 @@ export const SupabaseAPI = {
             ordersData.slice(0, 5).forEach((order, index) => {
               console.log(`  ${index + 1}. Bill: ${order.billnumberinput2}, ID: ${order.id}`);
             });
-            
+
             // Get related bills
             const billIds = [...new Set(ordersData.map(order => order.bill_id))]
             const { data: bills, error: billsError } = await supabase
               .from('bills')
               .select('*')
               .in('id', billIds)
-            
+
             if (billsError) throw billsError
 
             const billsMap = {}
@@ -325,7 +325,7 @@ export const SupabaseAPI = {
         .from('order_worker_association')
         .select('*')
         .in('order_id', orderIds)
-      
+
       if (associationsError) throw associationsError
 
       // Get related workers
@@ -334,7 +334,7 @@ export const SupabaseAPI = {
         .from('workers')
         .select('*')
         .in('id', workerIds)
-      
+
       if (workersError) throw workersError
 
       // Create maps for efficient lookup
@@ -354,7 +354,7 @@ export const SupabaseAPI = {
       // Process the orders to include customer mobile and worker information
       const ordersWithRelations = orders.map(order => {
         const orderAssociations = associationsMap[order.id] || []
-        
+
         const orderWorkerAssociations = orderAssociations.map(association => ({
           order_id: association.order_id,
           worker_id: association.worker_id,
@@ -388,7 +388,7 @@ export const SupabaseAPI = {
   async getCustomerInfo(mobileNumber) {
     try {
       console.log('\ud83d\udd0d FETCHING CUSTOMER INFO for mobile:', mobileNumber);
-      
+
       // Get measurements
       const { data: measurements, error: measurementsError } = await supabase
         .from('measurements')
@@ -413,14 +413,14 @@ export const SupabaseAPI = {
           .select('*')
           .in('bill_id', billIds)
           .order('order_date', { ascending: false });
-        
+
         if (orders && !ordersError) {
           // Create a bills map for quick lookup
           const billsMap = {};
           bills.forEach(bill => {
             billsMap[bill.id] = bill;
           });
-          
+
           // Transform orders to include bill information
           customer_orders = orders.map(order => ({
             order_id: order.id,
@@ -472,13 +472,26 @@ export const SupabaseAPI = {
       customer_orders.forEach(order => {
         const billKey = order.bill_id || order.bill_number;
         if (billKey && !billsMap.has(billKey)) {
-          billsMap.set(billKey, parseFloat(order.total_amount) || 0);
+          const total = parseFloat(order.total_amount) || 0;
+          const advance = parseFloat(order.advance_amount) || 0;
+          const isPaid = (order.payment_status || '').toLowerCase() === 'paid';
+
+          billsMap.set(billKey, {
+            total: total,
+            pending: isPaid ? 0 : Math.max(0, total - advance)
+          });
         }
       });
-      
-      const totalAmount = Array.from(billsMap.values()).reduce((sum, amount) => sum + amount, 0);
+
+      let totalAmount = 0;
+      let totalPending = 0;
+      billsMap.forEach(bill => {
+        totalAmount += bill.total;
+        totalPending += bill.pending;
+      });
+
       const uniqueBillNumbers = [...new Set(customer_orders.map(order => order.bill_number).filter(Boolean))];
-      
+
       const result = {
         measurements: measurements?.[0] || null,
         customer_orders: customer_orders, // New format
@@ -486,19 +499,19 @@ export const SupabaseAPI = {
         customer_name: bills?.[0]?.customer_name || null,
         mobile_number: mobileNumber,
         metadata: {
-          total_orders: customer_orders.length,
           total_bills: uniqueBillNumbers.length,
           total_amount: totalAmount,
+          total_pending: totalPending,
           last_updated: new Date().toISOString()
         }
       };
-      
+
       console.log('\u2705 Customer info fetched successfully:', {
         orders: result.customer_orders.length,
         bills: result.metadata.total_bills,
         totalAmount: result.metadata.total_amount
       });
-      
+
       return result;
     } catch (error) {
       console.error('\u274c Error in getCustomerInfo:', error);
@@ -515,9 +528,9 @@ export const SupabaseAPI = {
         .select('customer_name, mobile_number')
         .not('customer_name', 'is', null)
         .not('mobile_number', 'is', null)
-      
+
       if (error) throw error
-      
+
       if (data) {
         // Convert bills data to customer format
         const uniqueCustomers = data.reduce((acc, bill) => {
@@ -534,10 +547,10 @@ export const SupabaseAPI = {
           }
           return acc
         }, [])
-        
+
         return uniqueCustomers.sort((a, b) => a.name.localeCompare(b.name))
       }
-      
+
       return []
     } catch (error) {
       console.error('Error fetching customers:', error) // Log error nicely
@@ -560,7 +573,7 @@ export const SupabaseAPI = {
           status: 'pending'
         })
         .select()
-      
+
       if (error) throw error
 
       if (data) {
@@ -574,7 +587,7 @@ export const SupabaseAPI = {
           created_at: new Date().toISOString()
         }]
       }
-      
+
       throw new Error('Failed to add customer')
     } catch (error) {
       throw error
@@ -588,7 +601,7 @@ export const SupabaseAPI = {
         .from('bills')
         .delete()
         .eq('mobile_number', customerId)
-      
+
       if (error) throw error
       return true
     } catch (error) {
@@ -603,7 +616,7 @@ export const SupabaseAPI = {
       .update(measurementsData)
       .eq('phone_number', mobileNumber)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -622,14 +635,12 @@ export const SupabaseAPI = {
       'SideP_Cross', 'Plates', 'Belt', 'Back_P', 'WP',
       'shirt_length', 'shirt_body', 'shirt_loose', 'shirt_shoulder', 'shirt_astin', 'shirt_collar', 'shirt_aloose',
       'Callar', 'Cuff', 'Pkt', 'LooseShirt', 'DT_TT', 'extra_measurements', 'shirt_type',
-      'suit_length', 'suit_body', 'suit_loose', 'suit_shoulder', 'suit_astin', 'suit_collar', 'suit_aloose',
-      'suit_callar', 'suit_cuff', 'suit_pkt', 'suit_looseshirt', 'suit_dt_tt',
+      'suit_length', 'suit_body', 'suit_shoulder', 'suit_astin', 'suit_collar', 'suit_dt_tt',
       'safari_length', 'safari_body', 'safari_loose', 'safari_shoulder', 'safari_astin', 'safari_collar', 'safari_aloose',
       'safari_callar', 'safari_cuff', 'safari_pkt', 'safari_looseshirt', 'safari_dt_tt',
       'nshirt_length', 'nshirt_body', 'nshirt_loose', 'nshirt_shoulder', 'nshirt_astin', 'nshirt_collar', 'nshirt_aloose',
       'nshirt_callar', 'nshirt_cuff', 'nshirt_pkt', 'nshirt_looseshirt', 'nshirt_dt_tt',
-      'sadri_length', 'sadri_body', 'sadri_loose', 'sadri_shoulder', 'sadri_astin', 'sadri_collar', 'sadri_aloose',
-      'sadri_callar', 'sadri_cuff', 'sadri_pkt', 'sadri_looseshirt', 'sadri_dt_tt'
+      'sadri_length', 'sadri_body', 'sadri_shoulder', 'sadri_astin', 'sadri_collar', 'sadri_dt_tt'
     ];
 
     const payload = { phone_number: phone };
@@ -670,7 +681,7 @@ export const SupabaseAPI = {
       .from('Daily_Expenses')
       .select('*')
       .order('Date', { ascending: false })
-    
+
     if (error) throw error
     return data
   },
@@ -680,7 +691,7 @@ export const SupabaseAPI = {
       .from('Daily_Expenses')
       .insert(expenseData)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -702,7 +713,7 @@ export const SupabaseAPI = {
       .from('Worker_Expense')
       .select('*')
       .order('date', { ascending: false })
-    
+
     if (error) throw error
     return data
   },
@@ -712,7 +723,7 @@ export const SupabaseAPI = {
       .from('Worker_Expense')
       .insert(expenseData)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -723,7 +734,7 @@ export const SupabaseAPI = {
       .update(expenseData)
       .eq('id', expenseId)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -737,7 +748,7 @@ export const SupabaseAPI = {
         .select('*')
         .eq('id', workerId)
         .single()
-      
+
       if (workerError) throw workerError
 
       // Get order-worker associations for this worker
@@ -797,7 +808,7 @@ export const SupabaseAPI = {
 
       // Process weekly data - matching backend logic exactly
       const weekly_data = {}
-      
+
       // Process orders - matching backend Sunday-Saturday week calculation
       for (const order of all_orders) {
         if (!order.order_date) {
@@ -805,19 +816,19 @@ export const SupabaseAPI = {
         }
 
         const orderDate = new Date(order.order_date)
-        
+
         // Convert to Python's weekday() equivalent (Monday=0, Sunday=6)
         const jsWeekday = orderDate.getDay() // 0=Sunday, 1=Monday, ..., 6=Saturday
         const pythonWeekday = jsWeekday === 0 ? 6 : jsWeekday - 1 // Convert to Python format (Monday=0, Sunday=6)
-        
+
         // Calculate days since Sunday using backend logic: (current_weekday + 1) % 7
         const daysSinceSunday = (pythonWeekday + 1) % 7
-        
+
         const weekStart = new Date(orderDate)
         weekStart.setDate(orderDate.getDate() - daysSinceSunday)
         const weekEnd = new Date(weekStart)
         weekEnd.setDate(weekStart.getDate() + 6)
-        
+
         const weekKey = weekStart.toISOString().split('T')[0]
 
         if (!weekly_data[weekKey]) {
@@ -846,14 +857,14 @@ export const SupabaseAPI = {
         }
 
         const expenseDate = new Date(expense.date)
-        
+
         // Convert to Python's weekday() equivalent (Monday=0, Sunday=6)
         const jsWeekday = expenseDate.getDay() // 0=Sunday, 1=Monday, ..., 6=Saturday
         const pythonWeekday = jsWeekday === 0 ? 6 : jsWeekday - 1 // Convert to Python format (Monday=0, Sunday=6)
-        
+
         // Calculate days since Sunday using backend logic: (current_weekday + 1) % 7
         const daysSinceSunday = (pythonWeekday + 1) % 7
-        
+
         const weekStart = new Date(expenseDate)
         weekStart.setDate(expenseDate.getDate() - daysSinceSunday)
         const weekKey = weekStart.toISOString().split('T')[0]
@@ -879,7 +890,7 @@ export const SupabaseAPI = {
       let total_work_pay = 0
       let total_paid = 0
       const weeks_list = []
-      
+
       for (const [weekKey, data] of Object.entries(weekly_data)) {
         total_orders += data.order_count
         total_work_pay += data.total_work_pay
@@ -908,24 +919,24 @@ export const SupabaseAPI = {
         },
         weekly_data: weeks_list
       }
-      
+
       return result
     } else {
       // Get all workers' weekly pay (original functionality)
-    const { data: workers, error: workersError } = await supabase
-      .from('workers')
-      .select('*')
-    
-    if (workersError) throw workersError
+      const { data: workers, error: workersError } = await supabase
+        .from('workers')
+        .select('*')
 
-    const weeklyData = {}
-    
-    for (const worker of workers) {
+      if (workersError) throw workersError
+
+      const weeklyData = {}
+
+      for (const worker of workers) {
         // Get order-worker associations for this worker
-      const { data: associations } = await supabase
-        .from('order_worker_association')
+        const { data: associations } = await supabase
+          .from('order_worker_association')
           .select('order_id')
-        .eq('worker_id', worker.id)
+          .eq('worker_id', worker.id)
 
         // Get the order IDs
         const orderIds = associations?.map(assoc => assoc.order_id) || []
@@ -937,27 +948,27 @@ export const SupabaseAPI = {
             .from('orders')
             .select('*')
             .in('id', orderIds)
-          
+
           orders = ordersData || []
         }
 
-      // Get expenses for this worker
-      const { data: expenses } = await supabase
-        .from('Worker_Expense')
-        .select('*')
-        .eq('worker_id', worker.id)
+        // Get expenses for this worker
+        const { data: expenses } = await supabase
+          .from('Worker_Expense')
+          .select('*')
+          .eq('worker_id', worker.id)
 
-      // Process weekly data (simplified version)
-      weeklyData[worker.id] = {
-        worker: worker,
+        // Process weekly data (simplified version)
+        weeklyData[worker.id] = {
+          worker: worker,
           orders: orders,
-        expenses: expenses || [],
+          expenses: expenses || [],
           total_work_pay: orders.reduce((sum, order) => sum + (order.Work_pay || 0), 0),
           total_paid: (expenses || []).reduce((sum, e) => sum + (e.Amt_Paid || 0), 0)
+        }
       }
-    }
 
-    return weeklyData
+      return weeklyData
     }
   },
 
@@ -967,7 +978,7 @@ export const SupabaseAPI = {
       .from('bills')
       .insert(billData)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -975,36 +986,36 @@ export const SupabaseAPI = {
   // Enhanced Bill + Order Creation with Advance Payment Recording
   async createBillWithAdvanceTracking(billData, orderData) {
     console.log('\ud83c\udfaf CREATING BILL WITH ADVANCE PAYMENT TRACKING...');
-    
+
     try {
       // Step 1: Create the bill
       const billResult = await this.createNewBill(billData);
       if (!billResult || billResult.length === 0) {
         throw new Error('Failed to create bill');
       }
-      
+
       const bill = billResult[0];
       const billId = bill.id;
-      
+
       // Step 2: Create the order with bill reference
       const orderWithBillRef = {
         ...orderData,
         bill_id: billId
       };
-      
+
       const orderResult = await this.createOrder(orderWithBillRef);
       if (!orderResult || orderResult.length === 0) {
         throw new Error('Failed to create order');
       }
-      
+
       const order = orderResult[0];
       const orderId = order.id;
-      
+
       // Step 3: Record advance payment if any (Stage 1)
       const advanceAmount = parseFloat(orderData.payment_amount) || 0;
       const totalAmount = parseFloat(orderData.total_amt) || 0;
       const customerName = billData.customer_name || orderData.customer_name || 'Unknown';
-      
+
       if (advanceAmount > 0) {
         console.log('\ud83d\udcb0 Recording advance payment:', {
           orderId,
@@ -1013,7 +1024,7 @@ export const SupabaseAPI = {
           totalAmount,
           customerName
         });
-        
+
         try {
           await this.recordAdvancePayment(orderId, billId, advanceAmount, totalAmount, customerName);
         } catch (advanceError) {
@@ -1024,14 +1035,14 @@ export const SupabaseAPI = {
       } else {
         console.log('\u2139\ufe0f No advance payment to record (amount: ', advanceAmount, ')');
       }
-      
+
       console.log('\u2705 BILL WITH ADVANCE TRACKING CREATED SUCCESSFULLY:', {
         billId,
         orderId,
         totalAmount,
         advanceRecorded: advanceAmount > 0
       });
-      
+
       return {
         bill: billResult,
         order: orderResult,
@@ -1052,7 +1063,7 @@ export const SupabaseAPI = {
         .from('orders')
         .insert(orderData)
         .select()
-      
+
       if (error) {
         console.error('Error creating order:', error);
         // If it's a duplicate key error, try to get the next available ID
@@ -1064,7 +1075,7 @@ export const SupabaseAPI = {
             .select('id')
             .order('id', { ascending: false })
             .limit(1)
-          
+
           if (maxIdResult && maxIdResult.length > 0) {
             console.log('Max order ID found:', maxIdResult[0].id);
             // The sequence should be reset, but for now, let's just return an error
@@ -1073,7 +1084,7 @@ export const SupabaseAPI = {
         }
         throw error;
       }
-      
+
       return data;
     } catch (error) {
       console.error('Error in createOrder:', error);
@@ -1088,7 +1099,7 @@ export const SupabaseAPI = {
       .update({ status })
       .eq('id', orderId)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -1096,30 +1107,30 @@ export const SupabaseAPI = {
   // Bulk Order Status Update API - Updates all orders with the same bill number
   async updateOrderStatusByBillNumber(billNumber, status) {
     console.log(`🔄 BULK STATUS UPDATE: Updating all orders with bill number ${billNumber} to status "${status}"`);
-    
+
     try {
       // First, get all orders with this bill number to see what will be affected
       const { data: affectedOrders, error: checkError } = await supabase
         .from('orders')
         .select('id, garment_type, status')
         .eq('billnumberinput2', billNumber);
-      
+
       if (checkError) throw checkError;
-      
+
       console.log(`📊 Found ${affectedOrders?.length || 0} orders to update:`);
       affectedOrders?.forEach((order, index) => {
         console.log(`  ${index + 1}. Order ID: ${order.id}, Garment: ${order.garment_type}, Current Status: ${order.status}`);
       });
-      
+
       // Update all orders with this bill number
       const { data, error } = await supabase
         .from('orders')
         .update({ status })
         .eq('billnumberinput2', billNumber)
         .select();
-      
+
       if (error) throw error;
-      
+
       console.log(`✅ Successfully updated ${data?.length || 0} orders to status "${status}"`);
       return {
         updated_orders: data,
@@ -1141,7 +1152,7 @@ export const SupabaseAPI = {
         .select('*')
         .eq('bill_id', billId)
         .order('order_date', { ascending: false })
-      
+
       if (ordersError) throw ordersError
 
       // Get the bill information
@@ -1150,7 +1161,7 @@ export const SupabaseAPI = {
         .select('*')
         .eq('id', billId)
         .single()
-      
+
       if (billError) throw billError
 
       return {
@@ -1170,7 +1181,7 @@ export const SupabaseAPI = {
       .update({ payment_mode: paymentMode })
       .eq('id', orderId)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -1178,7 +1189,7 @@ export const SupabaseAPI = {
   // Enhanced Payment Status Update API with Two-Stage Revenue Recognition
   async updatePaymentStatus(orderId, paymentStatus) {
     console.log('🔄 UPDATING PAYMENT STATUS:', { orderId, paymentStatus });
-    
+
     try {
       // Update the payment status in orders table
       const { data, error } = await supabase
@@ -1186,13 +1197,13 @@ export const SupabaseAPI = {
         .update({ payment_status: paymentStatus })
         .eq('id', orderId)
         .select();
-      
+
       if (error) throw error;
-      
+
       // Stage 2: If status is being changed to "paid", record final payment
       if (paymentStatus?.toLowerCase() === 'paid') {
         console.log('✅ Order marked as PAID - Recording final payment...');
-        
+
         try {
           await this.recordFinalPayment(orderId);
           console.log('✅ Final payment successfully recorded for order:', orderId);
@@ -1202,7 +1213,7 @@ export const SupabaseAPI = {
           // This ensures the order status is still updated even if revenue tracking has issues
         }
       }
-      
+
       return data;
     } catch (error) {
       console.error('Error updating payment status:', error);
@@ -1213,34 +1224,34 @@ export const SupabaseAPI = {
   // Bulk Payment Status Update API - Updates all orders with the same bill number
   async updatePaymentStatusByBillNumber(billNumber, paymentStatus) {
     console.log(`💰 BULK PAYMENT UPDATE: Updating all orders with bill number ${billNumber} to payment status "${paymentStatus}"`);
-    
+
     try {
       // First, get all orders with this bill number to see what will be affected
       const { data: affectedOrders, error: checkError } = await supabase
         .from('orders')
         .select('id, garment_type, payment_status')
         .eq('billnumberinput2', billNumber);
-      
+
       if (checkError) throw checkError;
-      
+
       console.log(`📊 Found ${affectedOrders?.length || 0} orders to update:`);
       affectedOrders?.forEach((order, index) => {
         console.log(`  ${index + 1}. Order ID: ${order.id}, Garment: ${order.garment_type}, Current Payment Status: ${order.payment_status}`);
       });
-      
+
       // Update all orders with this bill number
       const { data, error } = await supabase
         .from('orders')
         .update({ payment_status: paymentStatus })
         .eq('billnumberinput2', billNumber)
         .select();
-      
+
       if (error) throw error;
-      
+
       // Stage 2: If status is being changed to "paid", record final payment for each affected order
       if (paymentStatus?.toLowerCase() === 'paid') {
         console.log('💳 Orders marked as PAID - Recording final payments...');
-        
+
         for (const order of data) {
           try {
             await this.recordFinalPayment(order.id);
@@ -1251,7 +1262,7 @@ export const SupabaseAPI = {
           }
         }
       }
-      
+
       console.log(`✅ Successfully updated ${data?.length || 0} orders to payment status "${paymentStatus}"`);
       return {
         updated_orders: data,
@@ -1272,7 +1283,7 @@ export const SupabaseAPI = {
       .update({ total_amt: totalAmount })
       .eq('id', orderId)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -1284,7 +1295,7 @@ export const SupabaseAPI = {
       .update({ payment_amount: paymentAmount })
       .eq('id', orderId)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -1293,13 +1304,13 @@ export const SupabaseAPI = {
   async updateOrderStatus(orderId, orderStatus) {
     const { data, error } = await supabase
       .from('orders')
-      .update({ 
+      .update({
         order_status: orderStatus,
         updated_at: new Date().toISOString().split('T')[0]
       })
       .eq('id', orderId)
       .select()
-    
+
     if (error) throw error
     return data
   },
@@ -1322,7 +1333,7 @@ export const SupabaseAPI = {
       .from('order_worker_association')
       .insert(assignments)
       .select()
-    
+
     if (error) throw error
 
     // Calculate total work pay
@@ -1366,7 +1377,7 @@ export const SupabaseAPI = {
     };
 
     const todayIST = getISTDateString();
-    
+
     if (advanceAmount > 0) {
       // Record advance payment as today's revenue
       const { data, error } = await supabase
@@ -1384,7 +1395,7 @@ export const SupabaseAPI = {
           status: 'recorded'
         })
         .select();
-      
+
       if (error) {
         console.error('Error recording advance payment:', error);
         // Don't throw error, just log it so bill creation can continue
@@ -1397,7 +1408,7 @@ export const SupabaseAPI = {
         });
       }
     }
-    
+
     return { success: true };
   },
 
@@ -1417,20 +1428,20 @@ export const SupabaseAPI = {
         .from('revenue_tracking')
         .select('id')
         .limit(1);
-      
+
       if (tableError) {
         console.log('⚠️ revenue_tracking table not found, skipping final payment recording');
         console.log('📋 To enable two-stage revenue tracking, run: setup_revenue_tracking.sql');
         return { success: true, message: 'Table not found - skipped recording' };
       }
-      
+
       // Get order details and any existing advance payment
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .select('*')
         .eq('id', orderId)
         .single();
-      
+
       if (orderError || !order) {
         console.error('❌ Order not found:', orderError);
         throw new Error(`Order not found: ${orderError?.message || 'Unknown error'}`);
@@ -1443,9 +1454,9 @@ export const SupabaseAPI = {
         .eq('order_id', orderId)
         .eq('payment_type', 'advance')
         .single();
-      
+
       // Note: advanceError is expected if no advance record exists
-      
+
       const totalAmount = parseFloat(order.total_amt) || 0;
       const advanceAmount = parseFloat(order.payment_amount) || 0;
       const finalPaymentAmount = totalAmount - advanceAmount;
@@ -1475,7 +1486,7 @@ export const SupabaseAPI = {
             recorded_at: new Date().toISOString(),
             status: 'recorded'
           });
-          
+
         if (retroactiveError) {
           console.error('❌ Error creating retroactive advance record:', retroactiveError);
           throw new Error(`Failed to create advance record: ${retroactiveError.message}`);
@@ -1502,12 +1513,12 @@ export const SupabaseAPI = {
             advance_payment_amount: advanceAmount
           })
           .select();
-        
+
         if (error) {
           console.error('❌ Error recording final payment:', error);
           throw new Error(`Failed to record final payment: ${error.message}`);
         }
-        
+
         console.log('✅ FINAL PAYMENT RECORDED:', {
           orderId,
           finalPaymentAmount,
@@ -1518,13 +1529,13 @@ export const SupabaseAPI = {
       } else if (finalPaymentAmount < 0) {
         console.log('⚠️ Advance amount exceeds total - possible overpayment');
       }
-      
+
       return { success: true, finalPaymentAmount };
     } catch (error) {
       console.error('❌ Error in recordFinalPayment:', error);
       // Instead of throwing, return error info to prevent app crashes
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: error.message || 'Unknown error',
         message: 'Final payment recording failed - check if revenue_tracking table exists'
       };
@@ -1540,21 +1551,21 @@ export const SupabaseAPI = {
     };
 
     console.log('\ud83d\udcb0 CALCULATING PROFIT - Trying two-stage system first...');
-    
+
     try {
       // First check if revenue_tracking table exists
       const { data: tableCheck, error: tableError } = await supabase
         .from('revenue_tracking')
         .select('id')
         .limit(1);
-      
+
       if (tableError) {
         console.log('\ud83d\udd04 revenue_tracking table not found, using enhanced legacy method');
         return this.calculateProfitLegacy(date);
       }
-      
+
       console.log('\u2705 revenue_tracking table found, proceeding with two-stage calculation');
-      
+
       // Build queries with IST-aware date filtering
       let revenueQuery = supabase.from('revenue_tracking').select('*');
       let expensesQuery = supabase.from('Daily_Expenses').select('*');
@@ -1572,7 +1583,7 @@ export const SupabaseAPI = {
         expensesQuery,
         workerExpensesQuery
       ]);
-      
+
       // Check if we have any revenue tracking errors
       if (revenueResult.error) {
         console.log('\u26a0\ufe0f Revenue tracking query failed, falling back to legacy method');
@@ -1586,10 +1597,10 @@ export const SupabaseAPI = {
         return sum + amount;
       }, 0) || 0;
 
-      const totalDailyExpenses = expensesResult.data?.reduce((sum, e) => 
+      const totalDailyExpenses = expensesResult.data?.reduce((sum, e) =>
         sum + (parseFloat(e.material_cost) || 0) + (parseFloat(e.miscellaneous_Cost) || 0) + (parseFloat(e.chai_pani_cost) || 0), 0) || 0;
 
-      const totalWorkerExpenses = workerExpensesResult.data?.reduce((sum, e) => 
+      const totalWorkerExpenses = workerExpensesResult.data?.reduce((sum, e) =>
         sum + (parseFloat(e.Amt_Paid) || 0), 0) || 0;
 
       const result = {
@@ -1624,7 +1635,7 @@ export const SupabaseAPI = {
   // Enhanced Legacy profit calculation (fallback with advance payment support)
   async calculateProfitLegacy(date = null) {
     console.log('\u26a0\ufe0f Using enhanced legacy profit calculation method...');
-    
+
     const getISTDateString = (dateInput = null) => {
       const baseDate = dateInput ? new Date(dateInput) : new Date();
       const istDate = new Date(baseDate.getTime() + (5.5 * 60 * 60 * 1000));
@@ -1633,7 +1644,7 @@ export const SupabaseAPI = {
 
     const todayIST = getISTDateString();
     const targetDate = date ? getISTDateString(date) : null;
-    
+
     let ordersQuery = supabase.from('orders').select('*');
     let expensesQuery = supabase.from('Daily_Expenses').select('*');
     let workerExpensesQuery = supabase.from('Worker_Expense').select('*');
@@ -1656,17 +1667,17 @@ export const SupabaseAPI = {
 
     // 💰 ENHANCED: Add advance payments for today's date
     let advancePaymentsRevenue = 0;
-    
+
     if (!date || targetDate === todayIST) {
       // For today or "All Time", include advance payments from orders created today
       console.log('\ud83d\udcb0 CALCULATING ADVANCE PAYMENTS for:', targetDate || 'All Time');
-      
-      const todayOrdersQuery = date 
+
+      const todayOrdersQuery = date
         ? supabase.from('orders').select('*').eq('order_date', targetDate)
         : supabase.from('orders').select('*').eq('order_date', todayIST);
-      
+
       const { data: todayOrders } = await todayOrdersQuery;
-      
+
       advancePaymentsRevenue = todayOrders?.reduce((sum, order) => {
         const paymentAmount = parseFloat(order.payment_amount) || 0;
         if (paymentAmount > 0) {
@@ -1674,13 +1685,13 @@ export const SupabaseAPI = {
         }
         return sum + paymentAmount;
       }, 0) || 0;
-      
+
       console.log('\ud83d\udcb0 Total advance payments revenue:', advancePaymentsRevenue);
     }
 
     // Combine both revenue sources
     const totalRevenue = paidOrdersRevenue + advancePaymentsRevenue;
-    
+
     console.log('\ud83d\udcca ENHANCED LEGACY REVENUE CALCULATION:', {
       paidOrdersRevenue,
       advancePaymentsRevenue,
@@ -1688,10 +1699,10 @@ export const SupabaseAPI = {
       date: targetDate || 'All Time'
     });
 
-    const totalDailyExpenses = expenses.data?.reduce((sum, e) => 
+    const totalDailyExpenses = expenses.data?.reduce((sum, e) =>
       sum + (parseFloat(e.material_cost) || 0) + (parseFloat(e.miscellaneous_Cost) || 0) + (parseFloat(e.chai_pani_cost) || 0), 0) || 0;
 
-    const totalWorkerExpenses = workerExpenses.data?.reduce((sum, e) => 
+    const totalWorkerExpenses = workerExpenses.data?.reduce((sum, e) =>
       sum + (parseFloat(e.Amt_Paid) || 0), 0) || 0;
 
     return {
@@ -1717,7 +1728,7 @@ export const SupabaseAPI = {
     };
 
     const todayIST = getISTDateString();
-    
+
     console.log('\ud83d\udcb0 MANUALLY ADDING ADVANCE PAYMENT TO TODAY\'S REVENUE:', {
       orderId,
       advanceAmount,
@@ -1740,13 +1751,13 @@ export const SupabaseAPI = {
           status: 'recorded'
         })
         .select();
-      
+
       if (error) {
         console.log('\u26a0\ufe0f revenue_tracking table not available, advance payment will be calculated from orders table');
         console.log('\u2139\ufe0f Make sure the order has payment_amount set and order_date is today');
         return { success: false, message: 'revenue_tracking table not available', fallback: true };
       }
-      
+
       console.log('\u2705 Advance payment successfully recorded in revenue_tracking table');
       return { success: true, data, message: 'Advance payment recorded successfully' };
     } catch (error) {
@@ -1762,33 +1773,33 @@ export const SupabaseAPI = {
       .select('billno, id')
       .order('id', { ascending: false })
       .limit(1);
-    
+
     if (error) throw error;
-    
+
     // If no data found, initialize the billno table with starting number
     if (!data || data.length === 0) {
       console.log('📋 No bill number found, initializing billno table...');
-      
+
       // Get the highest bill number from orders table as fallback
       const highestBillNumber = await this.getHighestBillNumber();
       const startingBillNumber = Math.max(highestBillNumber + 1, 1);
-      
+
       console.log(`🔢 Initializing with bill number: ${startingBillNumber}`);
-      
+
       const { data: newData, error: insertError } = await supabase
         .from('billno')
         .insert({ billno: startingBillNumber })
         .select()
         .single();
-      
+
       if (insertError) {
         console.error('❌ Failed to initialize billno table:', insertError);
         throw insertError;
       }
-      
+
       return newData; // { billno, id }
     }
-    
+
     return data[0]; // { billno, id }
   },
 
@@ -1808,11 +1819,11 @@ export const SupabaseAPI = {
         .select('*')
         .eq('phone_number', mobileNumber)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
         throw error;
       }
-      
+
       return data; // Will be null if no measurements found
     } catch (error) {
       console.error('Error fetching measurements by mobile number:', error);
@@ -1830,11 +1841,11 @@ export const SupabaseAPI = {
         .order('billnumberinput2', { ascending: false })
         .limit(1)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
         throw error;
       }
-      
+
       return data ? Number(data.billnumberinput2) : 0;
     } catch (error) {
       console.error('Error getting highest bill number:', error);
@@ -1847,21 +1858,21 @@ export const SupabaseAPI = {
     try {
       const fileExt = file.name?.split('.').pop() || 'jpg'
       const uploadFileName = fileName || `suit-icon-${Date.now()}.${fileExt}`
-      
+
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(uploadFileName, file, {
           cacheControl: '3600',
           upsert: true
         })
-      
+
       if (error) throw error
-      
+
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl(uploadFileName)
-      
+
       return {
         path: data.path,
         publicUrl: publicUrlData.publicUrl
@@ -1877,11 +1888,11 @@ export const SupabaseAPI = {
       // For React Native/Node.js environments
       const fs = require('fs')
       const path = require('path')
-      
+
       const imageBuffer = fs.readFileSync(imagePath)
       const fileExt = path.extname(imagePath).slice(1) || 'jpg'
       const uploadFileName = fileName || `suit-icon-${Date.now()}.${fileExt}`
-      
+
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(uploadFileName, imageBuffer, {
@@ -1889,14 +1900,14 @@ export const SupabaseAPI = {
           cacheControl: '3600',
           upsert: true
         })
-      
+
       if (error) throw error
-      
+
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl(uploadFileName)
-      
+
       return {
         path: data.path,
         publicUrl: publicUrlData.publicUrl
@@ -1912,7 +1923,7 @@ export const SupabaseAPI = {
       const { data } = supabase.storage
         .from(bucketName)
         .getPublicUrl(fileName)
-      
+
       return data.publicUrl
     } catch (error) {
       console.error('Error getting suit icon URL:', error)
@@ -1924,9 +1935,9 @@ export const SupabaseAPI = {
     try {
       const { data, error } = await supabase.storage
         .listBuckets()
-      
+
       if (error) throw error
-      
+
       return data.some(bucket => bucket.name === bucketName)
     } catch (error) {
       console.error('Error checking bucket existence:', error)
@@ -1942,7 +1953,7 @@ export const SupabaseAPI = {
           allowedMimeTypes: ['image/*'],
           fileSizeLimit: 5242880 // 5MB
         })
-      
+
       if (error) throw error
       return data
     } catch (error) {
