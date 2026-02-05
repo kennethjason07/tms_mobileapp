@@ -16,7 +16,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { supabase } from './supabase';
+import { supabase, SupabaseAPI } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
 import WebScrollView from './components/WebScrollView';
 
@@ -153,93 +153,66 @@ export default function TodayProfitScreen({ navigation }) {
 
       console.log(`🎯 TodayProfitScreen: Loading data for ${isRange ? 'range' : 'date'}: ${start} ${isRange ? 'to ' + end : ''}`);
 
-      const dateList = [];
-      if (isRange) {
-        const d = new Date(start);
-        const e = new Date(end);
-        while (d <= e) {
-          dateList.push(formatISTDate(new Date(d)));
-          d.setDate(d.getDate() + 1);
-        }
-      } else {
-        dateList.push(start);
-      }
+      // We use SupabaseAPI for the calculations now
+      const profitData = await SupabaseAPI.calculateProfit(start);
+      const revenueDetails = await SupabaseAPI.getRevenueDetails(start);
+      
+      // Fetch expenses (Worker expenses are already in calculateProfit but we need details)
+      const expenseDetails = await fetchShopExpenses(start);
+      const workerExpenseDetails = await fetchWorkerExpenses(start);
 
-      // Fetch all data for the date list
-      const advancePromises = dateList.map(d => fetchAdvancePayments(d));
-      const remainingPromises = dateList.map(d => fetchRemainingPayments(d));
-      const expensePromises = dateList.map(d => fetchShopExpenses(d));
-      const workerExpensePromises = dateList.map(d => fetchWorkerExpenses(d));
+      // Separate revenue records into advance and final for the UI
+      const advanceDetails = revenueDetails
+        .filter(r => r.payment_type === 'advance')
+        .map(r => ({
+          id: r.order_id,
+          orderNumber: r.order_id,
+          customerName: r.customer_name || 'Customer',
+          mobile: 'N/A', // We might need to fetch this if critical, but using r.customer_name for now
+          amount: parseFloat(r.amount) || 0,
+          totalAmount: parseFloat(r.total_bill_amount) || 0,
+          description: `Advance payment`,
+          date: r.payment_date
+        }));
 
-      const [allAdvances, allRemainings, allExpenses, allWorkerExpenses] = await Promise.all([
-        Promise.all(advancePromises).then(results => results.flat()),
-        Promise.all(remainingPromises).then(results => results.flat()),
-        Promise.all(expensePromises).then(results => results.flat()),
-        Promise.all(workerExpensePromises).then(results => results.flat())
-      ]);
-
-      // Calculate totals
-      const totalAdvance = allAdvances.reduce((sum, item) => sum + item.amount, 0);
-      const totalRemaining = allRemainings.reduce((sum, item) => sum + item.amount, 0);
-      const totalShopExpenses = allExpenses.reduce((sum, item) => sum + item.amount, 0);
-      const totalWorkerExpenses = allWorkerExpenses.reduce((sum, item) => sum + item.amount, 0);
-      const totalExpenses = totalShopExpenses + totalWorkerExpenses;
-      const totalRevenue = totalAdvance + totalRemaining;
-      const netProfit = totalRevenue - totalExpenses;
+      const remainingDetails = revenueDetails
+        .filter(r => r.payment_type === 'final')
+        .map(r => ({
+          id: r.order_id,
+          customerName: r.customer_name || 'Customer',
+          mobile: 'N/A',
+          amount: parseFloat(r.amount) || 0,
+          totalAmount: parseFloat(r.total_bill_amount) || 0,
+          advanceAmount: parseFloat(r.advance_payment_amount) || 0,
+          description: `Final payment`,
+          date: r.payment_date
+        }));
 
       setTodayData({
         date: isRange ? `${start} to ${end}` : start,
-        advancePayments: totalAdvance,
-        remainingPayments: totalRemaining,
-        totalRevenue,
-        shopExpenses: totalShopExpenses,
-        workerExpenses: totalWorkerExpenses,
-        totalExpenses,
-        netProfit,
-        advanceCount: allAdvances.length,
-        remainingCount: allRemainings.length,
-        expenseCount: allExpenses.length,
-        workerExpenseCount: allWorkerExpenses.length,
-        advanceDetails: allAdvances,
-        remainingDetails: allRemainings,
-        expenseDetails: allExpenses,
-        workerExpenseDetails: allWorkerExpenses,
+        advancePayments: profitData.revenue_breakdown?.advance_payments || 0,
+        remainingPayments: profitData.revenue_breakdown?.final_payments || profitData.revenue_breakdown?.paid_orders || 0,
+        totalRevenue: profitData.total_revenue,
+        shopExpenses: profitData.daily_expenses,
+        workerExpenses: profitData.worker_expenses,
+        totalExpenses: profitData.daily_expenses + profitData.worker_expenses,
+        netProfit: profitData.net_profit,
+        advanceCount: advanceDetails.length,
+        remainingCount: remainingDetails.length,
+        expenseCount: expenseDetails.length,
+        workerExpenseCount: workerExpenseDetails.length,
+        advanceDetails: advanceDetails,
+        remainingDetails: remainingDetails,
+        expenseDetails: expenseDetails,
+        workerExpenseDetails: workerExpenseDetails,
       });
 
-      console.log('📊 Today\'s Profit Summary (Bills-based):', {
-        date: today,
-        advancePayments: totalAdvance + ' (from bills.payment_amount)',
-        remainingPayments: totalRemaining + ' (from paid orders)',
-        totalRevenue,
-        shopExpenses: totalExpenses,
-        netProfit
+      console.log('📊 Today\'s Profit Summary (Two-Stage Tracking):', {
+        date: start,
+        totalRevenue: profitData.total_revenue,
+        netProfit: profitData.net_profit,
+        method: profitData.method
       });
-
-      console.log('💵 ADVANCE PAYMENTS DETAIL:');
-      console.log('   - Data source: orders table payment_amount field');
-      console.log('   - Count:', advanceData.length);
-      console.log('   - Total amount:', totalAdvance);
-      console.log('   - Orders found:', advanceData.map(a => `Order ${a.orderNumber}: ₹${a.amount}`).join(', '));
-
-      console.log('💰 REMAINING PAYMENTS DETAIL:');
-      console.log('   - Data source: orders with payment_status="paid" updated today');
-      console.log('   - Count:', remainingData.length);
-      console.log('   - Total amount:', totalRemaining);
-
-      console.log('🏢 SHOP EXPENSES DETAIL:');
-      console.log('   - Count:', expenseData.length);
-      console.log('   - Total amount:', totalShopExpenses);
-
-      console.log('👷 WORKER EXPENSES DETAIL:');
-      console.log('   - Data source: Worker_Expense table');
-      console.log('   - Count:', workerExpenseData.length);
-      console.log('   - Total amount:', totalWorkerExpenses);
-      console.log('   - Workers paid:', workerExpenseData.map(w => `${w.workerName}: ₹${w.amount}`).join(', '));
-
-      console.log('💰 TOTAL EXPENSES BREAKDOWN:');
-      console.log('   - Shop expenses: ₹' + totalShopExpenses);
-      console.log('   - Worker expenses: ₹' + totalWorkerExpenses);
-      console.log('   - Total expenses: ₹' + totalExpenses);
 
     } catch (error) {
       console.error('Error loading today\'s profit data:', error);

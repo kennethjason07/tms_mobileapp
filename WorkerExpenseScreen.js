@@ -38,6 +38,7 @@ export default function WorkerExpenseScreen({ navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [editExpenseModalVisible, setEditExpenseModalVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [expandedWorkers, setExpandedWorkers] = useState({});
 
   useEffect(() => {
     loadData();
@@ -57,7 +58,6 @@ export default function WorkerExpenseScreen({ navigation }) {
       
       setExpenses(expensesData);
       setWorkers(workersData);
-      setFilteredExpenses(expensesData);
     } catch (error) {
       Alert.alert('Error', `Failed to load data: ${error.message}`);
     } finally {
@@ -65,21 +65,57 @@ export default function WorkerExpenseScreen({ navigation }) {
     }
   };
 
-  const filterExpenses = () => {
-    if (!searchQuery.trim()) {
-      setFilteredExpenses(expenses);
-      return;
-    }
-
-    const filtered = expenses.filter(expense => {
-      const worker = workers.find(w => w.id === expense.worker_id);
-      return (
-        expense.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        worker?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        expense.date?.includes(searchQuery)
-      );
+  const groupExpensesByWorker = (expenseList) => {
+    const grouped = {};
+    expenseList.forEach(expense => {
+      const workerId = expense.worker_id;
+      if (!grouped[workerId]) {
+        grouped[workerId] = {
+          workerId: workerId,
+          workerName: getWorkerName(workerId),
+          totalAmount: 0,
+          expenseRecords: [],
+        };
+      }
+      grouped[workerId].totalAmount += parseFloat(expense.Amt_Paid) || 0;
+      grouped[workerId].expenseRecords.push(expense);
     });
-    setFilteredExpenses(filtered);
+    
+    // Sort groups by worker name
+    const sortedGroups = Object.values(grouped).sort((a, b) => 
+      a.workerName.localeCompare(b.workerName)
+    );
+
+    // Sort records within each worker group by date (newest first)
+    sortedGroups.forEach(group => {
+      group.expenseRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+    });
+
+    return sortedGroups;
+  };
+
+  const filterExpenses = () => {
+    let baseFiltered = expenses;
+    if (searchQuery.trim()) {
+      baseFiltered = expenses.filter(expense => {
+        const worker = workers.find(w => w.id === expense.worker_id);
+        return (
+          expense.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          worker?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          expense.date?.includes(searchQuery)
+        );
+      });
+    }
+    
+    const grouped = groupExpensesByWorker(baseFiltered);
+    setFilteredExpenses(grouped);
+  };
+
+  const toggleWorkerExpansion = (workerId) => {
+    setExpandedWorkers(prev => ({
+      ...prev,
+      [workerId]: !prev[workerId]
+    }));
   };
 
   const handleAddExpense = async () => {
@@ -193,40 +229,57 @@ export default function WorkerExpenseScreen({ navigation }) {
   };
 
   const renderExpense = ({ item }) => {
-    const workerName = getWorkerName(item.worker_id);
+    const isExpanded = expandedWorkers[item.workerId];
     
     return (
-      <View style={styles.expenseCard}>
-        <View style={styles.expenseHeader}>
-          <Text style={styles.expenseDate}>
-            {formatDate(item.date)}
-          </Text>
-          <Text style={styles.expenseAmount}>₹{item.Amt_Paid}</Text>
-         <TouchableOpacity
-           style={{ marginLeft: 8, backgroundColor: '#2980b9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}
-           onPress={() => handleEditExpense(item)}
-           disabled={loading}
-         >
-           <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Edit</Text>
-         </TouchableOpacity>
-        </View>
-
-        <View style={styles.expenseDetails}>
-          <View style={styles.expenseRow}>
-            <Text style={styles.expenseLabel}>Worker:</Text>
-            <Text style={styles.expenseValue}>{workerName}</Text>
+      <View style={styles.workerCard}>
+        <TouchableOpacity 
+          style={styles.workerCardHeader}
+          onPress={() => toggleWorkerExpansion(item.workerId)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.workerInfoMain}>
+            <View style={styles.workerAvatar}>
+              <Text style={styles.avatarText}>{item.workerName.charAt(0).toUpperCase()}</Text>
+            </View>
+            <View>
+              <Text style={styles.workerCardName}>{item.workerName}</Text>
+              <Text style={styles.workerCardId}>ID: #{item.workerId}</Text>
+            </View>
           </View>
-
-          <View style={styles.expenseRow}>
-            <Text style={styles.expenseLabel}>Description:</Text>
-            <Text style={styles.expenseValue}>{item.name}</Text>
+          <View style={styles.workerAmountContainer}>
+            <Text style={styles.totalAmountLabel}>Total Paid</Text>
+            <Text style={styles.totalAmountValue}>₹{item.totalAmount.toLocaleString()}</Text>
           </View>
+          <Ionicons 
+            name={isExpanded ? "chevron-up" : "chevron-down"} 
+            size={24} 
+            color="#7f8c8d" 
+          />
+        </TouchableOpacity>
 
-          <View style={styles.expenseRow}>
-            <Text style={styles.expenseLabel}>Worker ID:</Text>
-            <Text style={styles.expenseValue}>#{item.worker_id}</Text>
+        {isExpanded && (
+          <View style={styles.historyContainer}>
+            <Text style={styles.historyTitle}>Payment History</Text>
+            {item.expenseRecords.map((record, index) => (
+              <View key={record.id || index} style={styles.historyItem}>
+                <View style={styles.historyItemLeft}>
+                  <Text style={styles.historyDate}>{formatDate(record.date)}</Text>
+                  <Text style={styles.historyName}>{record.name}</Text>
+                </View>
+                <View style={styles.historyItemRight}>
+                  <Text style={styles.historyAmount}>₹{record.Amt_Paid}</Text>
+                  <TouchableOpacity
+                    style={styles.miniEditButton}
+                    onPress={() => handleEditExpense(record)}
+                  >
+                    <Ionicons name="create-outline" size={18} color="#2980b9" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
           </View>
-        </View>
+        )}
       </View>
     );
   };
@@ -325,7 +378,7 @@ export default function WorkerExpenseScreen({ navigation }) {
           <FlatList
             data={filteredExpenses}
             renderItem={renderExpense}
-            keyExtractor={(item, index) => `${item?.id || 'no-id'}-${index}`}
+            keyExtractor={(item) => `worker-${item.workerId}`}
             contentContainerStyle={styles.listContainer}
             refreshing={loading}
             onRefresh={loadData}
@@ -814,6 +867,112 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2c3e50',
     fontWeight: '500',
+  },
+  workerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginBottom: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    overflow: 'hidden',
+  },
+  workerCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  workerInfoMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  workerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#3498db',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  workerCardName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  workerCardId: {
+    fontSize: 12,
+    color: '#7f8c8d',
+  },
+  workerAmountContainer: {
+    alignItems: 'flex-end',
+    marginRight: 12,
+  },
+  totalAmountLabel: {
+    fontSize: 10,
+    color: '#7f8c8d',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  totalAmountValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#27ae60',
+  },
+  historyContainer: {
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#7f8c8d',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  historyItemLeft: {
+    flex: 1,
+  },
+  historyDate: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  historyName: {
+    fontSize: 12,
+    color: '#7f8c8d',
+  },
+  historyItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyAmount: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+    marginRight: 12,
+  },
+  miniEditButton: {
+    padding: 4,
   },
   modalOverlay: {
     flex: 1,
