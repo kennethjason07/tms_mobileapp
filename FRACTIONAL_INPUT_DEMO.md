@@ -172,7 +172,7 @@ All measurements are stored as decimal numbers in the database:
 - ✅ Cuff: `FractionalInput` (text mode)
 - ✅ Pocket: `FractionalInput` (text mode)
 - ✅ Loose Style: `FractionalInput` (text mode)
-- ✅ DT/TT: `FractionalInput` (text mode)
+- ✅ Strip: `Picker` (ST/TT)
 
 ### **Text-Only Fields**
 - Extra Measurements: Regular TextInput (multiline)

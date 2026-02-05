@@ -19,7 +19,7 @@ class MeasurementCardGenerator {
                     { key: "Ghutna", label: "Ghutna", position: "middle-center" },
                     { key: "Bottom", label: "Bottom", position: "middle-right" },
                     { key: "seat", label: "Seat", position: "bottom-left" },
-                    { key: "SideP_Cross", label: "SideP/Cross", position: "labeled-box-1" },
+                    { key: "SideP_Cross", label: "Pocket", position: "labeled-box-1" },
                     { key: "Plates", label: "Plates", position: "labeled-box-2" },
                     { key: "Belt", label: "Belt", position: "labeled-box-3" },
                     { key: "Back_P", label: "Back P.", position: "labeled-box-4" },
@@ -40,7 +40,7 @@ class MeasurementCardGenerator {
                     { key: "Cuff", label: "Cuff", position: "labeled-box-2" },
                     { key: "Pkt", label: "Pkt", position: "labeled-box-3" },
                     { key: "LooseShirt", label: "Loose", position: "labeled-box-4" },
-                    { key: "DT_TT", label: "DT/TT", position: "labeled-box-5" }
+                    { key: "DT_TT", label: "Strip", position: "labeled-box-5" }
                 ]
             }
         };
@@ -335,14 +335,14 @@ class MeasurementCardGenerator {
         if (!cardConfig) return '';
 
         // Get main grid fields (positions: top-left, top-center, etc.)
-        const gridFields = cardConfig.fields.filter(field => 
-            field.position.includes('top-') || 
-            field.position.includes('middle-') || 
+        const gridFields = cardConfig.fields.filter(field =>
+            field.position.includes('top-') ||
+            field.position.includes('middle-') ||
             field.position.includes('bottom-')
         );
 
         // Get labeled box fields
-        const labeledFields = cardConfig.fields.filter(field => 
+        const labeledFields = cardConfig.fields.filter(field =>
             field.position.includes('labeled-box-')
         );
 
@@ -415,7 +415,7 @@ class MeasurementCardGenerator {
     // Generate extra measurements section
     generateExtraMeasurements(measurements) {
         const extraValue = measurements.extra_measurements || '';
-        
+
         return `
             <div class="extra-measurements">
                 <h4>Additional Notes / Extra Measurements:</h4>
@@ -428,30 +428,30 @@ class MeasurementCardGenerator {
     async generateMeasurementPDF(billData, measurements) {
         try {
             console.log('Starting traditional measurement card PDF generation...');
-            
+
             // Generate HTML content
             const measurementHTML = this.generateMeasurementHTML(billData, measurements);
-            
+
             // Create a temporary container for PDF generation
             const tempContainer = this.createTempContainer(measurementHTML);
-            
+
             // Wait for the DOM to render the content
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             console.log('Temporary container created and rendered');
-            
+
             // Generate PDF from HTML
             const pdfBlob = await this.htmlToPDF(tempContainer);
-            
+
             // Clean up temporary container
             tempContainer.remove();
-            
+
             // Download the PDF
             this.downloadPDF(pdfBlob, `Measurements_${billData.customerName || 'Customer'}_${Date.now()}.pdf`);
-            
+
             console.log('Measurement card PDF generated successfully');
             return true;
-            
+
         } catch (error) {
             console.error('Error generating measurement card PDF:', error);
             alert(`Failed to generate measurement PDF: ${error.message}`);
@@ -472,10 +472,10 @@ class MeasurementCardGenerator {
         tempDiv.style.margin = '0';
         tempDiv.innerHTML = htmlContent;
         document.body.appendChild(tempDiv);
-        
+
         console.log('Temporary measurement card container created');
         console.log('Container dimensions:', tempDiv.offsetWidth, 'x', tempDiv.offsetHeight);
-        
+
         return tempDiv;
     }
 
@@ -483,7 +483,7 @@ class MeasurementCardGenerator {
     async htmlToPDF(element) {
         try {
             console.log('Starting measurement card PDF conversion...');
-            
+
             // Configure html2canvas options
             const canvasOptions = {
                 scale: 2,
@@ -497,20 +497,20 @@ class MeasurementCardGenerator {
 
             console.log('Generating canvas...');
             const canvas = await html2canvas(element, canvasOptions);
-            
+
             console.log('Canvas generated successfully');
             console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
-            
+
             // Create jsPDF instance for A4
             const { jsPDF } = window.jsPDF;
             const pdf = new jsPDF('p', 'mm', 'a4');
-            
+
             // Calculate dimensions to fit A4 page
             const pdfWidth = 190; // A4 width minus margins
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            
+
             console.log('PDF dimensions:', pdfWidth, 'x', pdfHeight);
-            
+
             // Add image to PDF
             const imgData = canvas.toDataURL('image/png', 0.95);
             pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
@@ -531,13 +531,13 @@ class MeasurementCardGenerator {
             const link = document.createElement('a');
             link.href = url;
             link.download = filename;
-            
+
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             URL.revokeObjectURL(url);
-            
+
             console.log(`Measurement PDF downloaded: ${filename}`);
         } catch (error) {
             console.error('Error downloading measurement PDF:', error);
@@ -561,7 +561,7 @@ class MeasurementCardGenerator {
             Belt: document.getElementById("Belt")?.value || '',
             Back_P: document.getElementById("Back_P")?.value || '',
             WP: document.getElementById("WP")?.value || '',
-            
+
             // Shirt measurements
             shirtlength: document.getElementById("shirtlength")?.value || '',
             body: document.getElementById("body")?.value || '',
@@ -575,7 +575,7 @@ class MeasurementCardGenerator {
             Pkt: document.getElementById("Pkt")?.value || '',
             LooseShirt: document.getElementById("LooseShirt")?.value || '',
             DT_TT: document.getElementById("DT_TT")?.value || '',
-            
+
             // Extra measurements
             extra_measurements: document.getElementById("extra-input")?.value || ''
         };

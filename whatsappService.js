@@ -16,7 +16,7 @@ export const WhatsAppService = {
     try {
       // Format phone number to international format (add country code if needed)
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
-      
+
       const response = await fetch(WhatsAppConfigState.apiUrl, {
         method: 'POST',
         headers: {
@@ -34,7 +34,7 @@ export const WhatsAppService = {
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
         console.error('WhatsApp API Error:', result);
         throw new Error(`WhatsApp API Error: ${result.error?.message || 'Unknown error'}`);
@@ -74,13 +74,13 @@ Yak's Men's Wear`;
     try {
       // Filter orders for this bill
       const billOrders = orders.filter(order => order.bill_id === billId);
-      
+
       if (billOrders.length === 0) {
         return false;
       }
 
       // Check if all orders are completed
-      const allCompleted = billOrders.every(order => 
+      const allCompleted = billOrders.every(order =>
         order.status?.toLowerCase() === 'completed'
       );
 
@@ -155,7 +155,7 @@ Yak's Men's Wear`;
       'Cuff': measurements.Cuff,
       'Pocket': measurements.Pkt,
       'Loose Shirt': measurements.LooseShirt,
-      'DT/TT': measurements.DT_TT
+      'Strip': measurements.DT_TT
     };
 
     const shirtItems = Object.entries(shirtMeasurements)
@@ -181,7 +181,7 @@ Yak's Men's Wear`;
   // Generate worker assignment message with measurements
   generateWorkerAssignmentMessage(customerName, billNumber, garmentType, measurements) {
     const measurementsText = this.formatMeasurementsForWhatsApp(measurements);
-    
+
     const message = `🎯 *New Work Assignment*
 
 Hi! You have been assigned a new order:
@@ -212,12 +212,12 @@ export const WhatsAppRedirectService = {
 
       // Format phone number to remove any non-digits and add country code if needed
       let formattedPhone = phoneNumber.replace(/\D/g, ''); // Remove all non-digits
-      
+
       // Validate phone number length and format
       if (formattedPhone.length < 10) {
         return { success: false, message: 'Invalid phone number format' };
       }
-      
+
       // Add country code if not present (assuming India +91)
       if (formattedPhone.length === 10 && /^[6-9]/.test(formattedPhone)) {
         formattedPhone = '91' + formattedPhone;
@@ -230,20 +230,20 @@ export const WhatsAppRedirectService = {
       } else {
         return { success: false, message: 'Invalid phone number format for WhatsApp' };
       }
-      
+
       // Validate message
       if (!message || message.trim() === '') {
         return { success: false, message: 'No message content to send' };
       }
-      
+
       // Function to actually open WhatsApp
       const openWhatsApp = () => {
         // Encode the message for URL
         const encodedMessage = encodeURIComponent(message);
-        
+
         // Create WhatsApp URL with pre-filled message
         const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
-        
+
         // Check if we're in a web environment or React Native
         if (typeof window !== 'undefined' && typeof window.open === 'function') {
           // Web environment - open in new window
@@ -258,7 +258,7 @@ export const WhatsAppRedirectService = {
           // React Native environment - use Linking
           try {
             const { Linking } = require('react-native');
-            
+
             // For React Native, we'll use a simpler approach and handle errors
             Linking.openURL(whatsappUrl)
               .then(() => {
@@ -268,7 +268,7 @@ export const WhatsAppRedirectService = {
                 console.error('Failed to open WhatsApp:', err);
                 // Don't throw here as it's async
               });
-              
+
             // Return success immediately for React Native as we can't wait for the async result
             return { success: true, message: 'WhatsApp opened successfully' };
           } catch (linkingError) {
@@ -277,12 +277,12 @@ export const WhatsAppRedirectService = {
           }
         }
       };
-      
+
       // If no confirmation needed, open directly
       if (!showConfirmation) {
         return openWhatsApp();
       }
-      
+
       // Show confirmation popup (this needs to be handled by the caller)
       // Return a special response that indicates confirmation is needed
       return {
@@ -293,7 +293,7 @@ export const WhatsAppRedirectService = {
         messageContent: message,
         openWhatsApp: openWhatsApp // Function to call if user confirms
       };
-      
+
     } catch (error) {
       console.error('Error preparing WhatsApp:', error);
       return { success: false, message: `Error preparing WhatsApp: ${error.message}` };
@@ -304,11 +304,11 @@ export const WhatsAppRedirectService = {
   generateWhatsAppUrl(phoneNumber, message) {
     try {
       let formattedPhone = phoneNumber.replace(/\D/g, '');
-      
+
       if (formattedPhone.length === 10 && formattedPhone.startsWith('9')) {
         formattedPhone = '91' + formattedPhone;
       }
-      
+
       const encodedMessage = encodeURIComponent(message);
       return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
     } catch (error) {

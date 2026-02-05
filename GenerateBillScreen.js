@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import WebScrollView from './components/WebScrollView';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { SupabaseAPI } from './supabase';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -453,15 +454,9 @@ export default function GenerateBillScreen({ navigation }) {
     extra_measurements: '',
     suit_length: 0,
     suit_body: '',
-    suit_loose: '',
     suit_shoulder: 0,
     suit_astin: 0,
     suit_collar: 0,
-    suit_aloose: 0,
-    suit_callar: '',
-    suit_cuff: '',
-    suit_pkt: '',
-    suit_looseshirt: '',
     suit_dt_tt: '',
   });
   const [itemizedBill, setItemizedBill] = useState({
@@ -828,15 +823,9 @@ export default function GenerateBillScreen({ navigation }) {
       extra_measurements: '',
       suit_length: 0,
       suit_body: '',
-      suit_loose: '',
       suit_shoulder: 0,
       suit_astin: 0,
       suit_collar: 0,
-      suit_aloose: 0,
-      suit_callar: '',
-      suit_cuff: '',
-      suit_pkt: '',
-      suit_looseshirt: '',
       suit_dt_tt: '',
       // Safari/Jacket measurements
       safari_length: 0,
@@ -867,15 +856,9 @@ export default function GenerateBillScreen({ navigation }) {
       // Sadri measurements
       sadri_length: 0,
       sadri_body: '',
-      sadri_loose: '',
       sadri_shoulder: 0,
       sadri_astin: 0,
       sadri_collar: 0,
-      sadri_aloose: 0,
-      sadri_callar: '',
-      sadri_cuff: '',
-      sadri_pkt: '',
-      sadri_looseshirt: '',
       sadri_dt_tt: '',
     });
     setItemizedBill({
@@ -1064,10 +1047,13 @@ export default function GenerateBillScreen({ navigation }) {
 
           if (selection === 'pant') {
             include = lowerKey.includes('pant') || ['sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(lowerKey);
+          } else if (selection === 'shirt_only') {
+            include = (lowerKey.includes('shirt') && !lowerKey.includes('nshirt')) ||
+              ['callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt', 'collar', 'collor'].includes(lowerKey);
           } else if (selection === 'shirt') {
             // Per user request: Print Shirt should include both Shirt and Pant
             include = (lowerKey.includes('shirt') && !lowerKey.includes('nshirt')) ||
-              ['callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt'].includes(lowerKey) ||
+              ['callar', 'cuff', 'pkt', 'looseshirt', 'dt_tt', 'collar', 'collor'].includes(lowerKey) ||
               lowerKey.includes('pant') ||
               ['sidep_cross', 'plates', 'belt', 'back_p', 'wp'].includes(lowerKey);
           } else if (selection === 'suit') {
@@ -1627,15 +1613,6 @@ export default function GenerateBillScreen({ navigation }) {
                       />
                     </View>
                     <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Loose:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.suit_loose}
-                        onChangeText={(text) => setMeasurements({ ...measurements, suit_loose: text })}
-                        placeholder="Loose"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
                       <Text style={dynamicStyles.measurementLabel}>Shoulder:</Text>
                       <TextInput
                         style={dynamicStyles.measurementTextInput}
@@ -1656,16 +1633,6 @@ export default function GenerateBillScreen({ navigation }) {
                       />
                     </View>
                     <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Aloose:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.suit_aloose.toString()}
-                        onChangeText={(text) => setMeasurements({ ...measurements, suit_aloose: parseFloat(text) || 0 })}
-                        placeholder="Aloose"
-                        keyboardType="numeric"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
                       <Text style={dynamicStyles.measurementLabel}>Collar:</Text>
                       <TextInput
                         style={dynamicStyles.measurementTextInput}
@@ -1676,49 +1643,18 @@ export default function GenerateBillScreen({ navigation }) {
                       />
                     </View>
                     <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Collar (Detail):</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.suit_callar}
-                        onChangeText={(text) => setMeasurements({ ...measurements, suit_callar: text })}
-                        placeholder="Collar Detail"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Cuff:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.suit_cuff}
-                        onChangeText={(text) => setMeasurements({ ...measurements, suit_cuff: text })}
-                        placeholder="Cuff"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Pkt:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.suit_pkt}
-                        onChangeText={(text) => setMeasurements({ ...measurements, suit_pkt: text })}
-                        placeholder="Pkt"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Loose Shirt:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.suit_looseshirt}
-                        onChangeText={(text) => setMeasurements({ ...measurements, suit_looseshirt: text })}
-                        placeholder="Loose Shirt"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>DT/TT:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.suit_dt_tt}
-                        onChangeText={(text) => setMeasurements({ ...measurements, suit_dt_tt: text })}
-                        placeholder="DT/TT"
-                      />
+                      <Text style={dynamicStyles.measurementLabel}>Strip:</Text>
+                      <View style={[dynamicStyles.pickerContainer, { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ddd' }]}>
+                        <Picker
+                          selectedValue={measurements.suit_dt_tt}
+                          onValueChange={(value) => setMeasurements({ ...measurements, suit_dt_tt: value })}
+                          style={Platform.OS === 'web' ? { width: '100%', height: 44, border: 'none', outline: 'none' } : { width: '100%', height: 44 }}
+                        >
+                          <Picker.Item label="Select Strip" value="" />
+                          <Picker.Item label="ST" value="ST" />
+                          <Picker.Item label="TT" value="TT" />
+                        </Picker>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -1829,13 +1765,18 @@ export default function GenerateBillScreen({ navigation }) {
                       />
                     </View>
                     <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>DT/TT:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.safari_dt_tt || ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, safari_dt_tt: text })}
-                        placeholder="DT/TT"
-                      />
+                      <Text style={dynamicStyles.measurementLabel}>Strip:</Text>
+                      <View style={[dynamicStyles.pickerContainer, { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ddd' }]}>
+                        <Picker
+                          selectedValue={measurements.safari_dt_tt}
+                          onValueChange={(value) => setMeasurements({ ...measurements, safari_dt_tt: value })}
+                          style={Platform.OS === 'web' ? { width: '100%', height: 44, border: 'none', outline: 'none' } : { width: '100%', height: 44 }}
+                        >
+                          <Picker.Item label="Select Strip" value="" />
+                          <Picker.Item label="ST" value="ST" />
+                          <Picker.Item label="TT" value="TT" />
+                        </Picker>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -1946,13 +1887,18 @@ export default function GenerateBillScreen({ navigation }) {
                       />
                     </View>
                     <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>DT/TT:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.nshirt_dt_tt || ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, nshirt_dt_tt: text })}
-                        placeholder="DT/TT"
-                      />
+                      <Text style={dynamicStyles.measurementLabel}>Strip:</Text>
+                      <View style={[dynamicStyles.pickerContainer, { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ddd' }]}>
+                        <Picker
+                          selectedValue={measurements.nshirt_dt_tt}
+                          onValueChange={(value) => setMeasurements({ ...measurements, nshirt_dt_tt: value })}
+                          style={Platform.OS === 'web' ? { width: '100%', height: 44, border: 'none', outline: 'none' } : { width: '100%', height: 44 }}
+                        >
+                          <Picker.Item label="Select Strip" value="" />
+                          <Picker.Item label="ST" value="ST" />
+                          <Picker.Item label="TT" value="TT" />
+                        </Picker>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -1982,15 +1928,6 @@ export default function GenerateBillScreen({ navigation }) {
                       />
                     </View>
                     <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Loose:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.sadri_loose || ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_loose: text })}
-                        placeholder="Loose"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
                       <Text style={dynamicStyles.measurementLabel}>Shoulder:</Text>
                       <TextInput
                         style={dynamicStyles.measurementTextInput}
@@ -2009,15 +1946,6 @@ export default function GenerateBillScreen({ navigation }) {
                       />
                     </View>
                     <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Aloose:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.sadri_aloose ? measurements.sadri_aloose.toString() : ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_aloose: text })}
-                        placeholder="Aloose"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
                       <Text style={dynamicStyles.measurementLabel}>Collar:</Text>
                       <TextInput
                         style={dynamicStyles.measurementTextInput}
@@ -2027,49 +1955,18 @@ export default function GenerateBillScreen({ navigation }) {
                       />
                     </View>
                     <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Collar (Detail):</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.sadri_callar || ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_callar: text })}
-                        placeholder="Collar Detail"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Cuff:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.sadri_cuff || ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_cuff: text })}
-                        placeholder="Cuff"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Pkt:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.sadri_pkt || ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_pkt: text })}
-                        placeholder="Pkt"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>Loose Shirt:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.sadri_looseshirt || ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_looseshirt: text })}
-                        placeholder="Loose Shirt"
-                      />
-                    </View>
-                    <View style={dynamicStyles.measurementInput}>
-                      <Text style={dynamicStyles.measurementLabel}>DT/TT:</Text>
-                      <TextInput
-                        style={dynamicStyles.measurementTextInput}
-                        value={measurements.sadri_dt_tt || ''}
-                        onChangeText={(text) => setMeasurements({ ...measurements, sadri_dt_tt: text })}
-                        placeholder="DT/TT"
-                      />
+                      <Text style={dynamicStyles.measurementLabel}>Strip:</Text>
+                      <View style={[dynamicStyles.pickerContainer, { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ddd' }]}>
+                        <Picker
+                          selectedValue={measurements.sadri_dt_tt}
+                          onValueChange={(value) => setMeasurements({ ...measurements, sadri_dt_tt: value })}
+                          style={Platform.OS === 'web' ? { width: '100%', height: 44, border: 'none', outline: 'none' } : { width: '100%', height: 44 }}
+                        >
+                          <Picker.Item label="Select Strip" value="" />
+                          <Picker.Item label="ST" value="ST" />
+                          <Picker.Item label="TT" value="TT" />
+                        </Picker>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -2567,16 +2464,19 @@ export default function GenerateBillScreen({ navigation }) {
             </View>
           )}
         </ScrollView>
-      )}
+      )
+      }
 
-      {datePickerVisible && (
-        <DateTimePicker
-          value={activeDateField === 'order' ? selectedOrderDate : selectedDueDate}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
+      {
+        datePickerVisible && (
+          <DateTimePicker
+            value={activeDateField === 'order' ? selectedOrderDate : selectedDueDate}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+          />
+        )
+      }
 
       <Modal
         visible={measurementSelectionVisible}
@@ -2589,6 +2489,13 @@ export default function GenerateBillScreen({ navigation }) {
             <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#2c3e50' }}>
               Select Measurements to Print
             </Text>
+
+            <TouchableOpacity
+              style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
+              onPress={() => executePrintMeasurements('shirt_only')}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Print Shirt Only</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={{ backgroundColor: '#2980b9', padding: 15, borderRadius: 8, marginBottom: 10, width: '100%', alignItems: 'center' }}
@@ -2650,7 +2557,7 @@ export default function GenerateBillScreen({ navigation }) {
       </Modal>
 
       <SafeAreaView style={{ height: 32 }} />
-    </View>
+    </View >
   );
 }
 

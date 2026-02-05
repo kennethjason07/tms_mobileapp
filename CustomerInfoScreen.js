@@ -27,7 +27,7 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
     console.log('No orders to expand');
     return [];
   }
-  
+
   // Group orders by bill_id first
   const ordersByBill = {};
   orders.forEach(order => {
@@ -37,21 +37,21 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
     }
     ordersByBill[billId].push(order);
   });
-  
+
   const finalExpandedOrders = [];
-  
+
   // Process each bill group to create proper garment rows
   Object.entries(ordersByBill).forEach(([billId, billOrders]) => {
     // Get the first order to access bill data
     const firstOrder = billOrders[0];
     const bill = firstOrder.bills || {};
-    
+
     console.log('Processing bill', billId, 'with bill data:', bill);
-    
+
     // If we don't have proper bill data, try to create a simple expansion based on garment_type
     if (!bill || Object.keys(bill).length === 0) {
       console.log('No bill data found, using simple expansion for', billOrders.length, 'orders');
-      
+
       // Just add each order as-is without expansion
       billOrders.forEach((order, index) => {
         finalExpandedOrders.push({
@@ -65,7 +65,7 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
       });
       return;
     }
-    
+
     // Define garment types and their quantities from the bill
     const garmentTypes = [
       { type: 'Suit', qty: parseInt(bill.suit_qty) || 0 },
@@ -74,12 +74,12 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
       { type: 'Shirt', qty: parseInt(bill.shirt_qty) || 0 },
       { type: 'Sadri', qty: parseInt(bill.sadri_qty) || 0 }
     ];
-    
+
     console.log('Garment quantities:', garmentTypes);
-    
+
     // Check if we have any quantities
     const hasQuantities = garmentTypes.some(({ qty }) => qty > 0);
-    
+
     if (!hasQuantities) {
       console.log('No garment quantities found, using simple expansion');
       // Just add each order as-is
@@ -95,7 +95,7 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
       });
       return;
     }
-    
+
     // Create rows for each garment type based on quantities
     garmentTypes.forEach(({ type, qty }) => {
       if (qty > 0) {
@@ -115,7 +115,7 @@ const expandOrdersByGarmentAndQuantity = (orders) => {
       }
     });
   });
-  
+
   console.log('Final expanded orders:', finalExpandedOrders.length);
   return finalExpandedOrders;
 };
@@ -130,7 +130,7 @@ export default function CustomerInfoScreen({ navigation }) {
   // Transform old data format to new format
   const transformCustomerData = (rawData) => {
     console.log('🔧 Transforming data:', rawData);
-    
+
     if (!rawData) {
       console.log('❌ No raw data provided');
       return null;
@@ -145,7 +145,7 @@ export default function CustomerInfoScreen({ navigation }) {
     // Transform old format to new format
     const orderHistory = rawData.order_history || [];
     console.log('📜 Transforming', orderHistory.length, 'orders from order_history');
-    
+
     // Transform each order to match new field names
     const transformedOrders = orderHistory.map(order => {
       console.log('Transforming order:', order.id, 'garment_type:', order.garment_type);
@@ -175,23 +175,36 @@ export default function CustomerInfoScreen({ navigation }) {
       // Use bill_id as primary key, fallback to bill_number if necessary
       const billKey = order.bill_id || order.bill_number;
       if (billKey && !uniqueBillsMap.has(billKey)) {
-        uniqueBillsMap.set(billKey, parseFloat(order.total_amount) || 0);
+        const total = parseFloat(order.total_amount) || 0;
+        const advance = parseFloat(order.advance_amount) || 0;
+        const isPaid = (order.payment_status || '').toLowerCase() === 'paid';
+
+        uniqueBillsMap.set(billKey, {
+          total: total,
+          pending: isPaid ? 0 : Math.max(0, total - advance)
+        });
       }
     });
-    
-    const totalAmount = Array.from(uniqueBillsMap.values()).reduce((sum, amount) => sum + amount, 0);
+
+    let totalAmount = 0;
+    let totalPending = 0;
+    uniqueBillsMap.forEach(bill => {
+      totalAmount += bill.total;
+      totalPending += bill.pending;
+    });
     const uniqueBillNumbers = [...new Set(transformedOrders.map(order => order.bill_number).filter(Boolean))];
-    
+
     const result = {
       customer_orders: transformedOrders,
       metadata: {
         total_orders: transformedOrders.length,
         total_bills: uniqueBillNumbers.length,
         total_amount: totalAmount,
+        total_pending: totalPending,
         last_updated: new Date().toISOString()
       }
     };
-    
+
     console.log('✅ Transformation complete:', result);
     return result;
   };
@@ -207,11 +220,11 @@ export default function CustomerInfoScreen({ navigation }) {
       console.log('🔍 Searching for customer:', searchQuery);
       const rawCustomerData = await SupabaseAPI.getCustomerInfo(searchQuery);
       console.log('📦 Raw customer data received:', rawCustomerData);
-      
+
       // Transform the data to new format
       const customerData = transformCustomerData(rawCustomerData);
       console.log('🔄 Transformed customer data:', customerData);
-      
+
       if (customerData && customerData.customer_orders && customerData.customer_orders.length > 0) {
         console.log('📋 Found', customerData.customer_orders.length, 'orders to expand');
         // Expand orders by garment type and quantity
@@ -249,14 +262,10 @@ export default function CustomerInfoScreen({ navigation }) {
 
   const renderSummaryCard = () => {
     if (!customerMetadata) return null;
-    
+
     return (
       <View style={styles.summaryCard}>
         <Text style={styles.summaryTitle}>Orders Summary</Text>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Total Orders:</Text>
-          <Text style={styles.summaryValue}>{customerMetadata.total_orders || customerOrders.length}</Text>
-        </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Total Bills:</Text>
           <Text style={styles.summaryValue}>{customerMetadata.total_bills || 'N/A'}</Text>
@@ -264,6 +273,10 @@ export default function CustomerInfoScreen({ navigation }) {
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Total Amount:</Text>
           <Text style={styles.summaryValue}>₹{customerMetadata.total_amount || 0}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Pending Amount:</Text>
+          <Text style={[styles.summaryValue, { color: '#e74c3c' }]}>₹{customerMetadata.total_pending || 0}</Text>
         </View>
         {customerMetadata.last_updated && (
           <View style={styles.summaryRow}>
@@ -295,19 +308,19 @@ export default function CustomerInfoScreen({ navigation }) {
     // Add garment count indicator if garment_index is a valid number (including 0)
     const hasValidIndex = typeof item.garment_index === 'number' && item.garment_index >= 0;
     const garmentDisplay = hasValidIndex ? displayGarmentType + ' (' + (item.garment_index + 1) + ')' : displayGarmentType;
-    
+
     return (
       <View style={styles.tableRow}>
         <Text style={[styles.tableCellText, styles.orderIdColumn]}>{item.order_id}</Text>
         <Text style={[styles.tableCellText, styles.billNumberColumn]}>{item.bill_number || 'N/A'}</Text>
         <Text style={[styles.tableCellText, styles.garmentTypeColumn]}>{garmentDisplay}</Text>
-      <Text style={[styles.tableCellText, styles.statusColumn]}>{item.status || 'N/A'}</Text>
-      <Text style={[styles.tableCellText, styles.dateColumn]}>{formatDateTime(item.order_date)}</Text>
-      <Text style={[styles.tableCellText, styles.dateColumn]}>{formatDateTime(item.due_date)}</Text>
-      <Text style={[styles.tableCellText, styles.paymentColumn]}>{item.payment_mode || 'N/A'}</Text>
-      <Text style={[styles.tableCellText, styles.paymentColumn]}>{item.payment_status || 'N/A'}</Text>
-      <Text style={[styles.tableCellText, styles.amountColumn]}>₹{item.advance_amount || 0}</Text>
-      <Text style={[styles.tableCellText, styles.amountColumn]}>₹{item.total_amount || 0}</Text>
+        <Text style={[styles.tableCellText, styles.statusColumn]}>{item.status || 'N/A'}</Text>
+        <Text style={[styles.tableCellText, styles.dateColumn]}>{formatDateTime(item.order_date)}</Text>
+        <Text style={[styles.tableCellText, styles.dateColumn]}>{formatDateTime(item.due_date)}</Text>
+        <Text style={[styles.tableCellText, styles.paymentColumn]}>{item.payment_mode || 'N/A'}</Text>
+        <Text style={[styles.tableCellText, styles.paymentColumn]}>{item.payment_status || 'N/A'}</Text>
+        <Text style={[styles.tableCellText, styles.amountColumn]}>₹{item.advance_amount || 0}</Text>
+        <Text style={[styles.tableCellText, styles.amountColumn]}>₹{item.total_amount || 0}</Text>
       </View>
     );
   };
@@ -448,8 +461,8 @@ export default function CustomerInfoScreen({ navigation }) {
                 <View style={styles.ordersSection}>
                   {renderSummaryCard()}
                   <Text style={styles.sectionTitle}>Customer Orders ({customerOrders.length})</Text>
-                  <ScrollView 
-                    horizontal 
+                  <ScrollView
+                    horizontal
                     showsHorizontalScrollIndicator={true}
                     style={styles.horizontalScrollContainer}
                   >

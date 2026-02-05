@@ -13,12 +13,80 @@ import {
   SafeAreaView,
   Image,
   Dimensions,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { supabase } from './supabase';
 import { Ionicons } from '@expo/vector-icons';
 import WebScrollView from './components/WebScrollView';
 
 export default function TodayProfitScreen({ navigation }) {
+  // Get today's date in IST timezone (matching the existing DailyProfitScreen logic)
+  const getTodayIST = () => {
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const now = new Date();
+    const istDate = new Date(now.getTime() + IST_OFFSET_MS);
+
+    const yyyy = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+
+    const todayIST = `${yyyy}-${mm}-${dd}`;
+
+    // Debug logging
+    console.log('🇮🇳 getTodayIST():');
+    console.log(`   UTC now: ${now.toISOString()}`);
+    console.log(`   IST date object: ${istDate.toISOString()}`);
+    console.log(`   Today IST string: ${todayIST}`);
+
+    return todayIST;
+  };
+
+  const formatISTDate = (date) => {
+    if (!date) return '';
+
+    try {
+      const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+
+      // Handle different date formats
+      let dateObj;
+      if (date instanceof Date) {
+        dateObj = date;
+      } else if (typeof date === 'string') {
+        dateObj = new Date(date);
+      } else {
+        console.warn('Invalid date format:', date, typeof date);
+        return '';
+      }
+
+      // Check if date is valid
+      if (isNaN(dateObj.getTime())) {
+        console.warn('Invalid date value:', date);
+        return '';
+      }
+
+      // Convert UTC to IST
+      const istDate = new Date(dateObj.getTime() + IST_OFFSET_MS);
+
+      const yyyy = istDate.getFullYear();
+      const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(istDate.getDate()).padStart(2, '0');
+
+      const formattedDate = `${yyyy}-${mm}-${dd}`;
+
+      // Debug logging for timezone conversion
+      if (date && typeof date === 'string' && date.includes('2025-09-11')) {
+        console.log(`🇮🇳 IST Conversion: UTC '${date}' -> IST '${formattedDate}'`);
+        console.log(`   UTC timestamp: ${dateObj.getTime()}, IST timestamp: ${istDate.getTime()}`);
+      }
+
+      return formattedDate;
+    } catch (error) {
+      console.error('Error in formatISTDate:', error, 'Date:', date);
+      return '';
+    }
+  };
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
@@ -40,10 +108,15 @@ export default function TodayProfitScreen({ navigation }) {
     expenseDetails: [],
     workerExpenseDetails: [],
   });
+  const [selectedDate, setSelectedDate] = useState(getTodayIST());
+  const [endDate, setEndDate] = useState(null); // If null, it's a single day view
+  const [viewTitle, setViewTitle] = useState('Today');
+  const [datePickerModalVisible, setDatePickerModalVisible] = useState(false);
+  const [manualDate, setManualDate] = useState('');
 
   useEffect(() => {
-    loadTodayProfitData();
-  }, []);
+    loadTodayProfitData(selectedDate, endDate);
+  }, [selectedDate, endDate]);
 
   useEffect(() => {
     const onChange = (result) => {
@@ -69,114 +142,53 @@ export default function TodayProfitScreen({ navigation }) {
 
   const responsivePadding = getResponsivePadding();
 
-  // Get today's date in IST timezone (matching the existing DailyProfitScreen logic)
-  const getTodayIST = () => {
-    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const now = new Date();
-    const istDate = new Date(now.getTime() + IST_OFFSET_MS);
-    
-    const yyyy = istDate.getFullYear();
-    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(istDate.getDate()).padStart(2, '0');
-    
-    const todayIST = `${yyyy}-${mm}-${dd}`;
-    
-    // Debug logging
-    console.log('🇮🇳 getTodayIST():');
-    console.log(`   UTC now: ${now.toISOString()}`);
-    console.log(`   IST date object: ${istDate.toISOString()}`);
-    console.log(`   Today IST string: ${todayIST}`);
-    
-    return todayIST;
-  };
 
-  const formatISTDate = (date) => {
-    if (!date) return '';
-    
-    try {
-      const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-      
-      // Handle different date formats
-      let dateObj;
-      if (date instanceof Date) {
-        dateObj = date;
-      } else if (typeof date === 'string') {
-        dateObj = new Date(date);
-      } else {
-        console.warn('Invalid date format:', date, typeof date);
-        return '';
-      }
-      
-      // Check if date is valid
-      if (isNaN(dateObj.getTime())) {
-        console.warn('Invalid date value:', date);
-        return '';
-      }
-      
-      // Convert UTC to IST
-      const istDate = new Date(dateObj.getTime() + IST_OFFSET_MS);
-      
-      const yyyy = istDate.getFullYear();
-      const mm = String(istDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(istDate.getDate()).padStart(2, '0');
-      
-      const formattedDate = `${yyyy}-${mm}-${dd}`;
-      
-      // Debug logging for timezone conversion
-      if (date && typeof date === 'string' && date.includes('2025-09-11')) {
-        console.log(`🇮🇳 IST Conversion: UTC '${date}' -> IST '${formattedDate}'`);
-        console.log(`   UTC timestamp: ${dateObj.getTime()}, IST timestamp: ${istDate.getTime()}`);
-      }
-      
-      return formattedDate;
-    } catch (error) {
-      console.error('Error in formatISTDate:', error, 'Date:', date);
-      return '';
-    }
-  };
 
-  const loadTodayProfitData = async () => {
+  const loadTodayProfitData = async (targetDate, targetEndDate) => {
     try {
       setLoading(true);
-      const today = getTodayIST();
-      const currentUTC = new Date();
-      const currentIST = new Date(currentUTC.getTime() + 5.5 * 60 * 60 * 1000);
-      
-      console.log('🎯 TodayProfitScreen: Loading data for IST date:', today);
-      console.log('🇮🇳 TIMEZONE DEBUG:');
-      console.log(`   Current UTC: ${currentUTC.toISOString()}`);
-      console.log(`   Current IST: ${currentIST.toISOString()} (UTC+5:30)`);
-      console.log(`   Today IST date: ${today}`);
-      console.log(`   Looking for bills created on: ${today}`);
-      console.log('   ---');
-      console.log(`   Your local time: ${new Date().toLocaleString()}`);
-      console.log(`   IST time: ${currentIST.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`);
-      console.log('   ===');
-      console.log('📅 NOTE: Bills with dates matching today in IST timezone will be included.');
-      
-      // 1. Fetch advance payments from bills created today
-      const advanceData = await fetchAdvancePayments(today);
-      
-      // 2. Fetch remaining payments from orders that became paid today
-      const remainingData = await fetchRemainingPayments(today);
-      
-      // 3. Fetch shop expenses for today
-      const expenseData = await fetchShopExpenses(today);
-      
-      // 4. Fetch worker expenses for today
-      const workerExpenseData = await fetchWorkerExpenses(today);
-      
-      // 5. Calculate totals
-      const totalAdvance = advanceData.reduce((sum, item) => sum + item.amount, 0);
-      const totalRemaining = remainingData.reduce((sum, item) => sum + item.amount, 0);
-      const totalShopExpenses = expenseData.reduce((sum, item) => sum + item.amount, 0);
-      const totalWorkerExpenses = workerExpenseData.reduce((sum, item) => sum + item.amount, 0);
+      const isRange = !!targetEndDate;
+      const start = targetDate || getTodayIST();
+      const end = targetEndDate || start;
+
+      console.log(`🎯 TodayProfitScreen: Loading data for ${isRange ? 'range' : 'date'}: ${start} ${isRange ? 'to ' + end : ''}`);
+
+      const dateList = [];
+      if (isRange) {
+        const d = new Date(start);
+        const e = new Date(end);
+        while (d <= e) {
+          dateList.push(formatISTDate(new Date(d)));
+          d.setDate(d.getDate() + 1);
+        }
+      } else {
+        dateList.push(start);
+      }
+
+      // Fetch all data for the date list
+      const advancePromises = dateList.map(d => fetchAdvancePayments(d));
+      const remainingPromises = dateList.map(d => fetchRemainingPayments(d));
+      const expensePromises = dateList.map(d => fetchShopExpenses(d));
+      const workerExpensePromises = dateList.map(d => fetchWorkerExpenses(d));
+
+      const [allAdvances, allRemainings, allExpenses, allWorkerExpenses] = await Promise.all([
+        Promise.all(advancePromises).then(results => results.flat()),
+        Promise.all(remainingPromises).then(results => results.flat()),
+        Promise.all(expensePromises).then(results => results.flat()),
+        Promise.all(workerExpensePromises).then(results => results.flat())
+      ]);
+
+      // Calculate totals
+      const totalAdvance = allAdvances.reduce((sum, item) => sum + item.amount, 0);
+      const totalRemaining = allRemainings.reduce((sum, item) => sum + item.amount, 0);
+      const totalShopExpenses = allExpenses.reduce((sum, item) => sum + item.amount, 0);
+      const totalWorkerExpenses = allWorkerExpenses.reduce((sum, item) => sum + item.amount, 0);
       const totalExpenses = totalShopExpenses + totalWorkerExpenses;
       const totalRevenue = totalAdvance + totalRemaining;
       const netProfit = totalRevenue - totalExpenses;
-      
+
       setTodayData({
-        date: today,
+        date: isRange ? `${start} to ${end}` : start,
         advancePayments: totalAdvance,
         remainingPayments: totalRemaining,
         totalRevenue,
@@ -184,16 +196,16 @@ export default function TodayProfitScreen({ navigation }) {
         workerExpenses: totalWorkerExpenses,
         totalExpenses,
         netProfit,
-        advanceCount: advanceData.length,
-        remainingCount: remainingData.length,
-        expenseCount: expenseData.length,
-        workerExpenseCount: workerExpenseData.length,
-        advanceDetails: advanceData,
-        remainingDetails: remainingData,
-        expenseDetails: expenseData,
-        workerExpenseDetails: workerExpenseData,
+        advanceCount: allAdvances.length,
+        remainingCount: allRemainings.length,
+        expenseCount: allExpenses.length,
+        workerExpenseCount: allWorkerExpenses.length,
+        advanceDetails: allAdvances,
+        remainingDetails: allRemainings,
+        expenseDetails: allExpenses,
+        workerExpenseDetails: allWorkerExpenses,
       });
-      
+
       console.log('📊 Today\'s Profit Summary (Bills-based):', {
         date: today,
         advancePayments: totalAdvance + ' (from bills.payment_amount)',
@@ -202,33 +214,33 @@ export default function TodayProfitScreen({ navigation }) {
         shopExpenses: totalExpenses,
         netProfit
       });
-      
+
       console.log('💵 ADVANCE PAYMENTS DETAIL:');
       console.log('   - Data source: orders table payment_amount field');
       console.log('   - Count:', advanceData.length);
       console.log('   - Total amount:', totalAdvance);
       console.log('   - Orders found:', advanceData.map(a => `Order ${a.orderNumber}: ₹${a.amount}`).join(', '));
-      
+
       console.log('💰 REMAINING PAYMENTS DETAIL:');
       console.log('   - Data source: orders with payment_status="paid" updated today');
       console.log('   - Count:', remainingData.length);
       console.log('   - Total amount:', totalRemaining);
-      
+
       console.log('🏢 SHOP EXPENSES DETAIL:');
       console.log('   - Count:', expenseData.length);
       console.log('   - Total amount:', totalShopExpenses);
-      
+
       console.log('👷 WORKER EXPENSES DETAIL:');
       console.log('   - Data source: Worker_Expense table');
       console.log('   - Count:', workerExpenseData.length);
       console.log('   - Total amount:', totalWorkerExpenses);
       console.log('   - Workers paid:', workerExpenseData.map(w => `${w.workerName}: ₹${w.amount}`).join(', '));
-      
+
       console.log('💰 TOTAL EXPENSES BREAKDOWN:');
       console.log('   - Shop expenses: ₹' + totalShopExpenses);
       console.log('   - Worker expenses: ₹' + totalWorkerExpenses);
       console.log('   - Total expenses: ₹' + totalExpenses);
-      
+
     } catch (error) {
       console.error('Error loading today\'s profit data:', error);
       Alert.alert('Error', `Failed to load today's profit data: ${error.message}`);
@@ -240,7 +252,7 @@ export default function TodayProfitScreen({ navigation }) {
   const fetchAdvancePayments = async (today) => {
     try {
       console.log('💵 Fetching advance payments from orders table for today:', today);
-      
+
       // Get all orders that have advance payments (payment_amount > 0)
       // Note: orders table doesn't have customer_name, need to join with bills
       const { data: orders, error: ordersError } = await supabase
@@ -267,7 +279,7 @@ export default function TodayProfitScreen({ navigation }) {
       }
 
       console.log(`💵 Found ${orders?.length || 0} orders with advance payments in database`);
-      
+
       // Log some sample orders for debugging
       if (orders && orders.length > 0) {
         console.log('💵 Sample orders with advance payments:');
@@ -283,7 +295,7 @@ export default function TodayProfitScreen({ navigation }) {
         // Check updated_at, order_date, or created_at to find orders from today
         // Convert each date field to IST before comparison
         let orderDates = [];
-        
+
         // Try all available date fields
         if (order.updated_at) {
           orderDates.push({ field: 'updated_at', value: order.updated_at, ist: formatISTDate(order.updated_at) });
@@ -294,10 +306,10 @@ export default function TodayProfitScreen({ navigation }) {
         if (order.created_at) {
           orderDates.push({ field: 'created_at', value: order.created_at, ist: formatISTDate(order.created_at) });
         }
-        
+
         const hasAdvancePayment = parseFloat(order.payment_amount || 0) > 0;
         const isToday = orderDates.some(dateInfo => dateInfo.ist === today);
-        
+
         // Debug logging for date comparison
         console.log(`🔍 Order ${order.id} (Bill ID: ${order.bill_id}):`);
         console.log(`   Payment amount: ₹${order.payment_amount}`);
@@ -305,12 +317,12 @@ export default function TodayProfitScreen({ navigation }) {
         console.log(`   Looking for: ${today}`);
         console.log(`   Match found: ${isToday}, Has advance: ${hasAdvancePayment}`);
         console.log(`   Will include: ${isToday && hasAdvancePayment}`);
-        
+
         return isToday && hasAdvancePayment;
       }) || [];
 
       console.log(`💵 Found ${todayOrders.length} orders with advance payments updated today`);
-      
+
       // Debug: Show sample orders with advance payments
       if (todayOrders.length > 0) {
         console.log('💵 Sample advance payment orders for today:');
@@ -322,7 +334,7 @@ export default function TodayProfitScreen({ navigation }) {
         console.log('⚠️ No orders with advance payments found for today:', today);
         console.log('   - Make sure orders have payment_amount > 0');
         console.log('   - Check if updated_at, order_date, or created_at matches today\'s IST date');
-        
+
         // DEBUG: Show all orders with advance payments (regardless of date) to help troubleshooting
         console.log('💵 DEBUG: All orders with advance payments (any date):');
         orders?.slice(0, 5).forEach((order, index) => {
@@ -330,7 +342,7 @@ export default function TodayProfitScreen({ navigation }) {
           if (order.updated_at) orderDates.push(`updated_at: ${order.updated_at} -> ${formatISTDate(order.updated_at)}`);
           if (order.order_date) orderDates.push(`order_date: ${order.order_date} -> ${formatISTDate(order.order_date)}`);
           if (order.created_at) orderDates.push(`created_at: ${order.created_at} -> ${formatISTDate(order.created_at)}`);
-          
+
           console.log(`  Order ${index + 1}: ID ${order.id}, Bill ID: ${order.bill_id}, Payment: ₹${order.payment_amount}`);
           console.log(`    Dates: ${orderDates.join(', ')}`);
         });
@@ -339,7 +351,7 @@ export default function TodayProfitScreen({ navigation }) {
       return todayOrders.map(order => {
         // Get the primary date field for this order
         const primaryDate = order.updated_at || order.order_date || order.created_at;
-        
+
         return {
           id: order.id,
           type: 'advance',
@@ -369,7 +381,7 @@ export default function TodayProfitScreen({ navigation }) {
   const fetchRemainingPayments = async (today) => {
     try {
       console.log('💰 Fetching remaining payments for orders paid today:', today);
-      
+
       // Get orders that were marked as paid today (using updated_at field)
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
@@ -429,7 +441,7 @@ export default function TodayProfitScreen({ navigation }) {
   const fetchShopExpenses = async (today) => {
     try {
       console.log('🏢 Fetching shop expenses for today:', today);
-      
+
       let expenses = [];
 
       // Try expenses table first
@@ -495,7 +507,7 @@ export default function TodayProfitScreen({ navigation }) {
   const fetchWorkerExpenses = async (today) => {
     try {
       console.log('👷 Fetching worker expenses for today:', today);
-      
+
       const { data: workerExpenses, error: workerExpensesError } = await supabase
         .from('Worker_Expense')
         .select('*')
@@ -521,7 +533,7 @@ export default function TodayProfitScreen({ navigation }) {
       if (expenses.length > 0) {
         console.log('👷 Worker expenses:', expenses.map(e => `${e.workerName}: ₹${e.amount}`).join(', '));
       }
-      
+
       return expenses;
 
     } catch (error) {
@@ -532,8 +544,63 @@ export default function TodayProfitScreen({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadTodayProfitData();
+    await loadTodayProfitData(selectedDate);
     setRefreshing(false);
+  };
+
+  const jumpToToday = () => {
+    setSelectedDate(getTodayIST());
+    setEndDate(null);
+    setViewTitle('Today');
+  };
+
+  const jumpToWeekRange = (start, end, label) => {
+    setSelectedDate(start);
+    setEndDate(end);
+    setViewTitle(label);
+  };
+
+  const navigateDay = (direction) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + direction);
+    setSelectedDate(formatISTDate(d));
+    setEndDate(null);
+    setViewTitle(direction === -1 ? 'Previous Day' : 'Next Day');
+  };
+
+  const navigateWeek = (direction) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + (direction * 7));
+
+    // Calculate week bounds roughly starting from Sunday
+    const start = new Date(d);
+    start.setDate(d.getDate() - d.getDay());
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    setSelectedDate(formatISTDate(start));
+    setEndDate(formatISTDate(end));
+    setViewTitle('Selected Week');
+  };
+
+  const handleCustomDate = () => {
+    if (!manualDate) {
+      Alert.alert('Error', 'Please enter a valid date');
+      return;
+    }
+
+    // Basic regex for YYYY-MM-DD
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(manualDate)) {
+      Alert.alert('Error', 'Please enter date in YYYY-MM-DD format');
+      return;
+    }
+
+    setSelectedDate(manualDate);
+    setEndDate(null);
+    setViewTitle('Custom Date');
+    setDatePickerModalVisible(false);
+    setManualDate('');
   };
 
   const getProfitColor = (profit) => {
@@ -546,24 +613,109 @@ export default function TodayProfitScreen({ navigation }) {
     return `₹${amount.toFixed(2)}`;
   };
 
-  const formatDisplayDate = (dateString) => {
-    const date = new Date(dateString);
+  const formatDisplayDate = (dateString, endStr) => {
+    if (endStr) {
+      const [sy, sm, sd] = dateString.split('-').map(Number);
+      const [ey, em, ed] = endStr.split('-').map(Number);
+      const start = new Date(sy, sm - 1, sd);
+      const end = new Date(ey, em - 1, ed);
+
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    }) + ' (IST)';
+    }) + (dateString === getTodayIST() && !endStr ? ' (Today)' : '');
   };
 
   const renderContent = () => (
     <>
-      {/* Date Display */}
-      <View style={[styles.dateContainer, { marginHorizontal: isSmallScreen ? 16 : 0 }]}>
-        <Text style={styles.dateText}>
-          {formatDisplayDate(new Date())}
-        </Text>
+      {/* Date Navigation */}
+      <View style={[styles.weekNavigation, { marginHorizontal: isSmallScreen ? 16 : 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigateDay(-1)}
+        >
+          <Ionicons name="chevron-back" size={28} color="#2980b9" />
+          <Text style={styles.navButtonText}>Prev</Text>
+        </TouchableOpacity>
+
+        <View style={styles.weekLabel}>
+          <TouchableOpacity
+            style={styles.dateSelectorBtn}
+            onPress={() => setDatePickerModalVisible(true)}
+          >
+            <Text style={styles.weekLabelText}>
+              {formatDisplayDate(selectedDate, endDate)}
+            </Text>
+            <Ionicons name="calendar-outline" size={16} color="#2980b9" style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
+          {(selectedDate !== getTodayIST() || endDate) && (
+            <TouchableOpacity onPress={jumpToToday}>
+              <Text style={styles.jumpTodayText}>Back to Today</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigateDay(1)}
+        >
+          <Text style={styles.navButtonText}>Next</Text>
+          <Ionicons name="chevron-forward" size={28} color="#2980b9" />
+        </TouchableOpacity>
       </View>
+
+      {/* Date Picker Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={datePickerModalVisible}
+        onRequestClose={() => setDatePickerModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setDatePickerModalVisible(false)}
+        >
+          <View style={styles.datePickerModal}>
+            <Text style={styles.modalTitle}>Go to Date</Text>
+            <Text style={styles.modalSubtitle}>Format: YYYY-MM-DD (e.g., 2026-01-15)</Text>
+
+            <TextInput
+              style={styles.dateInput}
+              value={manualDate}
+              onChangeText={setManualDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#95a5a6"
+              autoFocus={true}
+              maxLength={10}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => setDatePickerModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.submitBtn]}
+                onPress={handleCustomDate}
+              >
+                <Text style={styles.submitBtnText}>Go</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Summary Cards */}
       <View style={[styles.summaryContainer, { marginHorizontal: isSmallScreen ? 16 : 0 }]}>
@@ -691,8 +843,8 @@ export default function TodayProfitScreen({ navigation }) {
                   </Text>
                   {item.details?.material_cost && (
                     <Text style={styles.itemSubtitle}>
-                      Materials: {formatCurrency(item.details.material_cost)} • 
-                      Misc: {formatCurrency(item.details.miscellaneous_cost || 0)} • 
+                      Materials: {formatCurrency(item.details.material_cost)} •
+                      Misc: {formatCurrency(item.details.miscellaneous_cost || 0)} •
                       Tea/Snacks: {formatCurrency(item.details.chai_pani_cost || 0)}
                     </Text>
                   )}
@@ -769,33 +921,33 @@ export default function TodayProfitScreen({ navigation }) {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Today's Profit</Text>
         </View>
-        <Image 
-          source={require('./assets/logo.jpg')} 
-          style={styles.logo} 
+        <Image
+          source={require('./assets/logo.jpg')}
+          style={styles.logo}
         />
       </View>
 
       {Platform.OS === 'web' ? (
         // Web Layout with full scrolling
-        <WebScrollView 
-          style={{ 
+        <WebScrollView
+          style={{
             flex: 1,
             height: 'calc(100vh - 120px)',
             width: '100vw'
-          }} 
-          contentContainerStyle={{ 
+          }}
+          contentContainerStyle={{
             paddingBottom: isSmallScreen ? 100 : 120,
             minHeight: 'max-content',
             paddingHorizontal: responsivePadding
-          }} 
+          }}
           showsVerticalScrollIndicator={true}
         >
           {renderContent()}
         </WebScrollView>
       ) : (
         // Mobile Layout with SafeAreaView and ScrollView
-        <WebScrollView 
-          style={styles.scrollView} 
+        <WebScrollView
+          style={styles.scrollView}
           contentContainerStyle={{
             paddingHorizontal: responsivePadding,
             paddingBottom: isSmallScreen ? 100 : 120
@@ -900,6 +1052,156 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2c3e50',
     textAlign: 'center',
+  },
+  weekNavigation: {
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  navButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 6,
+  },
+  navButtonText: {
+    color: '#2980b9',
+    fontWeight: '600',
+    fontSize: 12,
+    marginHorizontal: 2,
+  },
+  weekLabel: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  weekLabelText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+  },
+  dateSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  datePickerModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  dateInput: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    borderRadius: 12,
+    padding: 15,
+    fontSize: 18,
+    color: '#2c3e50',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelBtn: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  submitBtn: {
+    backgroundColor: '#2980b9',
+  },
+  cancelBtnText: {
+    color: '#7f8c8d',
+    fontWeight: '600',
+  },
+  submitBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  jumpTodayText: {
+    color: '#2980b9',
+    fontSize: 12,
+    marginTop: 4,
+    textDecorationLine: 'underline',
+  },
+  viewSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  selectorBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#2980b9',
+  },
+  selectorBtnActive: {
+    backgroundColor: '#2980b9',
+  },
+  selectorBtnText: {
+    color: '#2980b9',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectorBtnTextActive: {
+    color: '#fff',
   },
   summaryContainer: {
     marginTop: 16,

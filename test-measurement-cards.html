@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>Traditional Measurement Cards - Preview</title>
@@ -10,14 +11,16 @@
             background: #f0f0f0;
             color: #333;
         }
+
         .preview-container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+
         .test-controls {
             background: #e6f3ff;
             padding: 15px;
@@ -25,36 +28,43 @@
             margin-bottom: 20px;
             border: 1px solid #b3d9ff;
         }
+
         .test-controls h3 {
             margin-top: 0;
             color: #0066cc;
         }
+
         .test-form {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 15px;
             margin: 15px 0;
         }
+
         .form-group {
             display: flex;
             flex-direction: column;
         }
+
         .form-group label {
             font-size: 12px;
             font-weight: bold;
             margin-bottom: 3px;
             color: #666;
         }
+
         .form-group input {
             padding: 5px;
             border: 1px solid #ddd;
             border-radius: 3px;
             font-size: 13px;
         }
+
         .test-buttons {
             text-align: center;
             margin: 20px 0;
         }
+
         .test-buttons button {
             background: #4CAF50;
             color: white;
@@ -65,25 +75,30 @@
             cursor: pointer;
             font-size: 14px;
         }
+
         .test-buttons button:hover {
             background: #45a049;
         }
+
         .test-buttons button.preview {
             background: #2196F3;
         }
+
         .test-buttons button.preview:hover {
             background: #1976D2;
         }
     </style>
 </head>
+
 <body>
     <div class="preview-container">
         <h1>Traditional Measurement Cards - Test & Preview</h1>
-        
+
         <div class="test-controls">
             <h3>📋 Test Your Measurement Cards</h3>
-            <p>Fill in some test measurements below and click "Preview Cards" to see how your measurement sheet will look:</p>
-            
+            <p>Fill in some test measurements below and click "Preview Cards" to see how your measurement sheet will
+                look:</p>
+
             <!-- Customer Info -->
             <div class="test-form">
                 <div class="form-group">
@@ -103,7 +118,7 @@
                     <input type="date" id="delivery-date" value="2025-01-25">
                 </div>
             </div>
-            
+
             <h4>Pant Measurements:</h4>
             <div class="test-form">
                 <div class="form-group">
@@ -155,7 +170,7 @@
                     <input type="text" id="WP" value="1" placeholder="WP">
                 </div>
             </div>
-            
+
             <h4>Shirt Measurements:</h4>
             <div class="test-form">
                 <div class="form-group">
@@ -203,23 +218,24 @@
                     <input type="text" id="LooseShirt" value="5" placeholder="Loose">
                 </div>
                 <div class="form-group">
-                    <label>DT/TT:</label>
-                    <input type="text" id="DT_TT" value="" placeholder="DT/TT">
+                    <label>Strip:</label>
+                    <input type="text" id="DT_TT" value="" placeholder="ST/TT">
                 </div>
             </div>
-            
+
             <div class="form-group" style="grid-column: 1 / -1;">
                 <label>Extra Measurements / Notes:</label>
-                <textarea id="extra-input" rows="3" placeholder="Any additional measurements or special notes..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;">Yulus - 33 X-1</textarea>
+                <textarea id="extra-input" rows="3" placeholder="Any additional measurements or special notes..."
+                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;">Yulus - 33 X-1</textarea>
             </div>
         </div>
-        
+
         <div class="test-buttons">
             <button onclick="previewCards()" class="preview">📋 Preview Measurement Cards</button>
             <button onclick="generatePDF()">📄 Generate PDF</button>
             <button onclick="clearForm()">🗑️ Clear Form</button>
         </div>
-        
+
         <div id="preview-area" style="margin-top: 30px; display: none;">
             <h3>Preview:</h3>
             <div id="preview-content"></div>
@@ -237,26 +253,26 @@
                 // Collect data from form
                 const billData = window.measurementCardGenerator.collectBillData();
                 const measurements = window.measurementCardGenerator.collectMeasurementData();
-                
+
                 console.log('Previewing with data:', { billData, measurements });
-                
+
                 // Generate HTML
                 const html = window.measurementCardGenerator.generateMeasurementHTML(billData, measurements);
-                
+
                 // Show in preview area
                 document.getElementById('preview-content').innerHTML = html;
                 document.getElementById('preview-area').style.display = 'block';
-                
+
                 // Scroll to preview
                 document.getElementById('preview-area').scrollIntoView({ behavior: 'smooth' });
-                
+
                 console.log('Preview generated successfully');
             } catch (error) {
                 console.error('Preview error:', error);
                 alert('Error generating preview: ' + error.message);
             }
         }
-        
+
         async function generatePDF() {
             try {
                 console.log('Generating PDF...');
@@ -271,7 +287,7 @@
                 alert('Error generating PDF: ' + error.message);
             }
         }
-        
+
         function clearForm() {
             // Clear all input fields
             document.querySelectorAll('input, textarea').forEach(input => {
@@ -281,19 +297,20 @@
                     input.value = '';
                 }
             });
-            
+
             // Hide preview
             document.getElementById('preview-area').style.display = 'none';
-            
+
             console.log('Form cleared');
         }
-        
+
         // Auto-preview when page loads
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             setTimeout(previewCards, 500);
         });
-        
+
         console.log('Test page loaded successfully');
     </script>
 </body>
+
 </html>
