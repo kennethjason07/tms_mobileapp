@@ -8,6 +8,33 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Helper functions to replace your Python routes
 export const SupabaseAPI = {
+  resolveBillById(billsMap, billId) {
+    if (billId === null || billId === undefined) {
+      return null
+    }
+
+    return billsMap[billId] || billsMap[String(billId)] || billsMap[Number(billId)] || null
+  },
+
+  async fetchBillById(billId) {
+    if (billId === null || billId === undefined || billId === '') {
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('bills')
+      .select('*')
+      .eq('id', billId)
+      .maybeSingle()
+
+    if (error) {
+      console.warn('Direct bill fetch failed for bill_id:', billId, error.message)
+      return null
+    }
+
+    return data || null
+  },
+
   // Debug helper to check available tables
   async getAvailableTables() {
     try {
@@ -155,6 +182,7 @@ export const SupabaseAPI = {
       const billsMap = {}
       bills.forEach(bill => {
         billsMap[bill.id] = bill
+        billsMap[String(bill.id)] = bill
       })
 
       // Get all order-worker associations
@@ -189,7 +217,7 @@ export const SupabaseAPI = {
       // Process the orders to include customer mobile and worker information
       const ordersWithRelations = orders.map(order => {
         const orderAssociations = associationsMap[order.id] || []
-        const bill = billsMap[order.bill_id]
+        const bill = this.resolveBillById(billsMap, order.bill_id)
 
         const orderWorkerAssociations = orderAssociations.map(association => ({
           order_id: association.order_id,
@@ -207,6 +235,11 @@ export const SupabaseAPI = {
 
         return processedOrder
       })
+
+      const missingMobileCount = ordersWithRelations.filter(order => !order.customer_mobile).length
+      if (missingMobileCount > 0) {
+        console.warn(`⚠️ ${missingMobileCount} orders missing customer_mobile after batch resolution`)
+      }
 
       return ordersWithRelations
     } catch (error) {
@@ -250,13 +283,14 @@ export const SupabaseAPI = {
           const billsMap = {}
           bills.forEach(bill => {
             billsMap[bill.id] = bill
+            billsMap[String(bill.id)] = bill
           })
 
           orders = ordersData.map(order => ({
             ...order,
-            bills: billsMap[order.bill_id],
-            customer_mobile: billsMap[order.bill_id]?.mobile_number || null,
-            customer_name: billsMap[order.bill_id]?.customer_name || null
+            bills: this.resolveBillById(billsMap, order.bill_id),
+            customer_mobile: this.resolveBillById(billsMap, order.bill_id)?.mobile_number || null,
+            customer_name: this.resolveBillById(billsMap, order.bill_id)?.customer_name || null
           }))
         } else {
           console.log('❌ EXACT MATCH: No orders found, trying partial match...');
@@ -296,13 +330,14 @@ export const SupabaseAPI = {
             const billsMap = {}
             bills.forEach(bill => {
               billsMap[bill.id] = bill
+              billsMap[String(bill.id)] = bill
             })
 
             orders = ordersData.map(order => ({
               ...order,
-              bills: billsMap[order.bill_id],
-              customer_mobile: billsMap[order.bill_id]?.mobile_number || null,
-              customer_name: billsMap[order.bill_id]?.customer_name || null
+              bills: this.resolveBillById(billsMap, order.bill_id),
+              customer_mobile: this.resolveBillById(billsMap, order.bill_id)?.mobile_number || null,
+              customer_name: this.resolveBillById(billsMap, order.bill_id)?.customer_name || null
             }))
           } else {
             console.log('❌ PARTIAL MATCH: No orders found');
@@ -352,8 +387,10 @@ export const SupabaseAPI = {
       })
 
       // Process the orders to include customer mobile and worker information
-      const ordersWithRelations = orders.map(order => {
+      const ordersWithRelations = await Promise.all(orders.map(async order => {
         const orderAssociations = associationsMap[order.id] || []
+        const bill = this.resolveBillById(billsMap, order.bill_id)
+        const resolvedBill = bill || order.bills || await this.fetchBillById(order.bill_id)
 
         const orderWorkerAssociations = orderAssociations.map(association => ({
           order_id: association.order_id,
@@ -364,10 +401,11 @@ export const SupabaseAPI = {
         return {
           ...order,
           order_worker_association: orderWorkerAssociations,
-          customer_mobile: order.bills?.mobile_number || null,  // Get customer mobile from joined bill
-          customer_name: order.bills?.customer_name || null     // Also include customer name
+          bills: resolvedBill || {},
+          customer_mobile: resolvedBill?.mobile_number || null,  // Get customer mobile from joined bill
+          customer_name: resolvedBill?.customer_name || null     // Also include customer name
         }
-      })
+      }))
 
       console.log(`🏆 FINAL SEARCH RESULTS: ${ordersWithRelations.length} orders processed`);
       if (ordersWithRelations.length > 0) {
@@ -806,26 +844,35 @@ export const SupabaseAPI = {
         }
       }
 
+      // Map order IDs to their assignment dates for this specific worker
+      const assignmentDateMap = {}
+      associations?.forEach(assoc => {
+        assignmentDateMap[assoc.order_id] = assoc.assigned_at
+      })
+
       // Process weekly data - matching backend logic exactly
       const weekly_data = {}
 
       // Process orders - matching backend Sunday-Saturday week calculation
       for (const order of all_orders) {
-        if (!order.order_date) {
+        // Use assignment date if available, otherwise fallback to order_date
+        const assignmentDateStr = assignmentDateMap[order.id] || order.order_date
+        
+        if (!assignmentDateStr) {
           continue
         }
 
-        const orderDate = new Date(order.order_date)
+        const calculationDate = new Date(assignmentDateStr)
 
         // Convert to Python's weekday() equivalent (Monday=0, Sunday=6)
-        const jsWeekday = orderDate.getDay() // 0=Sunday, 1=Monday, ..., 6=Saturday
+        const jsWeekday = calculationDate.getDay() // 0=Sunday, 1=Monday, ..., 6=Saturday
         const pythonWeekday = jsWeekday === 0 ? 6 : jsWeekday - 1 // Convert to Python format (Monday=0, Sunday=6)
 
         // Calculate days since Sunday using backend logic: (current_weekday + 1) % 7
         const daysSinceSunday = (pythonWeekday + 1) % 7
 
-        const weekStart = new Date(orderDate)
-        weekStart.setDate(orderDate.getDate() - daysSinceSunday)
+        const weekStart = new Date(calculationDate)
+        weekStart.setDate(calculationDate.getDate() - daysSinceSunday)
         const weekEnd = new Date(weekStart)
         weekEnd.setDate(weekStart.getDate() + 6)
 
@@ -844,7 +891,8 @@ export const SupabaseAPI = {
 
         weekly_data[weekKey].orders.push({
           order_number: order.billnumberinput2 || order.id,
-          work_pay: order.Work_pay || 0
+          work_pay: order.Work_pay || 0,
+          assignment_date: assignmentDateStr // Include for debugging/clarity
         })
         weekly_data[weekKey].total_work_pay += order.Work_pay || 0
         weekly_data[weekKey].order_count += 1
@@ -1357,10 +1405,13 @@ export const SupabaseAPI = {
       .delete()
       .eq('order_id', orderId)
 
-    // Then add new assignments
+    // Then add new assignments with the current date (IST)
+    const todayIST = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split('T')[0];
+
     const assignments = workerIds.map(workerId => ({
       order_id: orderId,
-      worker_id: workerId
+      worker_id: workerId,
+      assigned_at: todayIST
     }))
 
     const { data, error } = await supabase

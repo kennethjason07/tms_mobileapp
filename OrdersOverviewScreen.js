@@ -235,6 +235,23 @@ export default function OrdersOverviewScreen({ navigation }) {
         SupabaseAPI.getWorkers()
       ]);
 
+      const billIds = [...new Set((ordersData || []).map(order => order.bill_id).filter(Boolean))];
+      let billsMap = {};
+      if (billIds.length > 0) {
+        const { data: billsData, error: billsError } = await supabase
+          .from('bills')
+          .select('*')
+          .in('id', billIds);
+
+        if (!billsError && billsData) {
+          billsMap = billsData.reduce((acc, bill) => {
+            acc[bill.id] = bill;
+            acc[String(bill.id)] = bill;
+            return acc;
+          }, {});
+        }
+      }
+
       // Debug raw data from Supabase
 
 
@@ -262,7 +279,10 @@ export default function OrdersOverviewScreen({ navigation }) {
         .map(order => ({
           ...order,
           deliveryDate: order.due_date,
-          workers: order.order_worker_association?.map(assoc => assoc.workers) || []
+          workers: order.order_worker_association?.map(assoc => assoc.workers) || [],
+          bills: order.bills || billsMap[order.bill_id] || {},
+          customer_mobile: order.customer_mobile || billsMap[order.bill_id]?.mobile_number || order.bills?.mobile_number || null,
+          customer_name: order.customer_name || billsMap[order.bill_id]?.customer_name || order.bills?.customer_name || null
         }))
         // Sort by billnumberinput2 descending (8023, 8022, 8021... with 8023 at the top)
         .sort((a, b) => {
@@ -430,7 +450,9 @@ export default function OrdersOverviewScreen({ navigation }) {
       const processedData = data.map(order => ({
         ...order,
         deliveryDate: order.due_date,
-        workers: order.order_worker_association?.map(assoc => assoc.workers) || []
+        workers: order.order_worker_association?.map(assoc => assoc.workers) || [],
+        customer_mobile: order.customer_mobile || order.bills?.mobile_number || null,
+        customer_name: order.customer_name || order.bills?.customer_name || null
       }));
 
 

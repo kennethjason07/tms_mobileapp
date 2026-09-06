@@ -43,6 +43,7 @@ CREATE TABLE public.bills (
   payment_status text NOT NULL,
   payment_amount double precision,
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
+  nshirt_qty integer DEFAULT 0,
   CONSTRAINT bills_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.measurements (
@@ -75,12 +76,62 @@ CREATE TABLE public.measurements (
   extra_measurements text,
   created_at timestamp without time zone,
   updated_at timestamp without time zone,
+  shirt_type text DEFAULT 'Shirt'::text,
+  suit_length numeric DEFAULT 0,
+  suit_body text DEFAULT ''::text,
+  suit_loose text DEFAULT ''::text,
+  suit_shoulder numeric DEFAULT 0,
+  suit_astin numeric DEFAULT 0,
+  suit_collar numeric DEFAULT 0,
+  suit_aloose numeric DEFAULT 0,
+  suit_callar text DEFAULT ''::text,
+  suit_cuff text DEFAULT ''::text,
+  suit_pkt text DEFAULT ''::text,
+  suit_looseshirt text DEFAULT ''::text,
+  suit_dt_tt text DEFAULT ''::text,
+  safari_length text,
+  safari_body text,
+  safari_loose text,
+  safari_shoulder text,
+  safari_astin text,
+  safari_collar text,
+  safari_aloose text,
+  safari_callar text,
+  safari_cuff text,
+  safari_pkt text,
+  safari_looseshirt text,
+  safari_dt_tt text,
+  nshirt_length text,
+  nshirt_body text,
+  nshirt_loose text,
+  nshirt_shoulder text,
+  nshirt_astin text,
+  nshirt_collar text,
+  nshirt_aloose text,
+  nshirt_callar text,
+  nshirt_cuff text,
+  nshirt_pkt text,
+  nshirt_looseshirt text,
+  nshirt_dt_tt text,
+  sadri_length text,
+  sadri_body text,
+  sadri_loose text,
+  sadri_shoulder text,
+  sadri_astin text,
+  sadri_collar text,
+  sadri_aloose text,
+  sadri_callar text,
+  sadri_cuff text,
+  sadri_pkt text,
+  sadri_looseshirt text,
+  sadri_dt_tt text,
   CONSTRAINT measurements_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.order_worker_association (
   id integer NOT NULL DEFAULT nextval('order_worker_association_id_seq'::regclass),
   order_id integer NOT NULL,
   worker_id integer NOT NULL,
+  assigned_at date DEFAULT CURRENT_DATE,
   CONSTRAINT order_worker_association_pkey PRIMARY KEY (order_id, worker_id),
   CONSTRAINT order_worker_association_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
   CONSTRAINT order_worker_association_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES public.workers(id)
@@ -99,8 +150,20 @@ CREATE TABLE public.orders (
   billnumberinput2 double precision,
   bill_id integer NOT NULL,
   updated_at date,
+  order_status text NOT NULL DEFAULT 'pending'::text CHECK (order_status = ANY (ARRAY['pending'::text, 'completed'::text])),
   CONSTRAINT orders_pkey PRIMARY KEY (id),
   CONSTRAINT orders_bill_id_fkey FOREIGN KEY (bill_id) REFERENCES public.bills(id)
+);
+CREATE TABLE public.workers (
+  id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
+  name text,
+  number text,
+  Rate double precision,
+  Suit double precision,
+  Jacket double precision,
+  Sadri double precision,
+  Others double precision,
+  CONSTRAINT workers_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.revenue_tracking (
   id bigint NOT NULL DEFAULT nextval('revenue_tracking_id_seq'::regclass),
@@ -119,15 +182,4 @@ CREATE TABLE public.revenue_tracking (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT revenue_tracking_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.workers (
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
-  name text,
-  number text,
-  Rate double precision,
-  Suit double precision,
-  Jacket double precision,
-  Sadri double precision,
-  Others double precision,
-  CONSTRAINT workers_pkey PRIMARY KEY (id)
 );
